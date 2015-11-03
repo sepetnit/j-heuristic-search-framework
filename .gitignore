@@ -11,7 +11,10 @@
 # IntelliJ Files # 
 *.idea
 /target
+/out
 /.settings
+/results
+/input
 
 # Search Examples #
 input/fifteenpuzzle/mine1000/*.in
