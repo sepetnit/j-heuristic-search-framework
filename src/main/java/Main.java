@@ -53,7 +53,7 @@ public class Main {
 
     public void testAstar() throws FileNotFoundException {
         SearchDomain domain = createFifteenPuzzleKorf("20");
-        SearchAlgorithm algo = new Astar();
+        SearchAlgorithm algo = new AStar();
         testSearchAlgorithm(domain, algo);
     }
 
@@ -100,7 +100,7 @@ public class Main {
     public static void mainFifteenPuzzleDomain(String[] args) throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createFifteenPuzzleKorf("2");
-        SearchAlgorithm alg = new Astar();
+        SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
@@ -121,7 +121,7 @@ public class Main {
     public static void mainGridPathFindingDomain(String[] args) throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createGridPathFinding("brc202d.map");
-        SearchAlgorithm alg = new Astar();
+        SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
@@ -142,7 +142,7 @@ public class Main {
     public static void mainPancakesDomain(String[] args) throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createPancakesUnit("1.in");
-        SearchAlgorithm alg = new Astar();
+        SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
@@ -163,7 +163,7 @@ public class Main {
     public static void mainDRobotDomain(String[] args) throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createDockyardRobot("2.in");
-        SearchAlgorithm alg = new Astar();
+        SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
@@ -184,7 +184,7 @@ public class Main {
     public static void mainVacuumRobotDomain(String[] args) throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createVacuumRobot("1.in");
-        SearchAlgorithm alg = new Astar();
+        SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{

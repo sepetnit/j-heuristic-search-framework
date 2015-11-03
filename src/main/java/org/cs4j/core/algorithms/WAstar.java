@@ -21,7 +21,7 @@ package org.cs4j.core.algorithms;
  * 
  * @author Matthew Hatem
  */
-public class WAstar extends Astar {
+public class WAstar extends AStar {
 
   /**
    * The Constructor

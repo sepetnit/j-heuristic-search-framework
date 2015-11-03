@@ -27,8 +27,8 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.SearchResult.Solution;
-import org.cs4j.core.algorithms.Astar;
-import org.cs4j.core.algorithms.Astar.HeapType;
+import org.cs4j.core.algorithms.AStar;
+import org.cs4j.core.algorithms.AStar.HeapType;
 import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.algorithms.IDAstar;
 import org.cs4j.core.algorithms.RBFS;
@@ -42,14 +42,14 @@ public class TestAllBasics {
 	@Test
 	public void testAstarBinHeap() throws FileNotFoundException {
 		SearchDomain domain = createFifteenPuzzle("12");
-		SearchAlgorithm algo = new Astar(HeapType.BIN);
+		SearchAlgorithm algo = new AStar(HeapType.BIN);
 		testSearchAlgorithm(domain, algo, 65271, 32470, 45);
 	}	
 	
 	@Test
 	public void testAstarBucketHeap() throws FileNotFoundException {
 		SearchDomain domain = createFifteenPuzzle("12");
-		SearchAlgorithm algo = new Astar(HeapType.BUCKET);
+		SearchAlgorithm algo = new AStar(HeapType.BUCKET);
 		testSearchAlgorithm(domain, algo, 64963, 32334, 45);
 	}		
 	
