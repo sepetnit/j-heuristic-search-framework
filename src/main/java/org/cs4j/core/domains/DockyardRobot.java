@@ -162,17 +162,17 @@ public class DockyardRobot implements SearchDomain {
             String line;
             while ((line = in.readLine()) != null) {
                 line = line.trim();
-                String[] toks = line.split("\\s+");
-                if (toks.length == 0) {
+                String[] tokens = line.split("\\s+");
+                if (tokens.length == 0) {
                     continue;
                 }
                 // Go over all the possible values of the first token and treat the next tokens
                 // accordingly
-                switch (toks[0]) {
+                switch (tokens[0]) {
                     // Location on the grid
                     case "location": {
                         // Read some location
-                        loc = Integer.parseInt(toks[1]);
+                        loc = Integer.parseInt(tokens[1]);
                         if (loc < 0 || loc >= this.locationsCount) {
                             Utils.fatal("Invalid location " + loc);
                         }
@@ -182,27 +182,27 @@ public class DockyardRobot implements SearchDomain {
                     case "adjacent:": {
                         // In this case, the rest of the read tokens are the distances to the
                         // current location
-                        if (toks.length != this.locationsCount + 1) {
+                        if (tokens.length != this.locationsCount + 1) {
                             Utils.fatal("Malformed adjacency list for location " + loc);
                         }
                         // Now, read the distances, which actually all are double numbers
                         // (start from 1 - 0 contains the string 'adjacent')
-                        for (int i = 1; i < toks.length; ++i) {
-                            Double d = Double.parseDouble(toks[i]);
+                        for (int i = 1; i < tokens.length; ++i) {
+                            Double d = Double.parseDouble(tokens[i]);
                             this.adj[loc][i - 1] = d;
                         }
                         break;
                         // The maximum number of cranes that can be stored at this location
                     }
                     case "cranes:": {
-                        this.maximumCranesCountAtPosition[loc] = toks.length - 1;
+                        this.maximumCranesCountAtPosition[loc] = tokens.length - 1;
                         System.out.println(this.maximumCranesCountAtPosition[loc]);
                         break;
                         // piles
                     }
                     case "piles:": {
-                        for (int i = 1; i < toks.length; ++i) {
-                            int p = Integer.parseInt(toks[i]);
+                        for (int i = 1; i < tokens.length; ++i) {
+                            int p = Integer.parseInt(tokens[i]);
                             if (p < 0 || p >= this.pilesCount) {
                                 Utils.fatal("Malformed pile list, pile " + p + " is out of bounds");
                             }
@@ -215,24 +215,25 @@ public class DockyardRobot implements SearchDomain {
                         // A specific pile
                     }
                     case "pile": {
-                        if (toks.length != 2) {
+                        if (tokens.length != 2) {
                             Utils.fatal("Malformed pile descriptor");
                         }
-                        int pnum = Integer.parseInt(toks[1]);
-                        if (pnum < 0 || pnum >= pilesCount) {
-                            Utils.fatal("Malformed pile descriptor, pile " + pnum + " is out of bounds");
+                        int pnum = Integer.parseInt(tokens[1]);
+                        if (pnum < 0 || pnum >= this.pilesCount) {
+                            Utils.fatal("Malformed pile descriptor, pile " + pnum +
+                                    " is out of bounds");
                         }
                         line = in.readLine();
                         if (line == null || line.trim().length() == 0) {
                             continue;
                         }
                         line = line.trim();
-                        toks = line.split("\\s+");
+                        tokens = line.split("\\s+");
                         // Create a new pile for the read value
                         Pile p = new Pile();
-                        for (String tok : toks) {
+                        for (String tok : tokens) {
                             int box = Integer.parseInt(tok);
-                            if (box < 0 || box >= boxesCount) {
+                            if (box < 0 || box >= this.boxesCount) {
                                 Utils.fatal("Malformed pile, box " + box + " is out of bounds");
                             }
                             p.stack.add(box);
@@ -246,14 +247,14 @@ public class DockyardRobot implements SearchDomain {
                         // Container should contain boxes ...
                     }
                     case "container": {
-                        if (toks.length != 3) {
+                        if (tokens.length != 3) {
                             Utils.fatal("Malformed goals descriptor");
                         }
-                        int box = Integer.parseInt(toks[1]);
+                        int box = Integer.parseInt(tokens[1]);
                         if (box < 0 || box >= this.boxesCount) {
                             Utils.fatal("Out of bound container " + box + " in a goals descriptor");
                         }
-                        int dest = Integer.parseInt(toks[2]);
+                        int dest = Integer.parseInt(tokens[2]);
                         if (dest < 0 || dest >= this.locationsCount) {
                             Utils.fatal("Out of bound location " + dest + " in goals descriptor");
                         }
@@ -273,7 +274,8 @@ public class DockyardRobot implements SearchDomain {
         this.robotLocationBitsCount = (int) Math.ceil(Utils.log2(this.locationsCount));
         this.robotLocationBitMask = Utils.mask(this.robotLocationBitsCount);
         this.positionsBitsCount =
-                (int) Math.ceil(Utils.log2(this.pilesCount * this.boxesCount + this.cranesCount + 1));
+                (int) Math.ceil(Utils.log2(this.pilesCount * this.boxesCount +
+                        this.cranesCount + 1));
         this.positionsBitMask = Utils.mask(this.positionsBitsCount);
         int reqbits = this.robotLocationBitsCount + this.positionsBitsCount * this.boxesCount;
         if (reqbits > 64) {
@@ -286,7 +288,7 @@ public class DockyardRobot implements SearchDomain {
 
     /**
      * Initializes the heuristics array - allows to calculate heuristic values quickly
-     * The heuristic lower bound sums the distance of each container’s current location from its
+     * The heuristic lower bound sums the distance of each container's current location from its
      * goals location.
      */
     private void initHeuristic() {
@@ -310,7 +312,7 @@ public class DockyardRobot implements SearchDomain {
                 }
             }
         }
-        // An implementation of Floyd–Warshall algorithm
+        // An implementation of Floyd-Warshall algorithm
         for (int k = 0; k < this.locationsCount; ++k) {
             for (int i = 0; i < this.locationsCount; ++i) {
                 for (int j = 0; j < this.locationsCount; j++) {

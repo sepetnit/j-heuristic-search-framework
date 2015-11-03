@@ -162,10 +162,10 @@ public class VacuumRobot implements SearchDomain {
             // Create the map
             this.map = new GridMap(w, h);
             // Initialize the dirty locations vector
-            this.dirt = new int[map.mapSize];
+            this.dirt = new int[this.map.mapSize];
             // Initially, all the locations are clean
             for (int i = 0; i < this.dirt.length; ++i) {
-                dirt[i] = -1;
+                this.dirt[i] = -1;
             }
 
             // Now, read all the locations
@@ -232,10 +232,10 @@ public class VacuumRobot implements SearchDomain {
         // The bit-mask required in order to access the dirty state of a single location
         this.singleBitMask = Utils.mask(1);
         // All the required bits : locations and the dirty locations (a single bit for each one)
-        int reqbits = locationBits + this.maximumDirtyLocationsCount;
+        int totalRequiredBits = locationBits + this.maximumDirtyLocationsCount;
         // Assure there is no overflow : at most 64 bits can be used in order to store the state
-        if (reqbits > 64) {
-            System.err.println("Too many bits required: " + reqbits);
+        if (totalRequiredBits > 64) {
+            System.err.println("Too many bits required: " + totalRequiredBits);
             System.exit(1);
         }
         System.out.println("[Init] Initializes reverse operators");
@@ -314,9 +314,9 @@ public class VacuumRobot implements SearchDomain {
          *
          * @return The found state
          */
-        private MSTNode findset(MSTNode x) {
+        private MSTNode findSet(MSTNode x) {
             if (x != x.p) {
-                return this.findset(x.p);
+                return this.findSet(x.p);
             }
             return x.p;
         }
@@ -329,8 +329,8 @@ public class VacuumRobot implements SearchDomain {
          */
         private void union(MSTNode y) {
             this.link(
-                    this.findset(this),
-                    this.findset(y)
+                    this.findSet(this),
+                    this.findSet(y)
             );
         }
     }
@@ -559,10 +559,10 @@ public class VacuumRobot implements SearchDomain {
     //     int setId = -1;
     //     for (MSTEdge e : mstEdges) {
     //        if (setId == -1) {
-    //            setId = e.u.findset(e.u).id;
+    //            setId = e.u.findSet(e.u).id;
     //        }
-    //        assert e.u.findset(e.u).id == setId;
-    //        assert e.v.findset(e.v).id == setId;
+    //        assert e.u.findSet(e.u).id == setId;
+    //        assert e.v.findSet(e.v).id == setId;
     //    }
     // }
 
@@ -626,7 +626,7 @@ public class VacuumRobot implements SearchDomain {
         // Go over all the built edges
         for (MSTEdge e : mstEdges) {
             // Bypass that pair of edges {e, v} if they have the same root state
-            if (e.u.findset(e.u) == e.v.findset(e.v)) {
+            if (e.u.findSet(e.u) == e.v.findSet(e.v)) {
                 continue;
             }
             // Add the edge to the list of edges
@@ -942,7 +942,7 @@ public class VacuumRobot implements SearchDomain {
             }
             // Nodes at both sides of the edge are dirty - let's define their parent
             // (if not identical)
-            if (e.u.findset(e.u) == e.v.findset(e.v)) {
+            if (e.u.findSet(e.u) == e.v.findSet(e.v)) {
                 continue;
             }
             // Add the edge to the final list of edges
