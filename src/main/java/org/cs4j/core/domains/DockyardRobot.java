@@ -156,7 +156,7 @@ public class DockyardRobot implements SearchDomain {
                 goals[i] = -1;
             }
             // Locations of piles, initially are empty
-            int[] pilelocs = new int[pilesCount];
+            int[] pilesLocations = new int[pilesCount];
             // Now, read the locations
             int loc = -1;
             String line;
@@ -207,7 +207,7 @@ public class DockyardRobot implements SearchDomain {
                                 Utils.fatal("Malformed pile list, pile " + p + " is out of bounds");
                             }
                             // Pile numbered p is located at location loc
-                            pilelocs[p] = loc;
+                            pilesLocations[p] = loc;
                             // How many piles can be located at the current location?
                             this.maximumPilesCountAtPosition[loc]++;
                         }
@@ -240,7 +240,7 @@ public class DockyardRobot implements SearchDomain {
                         // In case that pile has some boxes inside - add it to the initial locations
                         // array
                         if (p.stack.size() > 0) {
-                            initialLocation[pilelocs[pnum]].piles.add(p);
+                            initialLocation[pilesLocations[pnum]].piles.add(p);
                         }
                         break;
                         // Container should contain boxes ...
