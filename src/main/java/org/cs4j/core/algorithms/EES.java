@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import com.sun.istack.internal.NotNull;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchDomain.Operator;
@@ -354,21 +355,55 @@ public class EES implements SearchAlgorithm {
         private long packed;
         private RBTreeNode<Node, Node> rbnode = null;
 
+        /**
+         * Use the Path Based Error Model by calculating the mean one-step error only along the current search
+         * path: The cumulative single-step error experienced by a parent node is passed down to all of its children
+
+         * @return The calculated sseHMean
+         */
+        private double __calculateSSEMean(double totalSSE) {
+            return (this.g == 0) ? totalSSE : totalSSE / this.depth;
+        }
+
+        /**
+         * @return The mean value of sseH
+         */
+        private double _calculateSSEHMean() {
+            return this.__calculateSSEMean(this.sseH);
+        }
+
+        /**
+         * @return The mean value of sseD
+         */
+        private double _calculateSSEDMean() {
+            return this.__calculateSSEMean(this.sseD);
+        }
+
+        /**
+         * @return The calculated hHat value
+         *
+         * NOTE: if our estimate of sseDMean is ever as large as one, we assume we have infinite cost-to-go.
+         */
         private double _computeHHat() {
             double hHat = Double.MAX_VALUE;
-            double sseMean = (this.g == 0) ? this.sseH : this.sseH / this.depth;
-            double dMean = (this.g == 0) ? this.sseD : this.sseD / this.depth;
-            if (dMean < 1) {
-                hHat = h + ( (d/(1-dMean)) * sseMean );
+            double sseDMean = this._calculateSSEDMean();
+            if (sseDMean < 1) {
+                double sseHMean = this._calculateSSEHMean();
+                hHat = this.h + ( (this.d / (1 - sseDMean)) * sseHMean );
             }
             return hHat;
         }
 
+        /**
+         * @return The calculated dHat value
+         *
+         * NOTE: if our estimate of sseDMean is ever as large as one, we assume we have infinite distance-to-go
+         */
         private double _computeDHat() {
             double dHat = Double.MAX_VALUE;
-            double dMean = (g == 0) ? sseD : sseD / depth;
-            if (dMean < 1) {
-                dHat = d / (1-dMean);
+            double sseDMean = this._calculateSSEDMean();
+            if (sseDMean < 1) {
+                dHat = this.d / (1 - sseDMean);
             }
             return dHat;
         }
@@ -435,7 +470,7 @@ public class EES implements SearchAlgorithm {
         }
 
         @Override
-        public int compareTo(Node other) {
+        public int compareTo(@NotNull Node other) {
             // Nodes are compared by default by their f value (and if f values are equal - by g value)
 
             // F value: lower f is better
