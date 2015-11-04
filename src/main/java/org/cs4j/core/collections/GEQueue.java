@@ -77,7 +77,7 @@ public class GEQueue<E extends SearchQueueElement & RBTreeElement<E, E>> {
             // did best f^ go down?
             if (oldBest != null && fHatChange < 0) {
                 // try {
-                    this.open.visit(newBest, oldBest, REMOVE, this.focalVisitor);
+                    this.open.visit(newBest, oldBest, GEQueue.REMOVE, this.focalVisitor);
                 // }
                 // catch (ArrayIndexOutOfBoundsException e){
                 //    System.out.print(oldBest);
@@ -85,10 +85,10 @@ public class GEQueue<E extends SearchQueueElement & RBTreeElement<E, E>> {
                 //   }
             // then best f^ when up
             } else if (oldBest == null || oldBest.getNode() == null) {
-                this.open.visit(oldBest, newBest, ADD, focalVisitor);
+                this.open.visit(oldBest, newBest, GEQueue.ADD, this.focalVisitor);
             }
         }
-        //verifyFocal();
+        // verifyFocal();
     }
   
     //public void verifyFocal() {
