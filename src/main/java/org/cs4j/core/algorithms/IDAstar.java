@@ -29,74 +29,96 @@ import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
  * @author Matthew Hatem
  */
 public class IDAstar implements SearchAlgorithm {
-  
-	private SearchResultImpl result;
-	private SolutionImpl solution;
-  private double weight;
-  private double bound;
-  private double minoob;
+    // The domain for the search
+    private SearchDomain domain;
 
-  public IDAstar() {
-  	this(1.0);
-  }
-  
-  protected IDAstar(double weight) {
-  	solution = new SolutionImpl();
-  	this.weight = weight;
-  }
-  
-  @Override
-  public SearchResult search(SearchDomain domain) {
-  	result = new SearchResultImpl();
-  	State root = domain.initialState();
-  	result.startTimer();
-    bound = weight*root.getH();
-    int i = 0;
-    do {
-      minoob = -1;
-      boolean goal = dfs(domain, root, 0, null);
-      i++;
-      result.addIteration(i, bound, result.expanded, result.generated);
-      bound = minoob;
-      if (goal) break;
-    } while (true);
-    result.stopTimer();
-    result.addSolution(solution);
-    return result;
-  }
+    private SearchResultImpl result;
+    private SolutionImpl solution;
 
-  boolean dfs(SearchDomain domain, State parent, double cost, Operator pop) {
-    double f = cost + weight*parent.getH();
+    private double weight;
+    private double bound;
+    private double minNextF;
+
+    /**
+     * The default constructor of the class
+     */
+    public IDAstar() {
+  	    this(1.0);
+    }
+
+    protected IDAstar(double weight) {
+        this.solution = new SolutionImpl();
+        this.weight = weight;
+    }
+  
+    @Override
+    public SearchResult search(SearchDomain domain) {
+        this.result = new SearchResultImpl();
+        State root = domain.initialState();
+        this.result.startTimer();
+        this.bound = this.weight * root.getH();
+        int i = 0;
+        do {
+            this.minNextF = -1;
+            boolean goalWasFound = this.dfs(domain, root, 0, null);
+            System.out.println("min next f: " + minNextF ) ;
+            System.out.println("next");
+            this.result.addIteration(i, this.bound, this.result.expanded, this.result.generated);
+            this.bound = this.minNextF;
+            if (goalWasFound) {
+                break;
+            }
+        } while (true);
+        this.result.stopTimer();
+        this.result.addSolution(this.solution);
+        return this.result;
+    }
+
+    /**
+     * A single iteration of the IDA*
+     *
+     * @param domain The domain on which the search is performed
+     * @param parent The parent state
+     * @param cost The cost to reach the parent state
+     * @param pop The reverse operator?
+     *
+     * @return Whether a solution was found
+     */
+    private boolean dfs(SearchDomain domain, State parent, double cost, Operator pop) {
+        double f = cost + this.weight * parent.getH();
     
-    if (f <= bound && domain.isGoal(parent)) {
-      solution.setCost(f);
-      solution.addOperator(pop);
-      return true;
-    }
+        if (f <= this.bound && domain.isGoal(parent)) {
+            this.solution.setCost(f);
+            this.solution.addOperator(pop);
+            return true;
+        }
 
-    if (f > bound) {
-      if (minoob < 0 || f < minoob)
-        minoob = f;
-      return false;
-    }
+        if (f > this.bound) {
+            // Let's record the lowest value of f that is greater than the bound
+            if (this.minNextF < 0 || f < this.minNextF)
+                this.minNextF = f;
+            return false;
+        }
 
-    result.expanded++;
-    int numOps = domain.getNumOperators(parent);
-    for (int i=0; i<numOps; i++) {
-    	Operator op = domain.getOperator(parent, i);
-      if (op.equals(pop))
-        continue;
+        // Expand the current node
+        ++result.expanded;
+        int numOps = domain.getNumOperators(parent);
+        for (int i = 0; i < numOps; ++i) {
+    	    Operator op = domain.getOperator(parent, i);
+            // Bypass reverse operators
+            if (op.equals(pop)) {
+                continue;
+            }
+            ++result.generated;
+            State child = domain.applyOperator(parent, op);
+            boolean goal = this.dfs(domain, child, op.getCost(parent) + cost, op.reverse(parent));
+            if (goal) {
+                this.solution.addOperator(op);
+                return true;
+            }
+        }
 
-      result.generated++;
-      State child = domain.applyOperator(parent, op);
-      boolean goal = dfs(domain, child, op.getCost(parent)+cost, op.reverse(parent));
-      if (goal) {
-        solution.addOperator(op);
-        return true;
-      }
+        // No solution was found
+        return false;
     }
-    
-    return false;
-  }
-  
 }
