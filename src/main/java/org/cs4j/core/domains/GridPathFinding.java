@@ -25,6 +25,8 @@ public class GridPathFinding implements SearchDomain {
     private static final int NUM_MOVES = 4;
 
     private static final char OBSTACLE_MARKER = '@';
+    public static final char START_MARKER = 'S';
+    public static final char GOAL_MARKER = 'G';
 
     // The start location of the agent
     private int startX = -1;
@@ -179,6 +181,18 @@ public class GridPathFinding implements SearchDomain {
         }
 
         /**
+         * Calculate the index of the location in a one-dimensional array, given a pair of indexes
+         *
+         * @param location A pair whose first part represents the horizontal location and whose second part represents
+         *                 the vertical location
+         *
+         * @return The calculated index
+         */
+        int getLocationIndex(PairInt location) {
+            return this.getLocationIndex(location.first, location.second);
+        }
+
+        /**
          * Creates a Pair object with the dimensions of the given location
          *
          * @param location The required location
@@ -239,6 +253,60 @@ public class GridPathFinding implements SearchDomain {
     }
 
     /**
+     * Completes the initialization steps of the domain
+     */
+    private void _completeInit(boolean log) {
+        // Compute bit masks for bit twiddling states in pack/unpack
+
+        // The number of bits required in order to store all the locations of the grid map
+        int locationBits = (int) Math.ceil(Utils.log2(this.map.mapSize));
+        // The bit-mask required in order to access the locations bit-vector
+        this.agentLocationBitMask = Utils.mask(locationBits);
+        // Assure there is no overflow : at most 64 bits can be used in order to store the state
+        if (locationBits > 64) {
+            Utils.fatal("Too many bits required: " + locationBits);
+        }
+        if (log) {
+            System.out.println("[Init] Initializes reverse operators");
+        }
+        // Initialize the array of reverse operators
+        this._initializeReverseOperatorsArray();
+        if (log) {
+            System.out.println("[Done] (Initializes reverse operators)");
+        }
+    }
+
+    /**
+     * This constructor is used in order to generate a simple instance of the domain - with a single agent and a
+     * single goal
+     *
+     * The constructor is used by some generators of instances, which want to check that the generated instance is
+     * valid
+     *
+     * @param width The width of the grid
+     * @param height The height of the grid
+     * @param map The grid itself (with obstacles filled)
+     * @param start The start position on the grid
+     * @param goal The SINGLE goal on the grid
+     */
+    public GridPathFinding(int width, int height, char[] map, PairInt start, PairInt goal) {
+        this.heavy = false;
+        this.map = new GridMap(width, height);
+        // Set the map explicitly
+        this.map.map = map;
+        this.startX = start.first;
+        this.startY = start.second;
+        this.goals = new ArrayList<>();
+        this.goals.add(this.map.getLocationIndex(goal));
+        this.goalsPairs = new ArrayList<>();
+        this.goalsPairs.add(goal);
+        // System.out.println("[INFO] Start: " + start.toString());
+        // System.out.println("[INFO] Goal: " + goal.toString());
+        // Now, complete the initialization by initializing other parameters
+        this._completeInit(false);
+    }
+
+    /**
      * The constructor of the general GridPathFinding domain
      *
      * @param stream The input stream for parsing the instance
@@ -276,7 +344,7 @@ public class GridPathFinding implements SearchDomain {
                             this.map.setBlocked(this.map.getLocationIndex(x, y));
                             break;
                         // The start location
-                        } case 'S':
+                        } case GridPathFinding.START_MARKER:
                           case 's':
                           case 'V': {
                             this.startX = x;
@@ -284,7 +352,7 @@ public class GridPathFinding implements SearchDomain {
                             break;
                         // The end location
                         } case 'g':
-                          case 'G': {
+                          case GridPathFinding.GOAL_MARKER: {
                             this.goals.add(this.map.getLocationIndex(x, y));
                             this.goalsPairs.add(new PairInt(x, y));
                             break;
@@ -313,20 +381,8 @@ public class GridPathFinding implements SearchDomain {
             Utils.fatal("Error reading input file");
         }
 
-        // Compute bit masks for bit twiddling states in pack/unpack
-
-        // The number of bits required in order to store all the locations of the grid map
-        int locationBits = (int) Math.ceil(Utils.log2(map.mapSize));
-        // The bit-mask required in order to access the locations bit-vector
-        this.agentLocationBitMask = Utils.mask(locationBits);
-        // Assure there is no overflow : at most 64 bits can be used in order to store the state
-        if (locationBits > 64) {
-            Utils.fatal("Too many bits required: " + locationBits);
-        }
-        System.out.println("[Init] Initializes reverse operators");
-        // Initialize the array of reverse operators
-        this._initializeReverseOperatorsArray();
-        System.out.println("[Done] (Initializes reverse operators)");
+        // Now, complete the initialization by initializing other parameters
+        this._completeInit(true);
     }
 
     /**
@@ -470,9 +526,9 @@ public class GridPathFinding implements SearchDomain {
                         for (int k = 0; k < states.length; ++k) {
                             if (((GridPathFindingState)states[k]).agentLocation == locationIndex) {
                                 if (k == 0) {
-                                    sb.append('S');
+                                    sb.append(GridPathFinding.START_MARKER);
                                 } else if (k == states.length - 1) {
-                                    sb.append('G');
+                                    sb.append(GridPathFinding.GOAL_MARKER);
                                 } else {
                                     sb.append('X');
                                 }
@@ -494,12 +550,8 @@ public class GridPathFinding implements SearchDomain {
         return sb.toString();
     }
 
-    /**
-     * An auxiliary function that dumps a collection of states on the map
-     *
-     * @param states The states to dump
-     */
-    private String _dumpStates(State[] states) {
+    @Override
+    public String dumpStatesCollection(State[] states) {
         StringBuilder sb = new StringBuilder();
         // All the data regarding a single state refers to the last state of the collection
         GridPathFindingState lastState = (GridPathFindingState)states[states.length - 1];
@@ -532,6 +584,7 @@ public class GridPathFinding implements SearchDomain {
         return sb.toString();
     }
 
+
     /**
      * An auxiliaryu function for dumping a single state of the GridPathFinding domain instance
      *
@@ -540,12 +593,7 @@ public class GridPathFinding implements SearchDomain {
      * @return A string representation of the state
      */
     private String dumpState(GridPathFindingState state) {
-        return this._dumpStates(new GridPathFindingState[]{state});
-    }
-
-    @Override
-    public String dumpStatesCollection(State[] states) {
-        return this._dumpStates(states);
+        return this.dumpStatesCollection(new GridPathFindingState[]{state});
     }
 
     /**
@@ -559,8 +607,20 @@ public class GridPathFinding implements SearchDomain {
     private boolean _isValidMove(int location, Move move) {
         // Add the delta of the move and get the next location
         int next = location + move.delta;
+
         // Assure the move doesn't cause the state to exceed the grid and also that the move
         // doesn't cause the state to reach a blocked location
+
+        // Moving West/East && y changed => invalid!
+        if (move.dx != 0 &&
+                (next / this.map.mapWidth != location / this.map.mapWidth)) {
+            return false;
+        // Moving South/North && x changed => invalid
+        } else if (move.dy != 0 &&
+                (next % this.map.mapWidth != location % this.map.mapWidth)) {
+            return false;
+        }
+
         return (next > 0 && next < this.map.mapSize && !this.map.isBlocked(next));
     }
 
@@ -572,7 +632,7 @@ public class GridPathFinding implements SearchDomain {
         double hd[] = this.computeHD(state);
         state.h = hd[0];
         state.d = hd[1];
-        System.out.println(this.dumpState(state));
+        // System.out.println(this.dumpState(state));
         // Return the created state
         return state;
     }

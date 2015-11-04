@@ -15,6 +15,9 @@ import java.util.Vector;
 
 public class VacuumRobot implements SearchDomain {
 
+    public static final char ROBOT_START_MARKER = 'V';
+    public static final char ROBOT_END_MARKER = 'E';
+
     // The start location of the robot
     private int startX = -1;
     private int startY = -1;
@@ -445,7 +448,7 @@ public class VacuumRobot implements SearchDomain {
          * @param loc The location of the object
          * @return The calculated Pair
          */
-        PairInt pos(int loc) {
+        PairInt getPosition(int loc) {
             return new PairInt(loc % mapWidth, loc / mapWidth);
         }
     }
@@ -780,7 +783,7 @@ public class VacuumRobot implements SearchDomain {
         int[] closestDirtAndDistance =
             this.__getMinimumDirtAndDistanceToDirty(
                 // Location of the robot
-                this.map.pos(s.robotLocation),
+                this.map.getPosition(s.robotLocation),
                 ignoreIndexes,
                 s
         );
@@ -888,7 +891,7 @@ public class VacuumRobot implements SearchDomain {
             // Get the location (one from the dirty locations or the location of the robot)
             PairInt xy = (u < this.dirtyLocations.size()) ?
                     this.dirtyLocations.get(u) :
-                    this.map.pos(state.robotLocation);
+                    this.map.getPosition(state.robotLocation);
             // Next dirty location
             int v = (u < this.dirtyLocations.size()) ? u + 1 : 0;
             // Find all the edges which start from the node with index u, and start the computation
@@ -1205,9 +1208,20 @@ public class VacuumRobot implements SearchDomain {
     private boolean _isValidMove(int location, Move move) {
         // Add the delta of the move and get the next location
         int next = location + move.delta;
+
         // Assure the move doesn't cause the state to exceed the grid and also that the move
         // doesn't cause the state to reach a blocked location
-        return (next > 0 && next < map.mapSize && !map.isBlocked(next));
+
+        // Moving West/East && y changed => invalid!
+        if (move.dx != 0 &&
+                (next / this.map.mapWidth != location / this.map.mapWidth)) {
+            return false;
+        // Moving South/North && x changed => invalid
+        } else if (move.dy != 0 &&
+                (next % this.map.mapWidth != location % this.map.mapWidth)) {
+            return false;
+        }
+        return (next > 0 && next < this.map.mapSize && !this.map.isBlocked(next));
     }
 
     @Override
@@ -1223,7 +1237,8 @@ public class VacuumRobot implements SearchDomain {
         double hd[] = this.computeHD(vrs);
         vrs.h = hd[0];
         vrs.d = hd[1];
-        System.out.println(this.dumpState(vrs));
+        // System.out.println(this.dumpState(vrs));
+        // System.out.println(this.dumpState(vrs));
         // Return the created state
         return vrs;
     }
@@ -1586,13 +1601,98 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
+     * The function performs a dump of the grid map used in the search and puts the positions of the robot on each
+     * of the given states on the map
+     *
+     * @param states The states array (can be null)
+     * @param markAllDirty Whether to mark all the dirty locations (as given in the initial state) or only the actual
+     *                     dirty
+     * @param obstaclesAndDirtyCountArray The obstacles counter and dirty locations counters (an OUTPUT parameter)
+     *
+     * @return A string representation of the map (with all agents located on it)
+     */
+    private String _dumpMap(State states[], boolean markAllDirty, int[] obstaclesAndDirtyCountArray) {
+        assert obstaclesAndDirtyCountArray == null || obstaclesAndDirtyCountArray.length == 2;
+        StringBuilder sb = new StringBuilder();
+        int obstaclesCount = 0;
+        int dirtyCount = 0;
+        // Now, dump the Map with the location of the agent and the goals
+        for (int y = 0; y < this.map.mapHeight; ++y, sb.append('\n')) {
+            // Horizontal
+            for (int x = 0; x < this.map.mapWidth; ++x) {
+                // Get the index of the current location
+                int locationIndex = this.map.index(x, y);
+                PairInt locationPair = this.map.getPosition(locationIndex);
+                // Check for obstacle
+                if (this.map.isBlocked(locationIndex)) {
+                    sb.append('#');
+                    ++obstaclesCount;
+                // Check if the location is dirty
+                } else {
+                    boolean dirtyLocation = false;
+                    if (this.dirtyLocations.contains(locationPair)) {
+                        if (markAllDirty) {
+                            sb.append('*');
+                            dirtyLocation = true;
+                        } else if (states != null) {
+                            int dirtyIndex = this.dirt[locationIndex];
+                            for (State state : states) {
+                                if (((VacuumRobotState)state).isDirty(dirtyIndex)) {
+                                    // Check not last state and robot there
+                                    if (states != null &&
+                                            ((VacuumRobotState)states[states.length - 1]).robotLocation ==
+                                                    locationIndex) {
+                                        sb.append(VacuumRobot.ROBOT_END_MARKER);
+                                    } else {
+                                        sb.append('*');
+                                    }
+                                    dirtyLocation = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (dirtyLocation) {
+                        ++dirtyCount;
+                    } else if (states != null) {
+                        boolean robotLocation = false;
+                        // Check if the robot is at this location
+                        for (int k = 0; k < states.length; ++k) {
+                            if (((VacuumRobotState)states[k]).robotLocation == locationIndex) {
+                                if (k == 0) {
+                                    sb.append(VacuumRobot.ROBOT_START_MARKER);
+                                } else if (k == states.length - 1) {
+                                    sb.append(VacuumRobot.ROBOT_END_MARKER);
+                                } else {
+                                    sb.append('X');
+                                }
+                                robotLocation = true;
+                                break;
+                            }
+                        }
+                        if (!robotLocation) {
+                            sb.append(".");
+                        }
+                    }
+                }
+            }
+        }
+        // Set the output parameter
+        if (obstaclesAndDirtyCountArray != null) {
+            obstaclesAndDirtyCountArray[0] = obstaclesCount;
+            obstaclesAndDirtyCountArray[1] = dirtyCount;
+        }
+        return sb.toString();
+    }
+
+    /**
      * Print the state for debugging reasons
      *
      * @param state The state to print
      */
     private String dumpState(VacuumRobotState state) {
         StringBuilder sb = new StringBuilder();
-        int obstaclesCount = 0;
+        int obstaclesCount;
 
         sb.append("********************************\n");
         // h
@@ -1603,39 +1703,17 @@ public class VacuumRobot implements SearchDomain {
         sb.append("d: ");
         sb.append(state.d);
         sb.append("\n");
-        // Now, dump the Map with all the dirty locations and the location of the robot
-        for (int y = 0; y < this.map.mapHeight; ++y, sb.append('\n')) {
-            // Horizontal
-            for (int x = 0; x < this.map.mapWidth; ++x) {
-                // Get the index of the current location
-                int locationIndex = this.map.index(x, y);
-                // Check if the robot is at this location
-                if (state.robotLocation == locationIndex) {
-                    sb.append('V');
-                // Check if the location contains an obstacle
-                } else if (this.map.isBlocked(locationIndex)) {
-                    sb.append('#');
-                    ++obstaclesCount;
-                // Check if the location is dirty
-                } else {
-                    int dirtyIndex = this.dirt[locationIndex];
-                    if (dirtyIndex > -1 && state.isDirty(dirtyIndex)) {
-                        sb.append('*');
-                    // Otherwise, the location is empty
-                    } else {
-                        sb.append('.');
-                    }
-                }
-            }
-        }
+
+        int obstaclesAndDirtyCountArray[] = new int[2];
+        sb.append(this._dumpMap(new State[]{state}, false, obstaclesAndDirtyCountArray));
+        obstaclesCount = obstaclesAndDirtyCountArray[0];
+
         // Additional newline
         sb.append('\n');
-        PairInt robotLocation = this.map.pos(state.robotLocation);
-        sb.append("robot location: (");
-        sb.append(robotLocation.first);
-        sb.append(", ");
-        sb.append(robotLocation.second);
-        sb.append(")\n");
+        PairInt robotLocation = this.map.getPosition(state.robotLocation);
+        sb.append("robot location: ");
+        sb.append(robotLocation.toString());
+        sb.append("\n");
         sb.append("obstacles count: ");
         sb.append(obstaclesCount);
         sb.append("\n");
@@ -1647,6 +1725,16 @@ public class VacuumRobot implements SearchDomain {
     }
 
     public String dumpStatesCollection(State[] states) {
-        return null;
+        StringBuilder sb = new StringBuilder();
+        // All the data regarding a single state refers to the last state of the collection
+        VacuumRobotState lastState = (VacuumRobotState)states[states.length - 1];
+        sb.append(this._dumpMap(states, true, null));
+        // Additional newline
+        sb.append('\n');
+        PairInt agentLocation = this.map.getPosition(lastState.robotLocation);
+        sb.append("Agent location: ");
+        sb.append(agentLocation.toString());
+        sb.append("\n");
+        return sb.toString();
     }
 }
