@@ -21,4 +21,19 @@ public class PairInt {
         this.first = first;
         this.second = second;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        try {
+            PairInt otherPair = (PairInt) other;
+            return otherPair.first == this.first && otherPair.second == this.second;
+        } catch (ClassCastException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "(" + this.first + ", " + this.second + ")";
+    }
 }
