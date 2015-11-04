@@ -93,7 +93,8 @@ public class Main {
     }
 
     public SearchDomain createVacuumRobot(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/vacuumrobot/mine/" + instance));
+        //InputStream is = new FileInputStream(new File("input/vacuumrobot/mine/" + instance));
+        InputStream is = new FileInputStream(new File("input/vacuumrobot/generated/" + instance));
         return new VacuumRobot(is);
     }
 
