@@ -1,3 +1,5 @@
+package org.cs4j.core.mains;
+
 import org.cs4j.core.OutputResult;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
@@ -203,72 +205,54 @@ public class Main {
         }
     }
 
-    public static void mainPTS(String[] args) throws IOException {
-        Main mainTest = new Main();
-        SearchDomain domain = mainTest.createFifteenPuzzleUnit(1 + "");
-        SearchAlgorithm alg = new PTS(50, true);
-        SearchResult result = alg.search(domain);
-        if (result.getSolutions().size() > 0) {
-            double d[] = new double[]{
-                1,
-                1,
-                result.getSolutions().get(0).getLength(),
-                //result.getSolutions().get(0).getLength(),
-                result.getGenerated(),
-                result.getExpanded(),
-                ((SearchResultImpl) result).reopened};
-            System.out.println(Arrays.toString(d));
-        } else {
-            System.out.println("No solution :-(");
-        }
-    }
-
-    public static void main1(String[] args) throws IOException {
+    public static void mainEES(String[] args) throws IOException {
         Main mainTest = new Main();
         Weights weights = new Weights();
         //System.out.println("wh,wg,wh/wg,AR-Depth,AR-Generated,AR-Expanded,AR-Reopened,NR-Depth,NR-Generated,NR-Expanded,NR-Reopened");
-        boolean reopenPossibilities[] = new boolean[] {true, false};
+        boolean reopenPossibilities[] = new boolean[]{true, false};
 
-        for (Weights.SingleWeight w : weights.fullWeights) {
+        for (Weights.SingleWeight w : weights.KORF_WEIGHTS) {
             double totalWeight = w.wh / w.wg;
             System.out.println("Solving for weight: wg : " + w.wg + " wh: " + w.wh);
             for (boolean reopen : reopenPossibilities) {
                 try {
                     OutputResult output = new OutputResult(w.wg, w.wh, reopen);
-                    output.write("InstanceID,Found,Depth,Generated, Expanded,Reopened");
-                    for (int i = 1 ; i <= 100; ++i) {
+                    output.writeln("InstanceID,Found,Depth,Generated, Expanded,Reopened");
+                    for (int i = 1; i <= 100; ++i) {
                         SearchDomain domain = mainTest.createFifteenPuzzleKorf(i + "");
                         SearchAlgorithm alg = new WAstar(totalWeight, reopen);
                         System.out.println("Solving instance " + i + " For weight " + totalWeight + " reopen? " + reopen);
                         SearchResult result = alg.search(domain);
                         double d[];
                         if (result.getSolutions().size() > 0) {
-                             d = new double[]{
-                                     i,
+                            d = new double[]{
+                                    i,
                                     1,
-                                    result.getSolutions().get(0).getLength()    ,
+                                    result.getSolutions().get(0).getLength(),
                                     //result.getSolutions().get(0).getLength(),
                                     result.getGenerated(),
                                     result.getExpanded(),
                                     ((SearchResultImpl) result).reopened};
                         } else {
-                            d = new double[] {
+                            d = new double[]{
                                     i, 0, 0, 0, 0, 0
                             };
                         }
-                    output.appendNewResult(d);
+                        output.appendNewResult(d);
                         output.newline();
                     }
                     output.close();
                 } catch (FileAlreadyExistsException e) {
-                    System.out .println("File already found for wg " + w.wg + " wh " + w.wh);
+                    System.out.println("File already found for wg " + w.wg + " wh " + w.wh);
                 }
             }
         }
-        //mainTest.testEES();
-        //System.out.println("--------");
-        //mainTest.testKBFSEES(2);
-        //mainTest.testAstar();
+    }
+
+    //mainTest.testEES();
+    //System.out.println("--------");
+    //mainTest.testKBFSEES(2);
+    //mainTest.testAstar();
         /*
         int[] kArray = new int[]{1,50,100,1000,1500, 2000};
         System.out.println("K,Generated,Expanded,Cost,Length");
@@ -298,14 +282,35 @@ public class Main {
 //        mainTest.testEES();
 //        System.out.println("--------");
 //        mainTest.testEES();
+
+
+
+    public static void mainPTS(String[] args) throws IOException {
+        Main mainTest = new Main();
+        SearchDomain domain = mainTest.createFifteenPuzzleUnit(1 + "");
+        SearchAlgorithm alg = new PTS(50, true);
+        SearchResult result = alg.search(domain);
+        if (result.getSolutions().size() > 0) {
+            double d[] = new double[]{
+                    1,
+                    1,
+                    result.getSolutions().get(0).getLength(),
+                    //result.getSolutions().get(0).getLength(),
+                    result.getGenerated(),
+                    result.getExpanded(),
+                    ((SearchResultImpl) result).reopened};
+            System.out.println(Arrays.toString(d));
+        } else {
+            System.out.println("No solution :-(");
+        }
     }
 
 
     public static void main(String[] args) throws IOException {
-        //Main.mainFifteenPuzzleDomain(args);
-        //Main.mainGridPathFindingDomain(args);
-        //Main.mainPancakesDomain(args);
+        //Main.mainFifteenPuorg.cs4j.core.mains.MainDomain(args);
+        //Main.mainGridPathForg.cs4j.core.mains.MainngDomain(args);
+        //Main.mainPancakesDorg.cs4j.core.mains.Mainn(args);
         Main.mainVacuumRobotDomain(args);
-        //Main.mainDRobotDomain(args);
+        //Main.mainDRobotDomorg.cs4j.core.mains.Mainargs);
     }
 }
