@@ -23,15 +23,15 @@ import java.util.List;
 enum Color { RED, BLACK }
 
 public class RBTree<K extends RBTreeElement<K,V>,V> {
-  
+
     public static final boolean VERIFY_RBTREE = false;
     private static final int INDENT_STEP = 4;
 
     public RBTreeNode<K,V> root;
-    
+
     private Comparator<K> sComp;
     private Comparator<K> vComp;
-    
+
     public RBTree(Comparator<K> sComp, Comparator<K> vComp) {
         this.root = null;
         this.sComp = sComp;
@@ -48,7 +48,7 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         }
     }
     private static void verifyProperty1(RBTreeNode<?,?> n) {
-        assert nodeColor(n) == Color.RED || nodeColor(n) == Color.BLACK;        
+        assert nodeColor(n) == Color.RED || nodeColor(n) == Color.BLACK;
         if (n == null) return;
         assert nodeNode(n) != null;
         verifyProperty1(n.left);
@@ -61,8 +61,8 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         return n == null ? Color.BLACK : n.color;
     }
     private static RBTreeNode<?,?> nodeNode(RBTreeNode<?,?> n) {
-      return n != null ? n.key.getNode() : null;
-  }
+        return n != null ? n.key.getNode() : null;
+    }
     private static void verifyProperty4(RBTreeNode<?,?> n) {
         if (nodeColor(n) == Color.RED) {
             assert nodeColor(n.left)   == Color.BLACK;
@@ -109,19 +109,19 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         return n;
     }*/
     public V poll() {
-      if (root == null) return null;
-      RBTreeNode<K,V> min = minimumNode(root);
-      delete(min);
-      min.key.setNode(null);
-      return min.value;
+        if (root == null) return null;
+        RBTreeNode<K,V> min = minimumNode(root);
+        delete(min);
+        min.key.setNode(null);
+        return min.value;
     }
     public V peek() {
-      if (root == null) return null;
-      RBTreeNode<K,V> min = minimumNode(root);
-      return min.value;
+        if (root == null) return null;
+        RBTreeNode<K,V> min = minimumNode(root);
+        return min.value;
     }
     public RBTreeNode<K,V> lookup(K key) {
-      return key.getNode();
+        return key.getNode();
     }
     /*public V lookup(K key) {
         Node<K,V> n = lookupNode(key);
@@ -162,21 +162,21 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         }
     }
     public void visit(K l, K u, int op, RBTreeVisitor<K> visitor) {
-      visit(l, u, root, op, visitor);
+        visit(l, u, root, op, visitor);
     }
-    
+
     private void visit(K l, K u, RBTreeNode<K, V> n, int op, RBTreeVisitor<K> visitor) {
-      if (n == null) return;
-      if (l == null || vComp.compare(n.key, l) > 0) {
-        visit(l, u, n.left, op, visitor);
-        if (vComp.compare(n.key, u) <= 0) {
-          visitor.visit(n.key, op);
-          visit(l, u, n.right, op, visitor);
+        if (n == null) return;
+        if (l == null || vComp.compare(n.key, l) > 0) {
+            visit(l, u, n.left, op, visitor);
+            if (vComp.compare(n.key, u) <= 0) {
+                visitor.visit(n.key, op);
+                visit(l, u, n.right, op, visitor);
+            }
         }
-      }
-      else {
-        visit(l, u, n.right, op, visitor);
-      }
+        else {
+            visit(l, u, n.right, op, visitor);
+        }
     }
 
     public void insert(K key, V value) {
@@ -192,7 +192,7 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
                 /*if (compResult == 0) {
                     n.value = value;
                     return;
-                } else*/ 
+                } else*/
                 if (compResult <= 0) {
                     if (n.left == null) {
                         n.left = insertedNode;
@@ -256,16 +256,16 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
             assert n == n.parent.right && n.parent == n.grandparent().right;
             rotateLeft(n.grandparent());
         }
-    }   
+    }
     /*public void delete(K key) {
         Node<K,V> n = lookupNode(key);
         delete(n);
     }*/
     public void delete(K key) {
-      RBTreeNode<K,V> n = lookup(key);
-      delete(n);
-      key.setNode(null);
-      verifyProperties();
+        RBTreeNode<K,V> n = lookup(key);
+        delete(n);
+        key.setNode(null);
+        verifyProperties();
     }
     private void delete(RBTreeNode<K,V> n) {
         if (n == null)
@@ -286,9 +286,9 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
             deleteCase1(n);
         }
         replaceNode(n, child);
-        
+
         if (nodeColor(root) == Color.RED) {
-          root.color = Color.BLACK;
+            root.color = Color.BLACK;
         }
 
         verifyProperties();
@@ -301,12 +301,12 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         return n;
     }
     private RBTreeNode<K,V> minimumNode(RBTreeNode<K,V> n) {
-      assert n != null;
-      while (n.left != null) {
-          n = n.left;
-      }
-      return n;
-    }    
+        assert n != null;
+        while (n.left != null) {
+            n = n.left;
+        }
+        return n;
+    }
     private void deleteCase1(RBTreeNode<K,V> n) {
         if (n.parent == null)
             return;
@@ -326,9 +326,9 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
     }
     private void deleteCase3(RBTreeNode<K,V> n) {
         if (nodeColor(n.parent) == Color.BLACK &&
-            nodeColor(n.sibling()) == Color.BLACK &&
-            nodeColor(n.sibling().left) == Color.BLACK &&
-            nodeColor(n.sibling().right) == Color.BLACK)
+                nodeColor(n.sibling()) == Color.BLACK &&
+                nodeColor(n.sibling().left) == Color.BLACK &&
+                nodeColor(n.sibling().right) == Color.BLACK)
         {
             n.sibling().color = Color.RED;
             deleteCase1(n.parent);
@@ -338,9 +338,9 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
     }
     private void deleteCase4(RBTreeNode<K,V> n) {
         if (nodeColor(n.parent) == Color.RED &&
-            nodeColor(n.sibling()) == Color.BLACK &&
-            nodeColor(n.sibling().left) == Color.BLACK &&
-            nodeColor(n.sibling().right) == Color.BLACK)
+                nodeColor(n.sibling()) == Color.BLACK &&
+                nodeColor(n.sibling().left) == Color.BLACK &&
+                nodeColor(n.sibling().right) == Color.BLACK)
         {
             n.sibling().color = Color.RED;
             n.parent.color = Color.BLACK;
@@ -350,18 +350,18 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
     }
     private void deleteCase5(RBTreeNode<K,V> n) {
         if (n == n.parent.left &&
-            nodeColor(n.sibling()) == Color.BLACK &&
-            nodeColor(n.sibling().left) == Color.RED &&
-            nodeColor(n.sibling().right) == Color.BLACK)
+                nodeColor(n.sibling()) == Color.BLACK &&
+                nodeColor(n.sibling().left) == Color.RED &&
+                nodeColor(n.sibling().right) == Color.BLACK)
         {
             n.sibling().color = Color.RED;
             n.sibling().left.color = Color.BLACK;
             rotateRight(n.sibling());
         }
         else if (n == n.parent.right &&
-                 nodeColor(n.sibling()) == Color.BLACK &&
-                 nodeColor(n.sibling().right) == Color.RED &&
-                 nodeColor(n.sibling().left) == Color.BLACK)
+                nodeColor(n.sibling()) == Color.BLACK &&
+                nodeColor(n.sibling().right) == Color.RED &&
+                nodeColor(n.sibling().left) == Color.BLACK)
         {
             n.sibling().color = Color.RED;
             n.sibling().right.color = Color.BLACK;
@@ -407,14 +407,14 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         }
     }
     public List<V> getValues() {
-      List<V> list = new ArrayList<V>();
-      collectValues(root, list);
-      return list;
+        List<V> list = new ArrayList<V>();
+        collectValues(root, list);
+        return list;
     }
     private void collectValues(RBTreeNode<K,V> n, List<V> list) {
-      if (n.left != null) collectValues(n.left, list);
-      if (n.right != null) collectValues(n.right, list);
-      list.add(n.value);
+        if (n.left != null) collectValues(n.left, list);
+        if (n.right != null) collectValues(n.right, list);
+        list.add(n.value);
     }    
     /*public static void main(String[] args) {
         RBTree<Integer,Integer> t = new RBTree<Integer,Integer>();

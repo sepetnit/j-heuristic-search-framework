@@ -23,74 +23,81 @@ import java.util.List;
 
 /**
  * The search result interface.
- * 
+ *
  * @author Matthew Hatem
  */
 public interface SearchResult {
-	
-  /**
-   * Returns the solution path.
-   * 
-   * @return the solution path
-   */
-  public List<Solution> getSolutions();
-		  
-  /**
-   * Returns expanded count.
-   * 
-   * @return expanded count
-   */
-  public double getExpanded();
-	  
-  /**
-   * Returns generated count.
-   * 
-   * @return generated count
-   */
+
+	/**
+	 * Returns the solution path.
+	 *
+	 * @return the solution path
+	 */
+	public List<Solution> getSolutions();
+
+	/**
+	 * Returns expanded count.
+	 *
+	 * @return expanded count
+	 */
+	public double getExpanded();
+
+	/**
+	 * Returns generated count.
+	 *
+	 * @return generated count
+	 */
 	public double getGenerated();
-	  
+
+	/**
+	 * Returns reopened count.
+	 *
+	 * @return reopened count
+	 */
+	public double getReopened();
+
 	/**
 	 * Returns the wall time in milliseconds.
-	 * 
+	 *
 	 * @return the wall time in milliseconds
 	 */
 	public long getWallTimeMillis();
-	  
+
 	/**
 	 * Returns the CPU time in milliseconds.
-	 * 
+	 *
 	 * @return the CPU time in milliseconds
 	 */
 	public long getCpuTimeMillis();
-	
+
 	/**
 	 * Interface for search iterations.
 	 */
 	public interface Iteration {
-		
+
 		/**
 		 * Returns the bound for this iteration.
-		 * 
+		 *
 		 * @return the bound
 		 */
 		public double getBound();
-		
+
 		/**
 		 * Returns the number of nodes expanded.
-		 * 
+		 *
 		 * @return the number of nodes expanded
 		 */
 		public long getExpanded();
-		
+
 		/**
 		 * Returns the number of nodes generated.
-		 * 
+		 *
 		 * @return the number of nodes generated
 		 */
 		public long getGenerated();
-		
+
 	}
-	
+
 	/**
 	 * The Solution interface.
 	 */
@@ -98,7 +105,7 @@ public interface SearchResult {
 
 		/**
 		 * Returns a list of operators used to construct this solution.
-		 * 
+		 *
 		 * @return list of operators
 		 */
 		public List<Operator> getOperators();
@@ -110,25 +117,25 @@ public interface SearchResult {
 		 */
 		public List<State> getStates();
 
-        /**
-         * Returns a string representation of the solution
-         *
-         * @return A string that represents the solution
-         */
-        public String dumpSolution();
+		/**
+		 * Returns a string representation of the solution
+		 *
+		 * @return A string that represents the solution
+		 */
+		public String dumpSolution();
 
 		/**
 		 * Returns the cost of the solution.
-		 * 
+		 *
 		 * @return the cost of the solution
 		 */
 		public double getCost();
-		
+
 		/**
 		 * Returns the length of the solution.
 		 */
 		public int getLength();
-		
+
 	}
-	  	  
+
 }

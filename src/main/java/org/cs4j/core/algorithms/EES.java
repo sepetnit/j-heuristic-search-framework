@@ -74,12 +74,12 @@ public class EES implements SearchAlgorithm {
     }
 
     private Node _selectNode() {
-        Node toReturn = null;
+        Node toReturn;
         Node bestDHat = this.gequeue.peekFocal();
         Node bestFHat = this.gequeue.peekOpen();
         Node bestF = this.cleanup.peek();
 
-        // best dHat (d^)
+        // best dHat (d^);
         if (bestDHat.fHat <= this.weight * bestF.f) {
             toReturn = this.gequeue.pollFocal();
             // Also, remove from cleanup

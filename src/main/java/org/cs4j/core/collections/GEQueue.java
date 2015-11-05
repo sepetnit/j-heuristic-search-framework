@@ -44,8 +44,8 @@ public class GEQueue<E extends SearchQueueElement & RBTreeElement<E, E>> {
                    int id) {
         this.id = id;
         this.geComparator = geComparator;
-        this.focal = new BinHeap<E>(focalComparator, id);
-        this.open = new RBTree<E, E>(openComparator, geComparator);
+        this.focal = new BinHeap<>(focalComparator, id);
+        this.open = new RBTree<>(openComparator, geComparator);
     }
 
     public boolean isEmpty() {
