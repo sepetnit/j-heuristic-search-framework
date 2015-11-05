@@ -53,22 +53,32 @@ public class EESVacuumRobot {
                     for (boolean reopen : reopenPossibilities) {
                         SearchAlgorithm alg = new EES(weight, reopen);
                         System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
-                        SearchResult result = alg.search(domain);
-                        List<SearchResult.Solution> solutions = result.getSolutions();
-                        // No solution
-                        if (solutions.size() == 0) {
-                            // Append- 0:solution-not-found, -1:depth, -1:generated, -1:expanded, -1:reopened
-                            output.appendNewResult(new double[]{0, -1, -1, -1, -1});
-                        } else {
-                            int solutionLength = solutions.get(0).getLength();
-                            double[] resultData = new double[]{
-                                    1,
-                                    solutionLength,
-                                    result.getGenerated(),
-                                    result.getExpanded(),
-                                    result.getReopened()
-                            };
-                            output.appendNewResult(resultData);
+
+                        try {
+                            SearchResult result = alg.search(domain);
+                            List<SearchResult.Solution> solutions = result.getSolutions();
+                            // No solution
+                            if (solutions.size() == 0) {
+                                // Append-  Sol- 0:solution-not-found
+                                //          Dep- 0,
+                                //          Gen- 0,
+                                //          Exp- 0,
+                                //          Rep- 0
+                                output.appendNewResult(new double[]{0, -1, 0, 0, 0});
+                            } else {
+                                int solutionLength = solutions.get(0).getLength();
+                                double[] resultData = new double[]{
+                                        1,
+                                        solutionLength,
+                                        result.getGenerated(),
+                                        result.getExpanded(),
+                                        result.getReopened()
+                                };
+                                output.appendNewResult(resultData);
+                            }
+                        } catch (OutOfMemoryError e) {
+                            // The first -1 is for marking out-of-memory
+                            output.appendNewResult(new double[]{-1, -1, 0, 0, 0});
                         }
                     }
                     output.newline();
@@ -84,7 +94,7 @@ public class EESVacuumRobot {
     public static void main(String[] args) {
         // Solve with 100 instances
         try {
-            EESVacuumRobot.mainEESExperiment(1);
+            EESVacuumRobot.mainEESExperiment(50);
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
