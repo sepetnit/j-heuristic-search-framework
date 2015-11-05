@@ -20,25 +20,36 @@ public class EES implements SearchAlgorithm {
     private static final int CLEANUP_ID = 0;
     private static final int FOCAL_ID = 1;
 
-    // Closed list
-    private LongObjectOpenHashMap<Node> closed = new LongObjectOpenHashMap<>();
-
     private SearchDomain domain;
     private double weight;
     private boolean reopen;
 
     private OpenNodeComparator openComparator = new OpenNodeComparator();
-    private GEQueue<Node> gequeue =
-            new GEQueue<>(
-                    this.openComparator,
-                    new GENodeComparator(),
-                    new FocalNodeComparator(),
-                    EES.FOCAL_ID);
+
+    private GEQueue<Node> gequeue;
     // cleanup is implemented as a binary heap and actually contains nodes ordered by their f values
-    private BinHeap<Node> cleanup =
-            new BinHeap<Node>(
+    private BinHeap<Node> cleanup;
+    // Closed list
+    private LongObjectOpenHashMap<Node> closed;
+
+    /**
+     * Initializes all the data structures required for the search, especially OPEN, FOCAL, CLEANUP and CLOSED lists
+     */
+    private void _initDataStructures() {
+        this.gequeue =
+                new GEQueue<>(
+                        this.openComparator,
+                        new GENodeComparator(),
+                        new FocalNodeComparator(),
+                        EES.FOCAL_ID);
+        this.cleanup =
+            new BinHeap<>(
                     new CleanupNodeComparator(),
                     EES.CLEANUP_ID);
+
+        this.closed = new LongObjectOpenHashMap<>();
+    }
+
 
     /**
      * The constructor of the class
@@ -103,6 +114,9 @@ public class EES implements SearchAlgorithm {
      */
     @Override
     public SearchResult search(SearchDomain domain) {
+        // Init all the queues relevant to search (destroy previous results)
+        this._initDataStructures();
+
         this.domain = domain;
 
         Node goal = null;
