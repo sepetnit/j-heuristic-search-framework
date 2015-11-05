@@ -39,6 +39,8 @@ public class Weights {
 
     public final SingleWeight[] BASIC_WEIGHTS = {
         new SingleWeight(2, 3),
+        new SingleWeight(3),
+        new SingleWeight(5),
         new SingleWeight(10),
         new SingleWeight(20),
         new SingleWeight(30),
