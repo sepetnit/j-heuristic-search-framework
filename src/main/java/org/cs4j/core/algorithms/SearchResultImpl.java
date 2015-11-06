@@ -48,6 +48,7 @@ public class SearchResultImpl implements SearchResult {
     private long startCpuTimeMillis;
     private long stopWallTimeMillis;
     private long stopCpuTimeMillis;
+
     private List<Iteration> iterations = new ArrayList<>();
     private List<Solution> solutions = new ArrayList<>();
 
@@ -78,7 +79,7 @@ public class SearchResultImpl implements SearchResult {
 
     @Override
     public List<Solution> getSolutions() {
-        return solutions;
+        return this.solutions;
     }
 
     @Override
@@ -153,21 +154,26 @@ public class SearchResultImpl implements SearchResult {
      */
     private static class Iteration implements SearchResult.Iteration {
         private double b;
-        private long e, g;
+        private long e;
+        private long g;
+
         public Iteration(double b, long e, long g) {
-            this.b = b; this.e = e; this.g = g;
+            this.b = b;
+            this.e = e;
+            this.g = g;
         }
+
         @Override
         public double getBound() {
-            return b;
+            return this.b;
         }
         @Override
         public long getExpanded() {
-            return e;
+            return this.e;
         }
         @Override
         public long getGenerated() {
-            return g;
+            return this.g;
         }
     }
 
@@ -207,22 +213,22 @@ public class SearchResultImpl implements SearchResult {
 
         @Override
         public List<Operator> getOperators() {
-            return operators;
+            return this.operators;
         }
 
         @Override
         public List<State> getStates() {
-            return states;
+            return this.states;
         }
 
         @Override
         public double getCost() {
-            return cost;
+            return this.cost;
         }
 
         @Override
         public int getLength() {
-            return operators.size();
+            return this.operators.size();
         }
 
         @Override
@@ -255,27 +261,27 @@ public class SearchResultImpl implements SearchResult {
             return sb.toString();
         }
 
-        void addOperator(Operator operator) {
+        public void addOperator(Operator operator) {
             this.operators.add(operator);
         }
 
-        void addOperators(List<Operator> operators) {
+        public void addOperators(List<Operator> operators) {
             for (Operator o : operators) {
                 this.operators.add(o);
             }
         }
 
-        void addState(State state) {
+        public void addState(State state) {
             this.states.add(state);
         }
 
-        void addStates(List<State> states) {
+        public void addStates(List<State> states) {
             for (State o : states) {
                 this.states.add(o);
             }
         }
 
-        void setCost(double cost) {
+        public void setCost(double cost) {
             this.cost = cost;
         }
 

@@ -291,7 +291,9 @@ public class EES implements SearchAlgorithm {
             List<State> statesPath = new ArrayList<>();
             System.out.println("[INFO] Solved - Generating output path.");
             for (Node p = goal; p != null; p = p.parent) {
-                path.add(p.op);
+                if (p.op != null) {
+                    path.add(p.op);
+                }
                 statesPath.add(domain.unpack(p.packed));
             }
             // The actual size of the found path can be only lower the G value of the found goal
