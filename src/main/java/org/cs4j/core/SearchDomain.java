@@ -135,6 +135,12 @@ public interface SearchDomain {
          */
         String dumpState();
 
+        /**
+         * Returns an alternative SHORT string representation of the state
+         *
+         * @return A short representation of the state
+         */
+        String dumpStateShort();
     }
 
     /**

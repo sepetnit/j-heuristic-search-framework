@@ -522,6 +522,11 @@ public final class FifteenPuzzle implements SearchDomain {
             sb.append("********************************\n\n");
             return sb.toString();
         }
+
+        @Override
+        public String dumpStateShort() {
+            return null;
+        }
     }
 
     @Override

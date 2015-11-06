@@ -303,6 +303,10 @@ public class Pancakes implements SearchDomain {
             return sb.toString();
         }
 
+        @Override
+        public String dumpStateShort() {
+            return null;
+        }
     }
 
     /**

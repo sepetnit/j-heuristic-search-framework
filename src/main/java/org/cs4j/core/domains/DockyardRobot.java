@@ -1393,10 +1393,15 @@ public class DockyardRobot implements SearchDomain {
             this.d = p[1];
         }
 
+        @Override
         public String dumpState() {
             return DockyardRobot.dumpState(this);
         }
 
+        @Override
+        public String dumpStateShort() {
+            return null;
+        }
     }
 
     private final class DRobotOperator implements Operator {
