@@ -1,10 +1,6 @@
 package org.cs4j.core.algorithms;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
+import com.carrotsearch.hppc.LongObjectOpenHashMap;
 import com.sun.istack.internal.NotNull;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
@@ -12,9 +8,17 @@ import org.cs4j.core.SearchDomain.Operator;
 import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
-import org.cs4j.core.collections.*;
+import org.cs4j.core.collections.BinHeap;
+import org.cs4j.core.collections.GEQueue;
+import org.cs4j.core.collections.RBTreeElement;
+import org.cs4j.core.collections.RBTreeNode;
 
-import com.carrotsearch.hppc.LongObjectOpenHashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class EES implements SearchAlgorithm {
     private static final int CLEANUP_ID = 0;
@@ -43,9 +47,9 @@ public class EES implements SearchAlgorithm {
                         new FocalNodeComparator(),
                         EES.FOCAL_ID);
         this.cleanup =
-            new BinHeap<>(
-                    new CleanupNodeComparator(),
-                    EES.CLEANUP_ID);
+                new BinHeap<>(
+                        new CleanupNodeComparator(),
+                        EES.CLEANUP_ID);
 
         this.closed = new LongObjectOpenHashMap<>();
     }
@@ -71,19 +75,6 @@ public class EES implements SearchAlgorithm {
         this(weight, true);
     }
 
-    /**
-     * The function inserts a new generated node into the lists
-     *
-     * @param node The node to insert
-     * @param oldBest The previous node that was considered as the best
-     *                (required in order to update OPEN and FOCAL lists)
-     */
-    private void insertNode(Node node, Node oldBest) {
-        this.gequeue.add(node, oldBest);
-        this.cleanup.add(node);
-        this.closed.put(node.packed, node);
-    }
-
     private Node _selectNode() {
         Node toReturn;
         Node bestDHat = this.gequeue.peekFocal();
@@ -95,17 +86,67 @@ public class EES implements SearchAlgorithm {
             toReturn = this.gequeue.pollFocal();
             // Also, remove from cleanup
             this.cleanup.remove(toReturn);
-        // best fHat (f^)
+            // best fHat (f^)
         } else if (bestFHat.fHat <= this.weight * bestF.f) {
             toReturn = this.gequeue.pollOpen();
             // Also, remove from cleanup
             this.cleanup.remove(toReturn);
-        // Otherwise, take the best f from cleanup
+            // Otherwise, take the best f from cleanup
         } else {
             toReturn = this.cleanup.poll();
             this.gequeue.remove(toReturn);
         }
         return toReturn;
+    }
+
+    /**
+     * The function inserts a new generated node into the lists
+     *
+     * @param node The node to insert
+     * @param oldBest The previous node that was considered as the best
+     *                (required in order to update OPEN and FOCAL lists)
+     */
+    private void _insertNode(Node node, Node oldBest) {
+        this.gequeue.add(node, oldBest);
+        this.cleanup.add(node);
+        this.closed.put(node.packed, node);
+    }
+
+    /**
+     * Given that a child node was generated, which is already contained in the CLOSED or OPEN list, we may want to
+     * reinsert it to the lists. In that case we want to update the parent pointers/
+     *
+     * @param dupChildNode The duplicate node, found in CLOSED
+     * @param newParentNode The parent node from which {@see dupChildNode} was generated
+     * @param newChildNode The newly generated node
+     */
+    private void _updateParentAndChildPointers(Node dupChildNode, Node newParentNode, Node newChildNode) {
+
+        //           (parent)
+        // parent <-          duplicate
+
+        // Go to the parent of the duplicate node and remove the duplicated node from the parent's children
+        if (dupChildNode.parent != null) {
+            dupChildNode.parent.children.remove(dupChildNode.packed);
+            dupChildNode.parent = null;
+        }
+
+        //              (children)
+        // duplicate ->            children
+
+        // Go to the children of the duplicate and update their parent to the new child
+        // Take all the children of the found duplicate and update their parent node
+        for (Node grandSon : dupChildNode.children.values()) {
+            grandSon.parent = newChildNode;
+            newChildNode.children.put(grandSon.packed, grandSon);
+        }
+
+        // Finally, we can destroy the duplicate node
+        dupChildNode.children = null;
+
+        // Add the child node to be a child of its parent
+        newParentNode.children.put(newChildNode.packed, newChildNode);
+
     }
 
     /**
@@ -131,7 +172,7 @@ public class EES implements SearchAlgorithm {
             State initState = domain.initialState();
             Node initNode = new Node(initState, null, null, null);
             // Insert the initial node into all the lists
-            this.insertNode(initNode, initNode);
+            this._insertNode(initNode, initNode);
             // Update FOCAL with the inserted node (no change in f^) - required since oldBest is null in this case
             this.gequeue.updateFocal(null, initNode, 0);
 
@@ -140,17 +181,17 @@ public class EES implements SearchAlgorithm {
                 // First, take the best node from the open list (best f^)
                 Node oldBest = this.gequeue.peekOpen();
                 // Now this node is in closed only, and not in open
-                Node n = this._selectNode();
+                Node bestNode = this._selectNode();
                 // If we are out of nodes - exit
                 // TODO: Can it happen?
-                if (n == null) {
+                if (bestNode == null) {
                     break;
                 }
                 // Extract the state from the chosen node
-                State state = domain.unpack(n.packed);
+                State state = domain.unpack(bestNode.packed);
                 // Check if it is a goal
                 if (domain.isGoal(state)) {
-                    goal = n;
+                    goal = bestNode;
                     break;
                 }
 
@@ -162,53 +203,73 @@ public class EES implements SearchAlgorithm {
                 for (int i = 0; i < numOps; ++i) {
                     Operator op = domain.getOperator(state, i);
                     // Bypass reverse operations
-                    if (op.equals(n.pop)) {
+                    if (op.equals(bestNode.pop)) {
                         continue;
                     }
                     ++result.generated;
                     // Apply the operator and extract the child state
                     State childState = domain.applyOperator(state, op);
                     // Create the child node
-                    Node node = new Node(childState, n, op, op.reverse(state));
+                    Node childNode = new Node(childState, bestNode, op, op.reverse(state));
 
                     // merge duplicates
 
-                    // ==> This means it is in closed and maybe in open
-                    if (this.closed.containsKey(node.packed)) {
+                    // ==> This means it is in CLOSED (and maybe in OPEN too!) - a duplicate was found!
+                    if (this.closed.containsKey(childNode.packed)) {
                         ++result.duplicates;
                         // Extract the duplicate
-                        Node dup = this.closed.get(node.packed);
+                        Node dupChildNode = this.closed.get(childNode.packed);
                         // In case the node should be re-considered
-                        if (dup.f > node.f) {
-                            // This must be true
-                            assert dup.g > node.g;
-                            // ==> Means it is in open ==> remove it and reinsert with updated values
-                            if (dup.getIndex(EES.CLEANUP_ID) != -1) {
-                                this.gequeue.remove(dup);
-                                this.cleanup.remove(dup);
-                                this.closed.remove(dup.packed);
-                                // Insert the generated node into the lists (again)
-                                this.insertNode(node, oldBest);
-                                // The node is in the CLOSED list only
+                        if (dupChildNode.f > childNode.f) {
+                            // This must be true (since h values are the same)
+                            assert dupChildNode.g > childNode.g;
+                            // ==> Means it is in OPEN ==> remove it and reinsert with updated values
+                            if (dupChildNode.getIndex(EES.CLEANUP_ID) != -1) {
+                                ++result.opupdated;
+                                this.gequeue.remove(dupChildNode);
+                                this.cleanup.remove(dupChildNode);
+                                this.closed.remove(dupChildNode.packed);
+
+                                // Update all the pointers
+                                this._updateParentAndChildPointers(dupChildNode, bestNode, childNode);
+
+                                this._insertNode(childNode, oldBest);
+
+                            // The node is in the CLOSED list only
                             } else {
-                                // If re-opening is allowed - insert the node back to lists (OPEN, FOCAL and CLEANUP)
+                                // If re-opening is allowed: insert the node back to lists (OPEN, FOCAL and CLEANUP)
                                 if (this.reopen) {
                                     ++result.reopened;
-                                    // Only re-insert the node
-                                    this.insertNode(node, oldBest);
-                                    // Otherwise, just update the value of the node in CLOSED (without re-inserting it)
+
+
+                                    // Update all the pointers
+                                    this._updateParentAndChildPointers(dupChildNode, bestNode, childNode);
+
+                                    this._insertNode(childNode, oldBest);
+
+                                // Otherwise, just update the value of the node in CLOSED (without re-inserting it)
                                 } else {
-                                    dup.f = node.f;
-                                    dup.g = node.g;
-                                    dup.op = node.op;
-                                    dup.pop = node.pop;
-                                    dup.parent = node.parent;
+                                    dupChildNode.f = childNode.f;
+                                    dupChildNode.g = childNode.g;
+                                    dupChildNode.op = childNode.op;
+                                    dupChildNode.pop = childNode.pop;
+
+                                    // Got to the parent of the duplicate node and remove this node from its children
+                                    if (dupChildNode.parent != null) {
+                                        dupChildNode.parent.children.remove(dupChildNode.packed);
+                                    }
+
+                                    // Update the parent of the duplicate node
+                                    dupChildNode.parent = childNode.parent;
+                                    dupChildNode.parent.children.put(dupChildNode.packed, dupChildNode);
+
                                 }
                             }
                         }
                     // New node - not in CLOSED
                     } else {
-                        this.insertNode(node, oldBest);
+                        this._insertNode(childNode, oldBest);
+                        bestNode.children.put(childNode.packed, childNode);
                     }
                 }
 
@@ -225,13 +286,21 @@ public class EES implements SearchAlgorithm {
 
         // If a goal was found: update the solution
         if (goal != null) {
-            SolutionImpl solution = new SolutionImpl();
+            SolutionImpl solution = new SolutionImpl(this.domain);
             List<Operator> path = new ArrayList<>();
             List<State> statesPath = new ArrayList<>();
+            System.out.println("[INFO] Solved - Generating output path.");
             for (Node p = goal; p != null; p = p.parent) {
                 path.add(p.op);
                 statesPath.add(domain.unpack(p.packed));
             }
+            // The actual size of the found path can be only lower the G value of the found goal
+            assert statesPath.size() <= goal.g - 1;
+            if (statesPath.size() - goal.g < 1) {
+                System.out.println("[INFO] Goal G is higher that the actual path " +
+                    "(G: " + goal.g +  ", Actual: " + statesPath.size() + ")");
+            }
+
             Collections.reverse(path);
             solution.addOperators(path);
 
@@ -256,7 +325,7 @@ public class EES implements SearchAlgorithm {
                 return -1;
             } else if (a.f > b.f) {
                 return 1;
-            // Otherwise, compare the nodes by G values: higher G is better
+                // Otherwise, compare the nodes by G values: higher G is better
             } else if (b.g < a.g) {
                 return -1;
             } else if (b.g > a.g) {
@@ -278,12 +347,12 @@ public class EES implements SearchAlgorithm {
                 return -1;
             } else if (a.dHat > b.dHat) {
                 return 1;
-            // Break ties on low fHat
+                // Break ties on low fHat
             }  else if (a.fHat < b.fHat) {
                 return -1;
             } else if (a.fHat > b.fHat) {
                 return 1;
-            // Finally, break ties by looking on G (higher G value is better)
+                // Finally, break ties by looking on G (higher G value is better)
             } else if (a.g > b.g) {
                 return -1;
             } else if (a.g < b.g) {
@@ -292,7 +361,7 @@ public class EES implements SearchAlgorithm {
             return 0;
         }
     }
-  
+
     /**
      * This comparator is used to sort the open list on fHat (f^)
      */
@@ -304,12 +373,12 @@ public class EES implements SearchAlgorithm {
                 return -1;
             } else if (a.fHat > b.fHat) {
                 return 1;
-            // break ties on low D
+                // break ties on low D
             } else if (a.d < b.d) {
                 return -1;
             } else if (a.d > b.d) {
                 return 1;
-            // break ties on high G
+                // break ties on high G
             } else if (a.g > b.g) {
                 return -1;
             } else if (a.g < b.g) {
@@ -328,17 +397,17 @@ public class EES implements SearchAlgorithm {
             return 0;
         }
     }
-  
+
     // sort on a.f and b.f
     private final class GENodeComparator implements Comparator<Node> {
         @Override
         public int compare(final Node a, final Node b) {
-          if (a.fHat < EES.this.weight * b.fHat) {
-              return -1;
-          } else if (a.fHat > EES.this.weight * b.fHat) {
-              return 1;
-          }
-          return 0;
+            if (a.fHat < EES.this.weight * b.fHat) {
+                return -1;
+            } else if (a.fHat > EES.this.weight * b.fHat) {
+                return 1;
+            }
+            return 0;
         }
     }
 
@@ -366,6 +435,10 @@ public class EES implements SearchAlgorithm {
         private Operator pop;
 
         private Node parent;
+
+        // The immediate children of the node
+        private Map<Long, Node> children;
+
         private long packed;
         private RBTreeNode<Node, Node> rbnode = null;
 
@@ -453,13 +526,14 @@ public class EES implements SearchAlgorithm {
          * @param op The operator which generated this node
          * @param pop The reverse operator (which will cause to generation of the parent node)
          */
-        private Node (State state, Node parent, Operator op, final Operator pop) {
+        private Node(State state, Node parent, Operator op, final Operator pop) {
             // The size of the key is 2
             super(2);
             this.packed = domain.pack(state);
             this.op = op;
             this.pop = pop;
             this.parent = parent;
+            this.children = new HashMap<>();
 
             // Calculate the cost of the node:
             double cost = (op != null) ? op.getCost(state) : 0;
@@ -472,8 +546,16 @@ public class EES implements SearchAlgorithm {
             }
 
             this.h = state.getH();
+
+            // Start of PathMax
+            if (parent != null) {
+                double costsDiff = this.g - parent.g;
+                this.h = Math.max(this.h, (parent.h - costsDiff));
+            }
+            // End of PathMax
+
             this.d = state.getD();
-            this.f = g + h;
+            this.f = this.g + this.h;
 
             // Default values
             this.sseH = 0;

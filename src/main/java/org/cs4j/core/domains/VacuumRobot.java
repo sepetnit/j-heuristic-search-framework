@@ -788,7 +788,7 @@ public class VacuumRobot implements SearchDomain {
                 s
         );
         // Fill the output parameter with the index of the location closest to the robot
-        // (if the output paremeter is not null)
+        // (if the output parameter is not null)
         if (closestLocationIndex != null) {
             closestLocationIndex[0] = closestDirtAndDistance[0];
         }
@@ -1235,6 +1235,7 @@ public class VacuumRobot implements SearchDomain {
         }
         // Compute the initial mapHeight and d values and fill the state with that values
         double hd[] = this.computeHD(vrs);
+        // Initially, g value equals to -1
         vrs.h = hd[0];
         vrs.d = hd[1];
         // System.out.println(this.dumpState(vrs));
@@ -1315,12 +1316,11 @@ public class VacuumRobot implements SearchDomain {
     private void _unpackLite(long packed, VacuumRobotState dst) {
         // unpack the dirty locations
         dst.ops = null;
-        int ndirt = this.maximumDirtyLocationsCount;
         // Initially, there are no dirty locations
         dst.remainingDirtyLocationsCount = 0;
         dst.dirt = 0;
         // For each possible dirty location, check if it is actually dirty
-        for (int i= ndirt - 1; i >= 0; --i) {
+        for (int i = this.maximumDirtyLocationsCount - 1; i >= 0; --i) {
             long d = packed & singleBitMask;
             if (d == 1) {
                 // Make the location dirty
@@ -1408,15 +1408,9 @@ public class VacuumRobot implements SearchDomain {
         //dumpState(s);
         //dumpState(vrs);
 
-        // Update the cost of the operation
-        vrs.g += op.getCost(s);
         double p[] = this.computeHD(s);
         vrs.h = p[0];
         vrs.d = p[1];
-
-        // PathMax
-        double costsDiff = vrs.g - s.g;
-        vrs.h = Math.max(s.h, (s.h - costsDiff));
 
         vrs.parent = s;
 
@@ -1428,7 +1422,6 @@ public class VacuumRobot implements SearchDomain {
      * A VacuumRobot Cleaner World state
      */
     private final class VacuumRobotState implements State {
-        private double g = -1;
         private double h = -1;
         private double d = -1;
 
@@ -1477,15 +1470,15 @@ public class VacuumRobot implements SearchDomain {
         @Override
         public boolean equals(Object obj) {
             try {
-                VacuumRobotState o = (VacuumRobotState)obj;
+                VacuumRobotState otherState = (VacuumRobotState)obj;
                 // First, compare the basic data : The current location and the number of
                 // dirty locations
-                if (this.robotLocation != o.robotLocation ||
-                        this.remainingDirtyLocationsCount != o.remainingDirtyLocationsCount) {
+                if (this.robotLocation != otherState.robotLocation ||
+                        this.remainingDirtyLocationsCount != otherState.remainingDirtyLocationsCount) {
                     return false;
                 }
                 // Compare all the dirty locations
-                return this.dirt == o.dirt;
+                return this.dirt == otherState.dirt;
             } catch (ClassCastException e) {
                 return false;
             }
@@ -1545,9 +1538,16 @@ public class VacuumRobot implements SearchDomain {
             return this.d;
         }
 
+        @Override
         public String dumpState() {
             return VacuumRobot.this.dumpState(this);
         }
+
+        @Override
+        public String dumpStateShort() {
+            return VacuumRobot.this.dumpStateShort(this);
+        }
+
     }
 
     private final class VacuumRobotOperator implements Operator {
@@ -1686,6 +1686,21 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
+     * Print the a short representation of the state for debugging reasons
+     *
+     * @param state The state to print
+     */
+    private String dumpStateShort(VacuumRobotState state) {
+        StringBuilder sb = new StringBuilder();
+        PairInt robotLocation = this.map.getPosition(state.robotLocation);
+        sb.append("robot location: ");
+        sb.append(robotLocation.toString());
+        sb.append(", dirty vector: ");
+        sb.append(state.dirt);
+        return sb.toString();
+    }
+
+    /**
      * Print the state for debugging reasons
      *
      * @param state The state to print
@@ -1707,12 +1722,8 @@ public class VacuumRobot implements SearchDomain {
         int obstaclesAndDirtyCountArray[] = new int[2];
         sb.append(this._dumpMap(new State[]{state}, false, obstaclesAndDirtyCountArray));
         obstaclesCount = obstaclesAndDirtyCountArray[0];
-
-        // Additional newline
-        sb.append('\n');
-        PairInt robotLocation = this.map.getPosition(state.robotLocation);
-        sb.append("robot location: ");
-        sb.append(robotLocation.toString());
+        sb.append("\n");
+        sb.append(this.dumpStateShort(state));
         sb.append("\n");
         sb.append("obstacles count: ");
         sb.append(obstaclesCount);
