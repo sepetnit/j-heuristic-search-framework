@@ -40,21 +40,35 @@ public interface SearchResult {
 	 *
 	 * @return expanded count
 	 */
-	public double getExpanded();
+	public long getExpanded();
 
 	/**
 	 * Returns generated count.
 	 *
 	 * @return generated count
 	 */
-	public double getGenerated();
+	public long getGenerated();
+
+	/**
+	 * Returns duplicates count.
+	 *
+	 * @return Count of the duplicate states
+	 */
+	public long getDuplicates();
+
+	/**
+	 * Returns the number of duplicate states that were updated in the open list
+	 *
+	 * @return duplicates count in the open list
+	 */
+	public long getUpdatedInOpen();
 
 	/**
 	 * Returns reopened count.
 	 *
 	 * @return reopened count
 	 */
-	public double getReopened();
+	public long getReopened();
 
 	/**
 	 * Returns the wall time in milliseconds.
