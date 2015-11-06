@@ -492,9 +492,16 @@ public class GridPathFinding implements SearchDomain {
             return this.d;
         }
 
+        @Override
         public String dumpState() {
             return GridPathFinding.this.dumpState(this);
         }
+
+        @Override
+        public String dumpStateShort() {
+            return null;
+        }
+
     }
 
     /**

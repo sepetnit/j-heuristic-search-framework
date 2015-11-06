@@ -41,10 +41,14 @@ public class EESVacuumRobot {
 
 
             // Write the header line
-            output.writeln("InstanceID,Wh,Wg,Weight,AR-Slv,AR-Dep,AR-Gen,AR-Exp,AR-Rep,NR-Slv,NR-Dep,NR-Gen,NR-Exp,NR-Rep");
+            output.writeln(
+                    "InstanceID,Wh,Wg,Weight," +
+                    "AR-Slv,AR-Dep,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
+                    "NR-Slv,NR-Dep,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,"
+            );
 
             // Go over all the possible combinations and solve!
-            for (int i = 1; i <= instancesCount; ++i) {
+            for (int i = 8; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
                 SearchDomain domain = EESVacuumRobot.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
                 for (Weights.SingleWeight w : weights.BASIC_WEIGHTS) {
@@ -63,8 +67,10 @@ public class EESVacuumRobot {
                                 //          Dep- 0,
                                 //          Gen- 0,
                                 //          Exp- 0,
+                                //          Dup- 0,
+                                //          Oup- 0 (updated in open),
                                 //          Rep- 0
-                                output.appendNewResult(new double[]{0, -1, 0, 0, 0});
+                                output.appendNewResult(new double[]{0, -1, 0, 0, 0, 0, 0});
                             } else {
                                 int solutionLength = solutions.get(0).getLength();
                                 double[] resultData = new double[]{
@@ -72,13 +78,17 @@ public class EESVacuumRobot {
                                         solutionLength,
                                         result.getGenerated(),
                                         result.getExpanded(),
-                                        result.getReopened()
+                                        result.getDuplicates(),
+                                        result.getUpdatedInOpen(),
+                                        result.getReopened(),
                                 };
+                                // System.out.println(solutions.get(0).dumpSolution());
                                 output.appendNewResult(resultData);
                             }
                         } catch (OutOfMemoryError e) {
+                            System.out.println("Got out of memory :(");
                             // The first -1 is for marking out-of-memory
-                            output.appendNewResult(new double[]{-1, -1, 0, 0, 0});
+                            output.appendNewResult(new double[]{-1, -1, 0, 0, 0, 0, 0});
                         }
                     }
                     output.newline();
@@ -94,7 +104,7 @@ public class EESVacuumRobot {
     public static void main(String[] args) {
         // Solve with 100 instances
         try {
-            EESVacuumRobot.mainEESExperiment(50);
+            EESVacuumRobot.mainEESExperiment(8);
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);

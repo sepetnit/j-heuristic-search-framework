@@ -33,10 +33,17 @@ import org.cs4j.core.SearchResult;
  */
 public class SearchResultImpl implements SearchResult {
 
-    long expanded;
-    long generated;
-    long duplicates;
+    // Number of expanded states
+    public long expanded;
+    // Number of generated states
+    public long generated;
+    // Number of duplicates: states that were reached more than a single time
+    public long duplicates;
+    // Number of states that were reached a second time, while they are still in OPEN list (updating their values)
+    public long opupdated;
+    // Number of states that were actually re-opened
     public long reopened;
+
     private long startWallTimeMillis;
     private long startCpuTimeMillis;
     private long stopWallTimeMillis;
@@ -45,18 +52,28 @@ public class SearchResultImpl implements SearchResult {
     private List<Solution> solutions = new ArrayList<>();
 
     @Override
-    public double getExpanded() {
+    public long getExpanded() {
         return this.expanded;
     }
 
     @Override
-    public double getGenerated () {
+    public long getGenerated () {
         return this.generated;
     }
 
     @Override
-    public double getReopened () {
+    public long getReopened () {
         return this.reopened;
+    }
+
+    @Override
+    public long getDuplicates() {
+        return this.duplicates;
+    }
+
+    @Override
+    public long getUpdatedInOpen() {
+        return this.opupdated;
     }
 
     @Override
