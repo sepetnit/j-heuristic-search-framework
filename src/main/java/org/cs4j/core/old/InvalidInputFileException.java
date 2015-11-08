@@ -1,4 +1,4 @@
-package org.cs4j.core.domains;
+package org.cs4j.core.old;
 
 import java.io.IOException;
 
