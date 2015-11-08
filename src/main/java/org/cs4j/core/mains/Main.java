@@ -93,7 +93,7 @@ public class Main {
     }
 
     public SearchDomain createDockyardRobot(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/dockyardrobot/mine/" + instance));
+        InputStream is = new FileInputStream(new File("input/dockyardrobot/generated/" + instance));
         return new DockyardRobot(is);
     }
 
@@ -166,9 +166,9 @@ public class Main {
         }
     }
 
-    public static void mainDRobotDomain(String[] args) throws IOException {
+    public static void mainDockyardRobotDomain() throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createDockyardRobot("2.in");
+        SearchDomain domain = mainTest.createDockyardRobot("1.in");
         SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
@@ -312,8 +312,8 @@ public class Main {
     public static void main(String[] args) throws IOException {
         //Main.mainFifteenPuzzle(args);
         //Main.mainGridPathFinding(args);
-        Main.mainPancakesDomain(args);
+        //Main.mainPancakesDomain(args);
         //Main.mainVacuumRobotDomain(args);
-        //Main.mainDRobotDomain());
+        Main.mainDockyardRobotDomain();
     }
 }
