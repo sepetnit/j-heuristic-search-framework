@@ -15,12 +15,42 @@ import org.cs4j.core.SearchDomain;
 public class Pancakes implements SearchDomain {
 
     private COST_FUNCTION costFunction;
+
     // The possible cost functions
-    public enum COST_FUNCTION {UNIT, HEAVY};
-    private int numCakes = 0;
+    public enum COST_FUNCTION {
+        UNIT,
+        HEAVY
+    }
+
+    protected int numCakes = 0;
+
     // The initial given state
-    private int init[];
+    private int[] init;
     private Operator[] possibleOperators;
+
+    // This static variable defines the minimum pancake index that is checked when checking for goal -
+    // in case we use the domain to compute PDB, we refer to partial portion of the pancakes
+    public static int MIN_PANCAKE_FOR_PDB = 0;
+    public static int MAX_PANCAKE_FOR_PDB = -1;
+    // This can be set only according to the number of pancakes
+    private int maxPancakeForPDB;
+
+    /**
+     * Initialize all the data structures relevant to the domain
+     */
+    private void _initializeDataStructures() {
+        this.possibleOperators = new Operator[this.numCakes];
+        // Initialize the operators (according to the updated position of the pancake)
+        for (int i = 0; i < this.numCakes; ++i) {
+            this.possibleOperators[i] = new PancakeOperator(i + 1);
+        }
+        // Set the maximum index (if it is not already defined)
+        if (Pancakes.MAX_PANCAKE_FOR_PDB == -1) {
+            this.maxPancakeForPDB = this.numCakes - 1;
+        } else {
+            this.maxPancakeForPDB = Pancakes.MAX_PANCAKE_FOR_PDB;
+        }
+    }
 
     /**
      * The constructor reads an instance of Pancakes problem from the specified input stream
@@ -36,18 +66,16 @@ public class Pancakes implements SearchDomain {
             // Read the number of cakes
             String line = reader.readLine();
             this.numCakes = Integer.parseInt(line);
+            // The number of pancakes can be 2-15 only (15 in order to allow packing into long - 64 bit number)
+            assert this.numCakes >= 2 && this.numCakes <= 15;
             this.init = new int[this.numCakes];
-            this.possibleOperators = new Operator[this.numCakes];
             // Read the cakes
             line = reader.readLine();
             String[] cakes = line.split(" ");
             for (int i = 0; i < cakes.length; ++i) {
                 this.init[i] = Integer.parseInt(cakes[i]);
             }
-            // Finally, initialize the operators (according to the updated position of the pancake)
-            for (int i = 0; i < this.numCakes; ++i) {
-                this.possibleOperators[i] = new PancakeOperator(i + 1);
-            }
+            this._initializeDataStructures();
         } catch(IOException e) {
             Utils.fatal("Error reading input file");
         }
@@ -64,6 +92,32 @@ public class Pancakes implements SearchDomain {
     }
 
     /**
+     * This constructor receives the initial pancakes position
+     *
+     * @param init The initial position of the pancakes
+     * @param costFunction The computeCost function to use
+     */
+    public Pancakes(int[] init, COST_FUNCTION costFunction) {
+        this.costFunction = costFunction;
+        this.numCakes = init.length;
+        this.init = new int[init.length];
+        // Copy the given init array
+        System.arraycopy(init, 0, this.init, 0, this.init.length);
+        // System.out.println(Arrays.toString(this.init));
+        this._initializeDataStructures();
+    }
+
+    /**
+     * This constructor receives the initial pancakes position
+     * In this case, the UNIT cost function is used.
+     *
+     * @param init The initial position of the pancakes
+     */
+    public Pancakes(int[] init) {
+        this(init, COST_FUNCTION.UNIT);
+    }
+
+    /**
      * Check whether there is a gap between the cakes n and n+1? (whether they are following)
      *
      * @param cakes The pancakes array to calculate the data from
@@ -76,6 +130,7 @@ public class Pancakes implements SearchDomain {
         if (n == (this.numCakes - 1)) {
             return cakes[this.numCakes - 1] != (this.numCakes - 1);
         }
+
         // Whether the difference is different than 1
         return Math.abs(cakes[n] - cakes[n+1]) != 1;
     }
@@ -92,7 +147,7 @@ public class Pancakes implements SearchDomain {
      */
     private int _countGaps(int cakes[], COST_FUNCTION costFunction) {
         int gapsCount = 0;
-        for (int i = 0; i < this.numCakes; ++i) {
+        for (int i = Pancakes.MIN_PANCAKE_FOR_PDB; i <= this.maxPancakeForPDB; ++i) {
             if (this._hasGap(cakes, i)) {
                 switch (costFunction) {
                     case UNIT:
@@ -100,7 +155,7 @@ public class Pancakes implements SearchDomain {
                         break;
                     case HEAVY:
                         int a = cakes[i];
-                        int b = (i != this.numCakes - 1) ? cakes[i+1] : Integer.MAX_VALUE;
+                        int b = (i != this.numCakes - 1) ? cakes[i + 1] : Integer.MAX_VALUE;
                         // Each gap costs the 1+the minimal cake
                         gapsCount += (1 + Math.min(a, b));
                         break;
@@ -120,8 +175,9 @@ public class Pancakes implements SearchDomain {
     }
 
     @Override
-    public boolean isGoal(State state) {
-        return ((PancakeState)state).d == 0;
+    public boolean isGoal(State s) {
+        PancakeState state = (PancakeState) s;
+        return state.d == 0;
     }
 
     @Override
@@ -137,13 +193,13 @@ public class Pancakes implements SearchDomain {
 
     @Override
     public State applyOperator(State state, Operator op) {
-        PancakeState pacakeState = (PancakeState)copy(state);
+        PancakeState pancakeState = (PancakeState)copy(state);
         int pancakeOperator = ((PancakeOperator)op).value;
         // Flip the top of the stack
-        pacakeState.flipTopStackPortion(pancakeOperator);
-        pacakeState.h = this._countGaps(pacakeState.cakes, this.costFunction);
-        pacakeState.d = this._countGaps(pacakeState.cakes, COST_FUNCTION.UNIT);
-        return pacakeState;
+        pancakeState.flipTopStackPortion(pancakeOperator);
+        pancakeState.h = this._countGaps(pancakeState.cakes, this.costFunction);
+        pancakeState.d = this._countGaps(pancakeState.cakes, COST_FUNCTION.UNIT);
+        return pancakeState;
     }
 
     @Override
@@ -184,7 +240,7 @@ public class Pancakes implements SearchDomain {
     @Override
     public State unpack(long word) {
         PancakeState state = new PancakeState(this.numCakes);
-        for (int i = numCakes - 1; i >= 0; --i) {
+        for (int i = this.numCakes - 1; i >= 0; --i) {
             int t = (int) word & 0xF;
             word >>= 4;
             state.cakes[i] = t;
@@ -220,6 +276,17 @@ public class Pancakes implements SearchDomain {
         }
 
         /**
+         * A standard constructor
+         *
+         * @param cakes The pancakes array
+         */
+        public PancakeState(int[] cakes) {
+            this.numCakes = cakes.length;
+            this.cakes = new int[numCakes];
+            System.arraycopy(this.cakes, 0, cakes, 0, cakes.length);
+        }
+
+        /**
          * A copy constructor
          *
          * @param pancake Another pancake state to copy
@@ -229,7 +296,7 @@ public class Pancakes implements SearchDomain {
             this.cakes = new int[numCakes];
             this.h = pancake.h;
             this.d = pancake.d;
-            System.arraycopy(pancake.cakes, 0, cakes, 0, pancake.cakes.length);
+            System.arraycopy(pancake.cakes, 0, this.cakes, 0, pancake.cakes.length);
         }
 
         /**
@@ -251,12 +318,12 @@ public class Pancakes implements SearchDomain {
 
         @Override
         public double getH() {
-            return h;
+            return this.h;
         }
 
         @Override
         public double getD() {
-            return d;
+            return this.d;
         }
 
         @Override
@@ -323,7 +390,7 @@ public class Pancakes implements SearchDomain {
         @Override
         public double getCost(State state) {
             PancakeState ps = (PancakeState)state;
-            return computeCost(ps.cakes[value]);
+            return Pancakes.this.computeCost(ps.cakes[value]);
         }
 
         @Override
