@@ -196,7 +196,6 @@ public class DockyardRobot implements SearchDomain {
                     }
                     case "cranes:": {
                         this.maximumCranesCountAtPosition[loc] = tokens.length - 1;
-                        System.out.println(this.maximumCranesCountAtPosition[loc]);
                         break;
                         // piles
                     }
