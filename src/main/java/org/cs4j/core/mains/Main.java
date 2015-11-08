@@ -84,8 +84,9 @@ public class Main {
     }
 
     public SearchDomain createPancakesUnit(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/pancakes/"+instance));
+        InputStream is = new FileInputStream(new File("input/pancakes/mine/"+instance));
         Pancakes puzzle = new Pancakes(is);
+        Pancakes.MIN_PANCAKE_FOR_PDB = 10;
         return puzzle;
     }
 
@@ -307,10 +308,10 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        //Main.mainFifteenPuorg.cs4j.core.mains.MainDomain(args);
-        //Main.mainGridPathForg.cs4j.core.mains.MainngDomain(args);
-        //Main.mainPancakesDorg.cs4j.core.mains.Mainn(args);
-        Main.mainVacuumRobotDomain(args);
-        //Main.mainDRobotDomorg.cs4j.core.mains.Mainargs);
+        //Main.mainFifteenPuzzle(args);
+        //Main.mainGridPathFinding(args);
+        Main.mainPancakesDomain(args);
+        //Main.mainVacuumRobotDomain(args);
+        //Main.mainDRobotDomain());
     }
 }
