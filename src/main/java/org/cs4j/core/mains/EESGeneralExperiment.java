@@ -6,6 +6,7 @@ import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.data.Weights;
+import org.cs4j.core.domains.Pancakes;
 import org.cs4j.core.domains.VacuumRobot;
 
 import java.io.*;
@@ -16,7 +17,12 @@ import java.util.List;
  * Created by sepetnit on 11/5/2015.
  *
  */
-public class EESVacuumRobot {
+public class EESGeneralExperiment {
+
+    public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/pancakes/generated/" + instance));
+        return new Pancakes(is);
+    }
 
     public static SearchDomain createVacuumRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/vacuumrobot/generated/" + instance));
@@ -37,21 +43,21 @@ public class EESVacuumRobot {
         OutputResult output;
         try {
             // Create the result file + overwrite if exists!
-            output = new OutputResult("results/vacuumrobot/generated+ees", true);
+            output = new OutputResult("results/pancakes/generated+ees+optimal", true);
 
 
             // Write the header line
             output.writeln(
                     "InstanceID,Wh,Wg,Weight," +
-                    "AR-Slv,AR-Dep,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
-                    "NR-Slv,NR-Dep,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,"
+                    "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
+                    "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,"
             );
 
             // Go over all the possible combinations and solve!
-            for (int i = 8; i <= instancesCount; ++i) {
+            for (int i = 1; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
-                SearchDomain domain = EESVacuumRobot.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
-                for (Weights.SingleWeight w : weights.BASIC_WEIGHTS) {
+                SearchDomain domain = EESGeneralExperiment.createPancakesInstanceFromAutomaticallyGenerated(i + ".in");
+                for (Weights.SingleWeight w : weights.EXTENDED_WEIGHTS) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : reopenPossibilities) {
@@ -64,18 +70,21 @@ public class EESVacuumRobot {
                             // No solution
                             if (solutions.size() == 0) {
                                 // Append-  Sol- 0:solution-not-found
-                                //          Dep- 0,
+                                //          Dep- -1,
+                                //          Ggl- -1,
                                 //          Gen- 0,
                                 //          Exp- 0,
                                 //          Dup- 0,
                                 //          Oup- 0 (updated in open),
                                 //          Rep- 0
-                                output.appendNewResult(new double[]{0, -1, 0, 0, 0, 0, 0});
+                                output.appendNewResult(new double[]{0, -1, -1, 0, 0, 0, 0, 0});
                             } else {
                                 int solutionLength = solutions.get(0).getLength();
                                 double[] resultData = new double[]{
                                         1,
                                         solutionLength,
+                                        // Put here the G value of the goal
+                                        solutions.get(0).getCost(),
                                         result.getGenerated(),
                                         result.getExpanded(),
                                         result.getDuplicates(),
@@ -88,7 +97,7 @@ public class EESVacuumRobot {
                         } catch (OutOfMemoryError e) {
                             System.out.println("Got out of memory :(");
                             // The first -1 is for marking out-of-memory
-                            output.appendNewResult(new double[]{-1, -1, 0, 0, 0, 0, 0});
+                            output.appendNewResult(new double[]{-1, -1, -1, 0, 0, 0, 0, 0});
                         }
                     }
                     output.newline();
@@ -104,7 +113,7 @@ public class EESVacuumRobot {
     public static void main(String[] args) {
         // Solve with 100 instances
         try {
-            EESVacuumRobot.mainEESExperiment(8);
+            EESGeneralExperiment.mainEESExperiment(100);
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
