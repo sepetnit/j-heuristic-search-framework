@@ -10,8 +10,52 @@ import java.util.List;
  *
  */
 public class Weights {
-    // Will contain BASIC_WEIGHTS + LOW_WEIGHTS
-    public SingleWeight[] EXTENDED_WEIGHTS;
+
+    public final SingleWeight[] OPTIMAL_WEIGHTS = {
+            new SingleWeight(1.0)
+    };
+
+    public final SingleWeight[] LOW_WEIGHTS = {
+            new SingleWeight(1.05),
+            new SingleWeight(1.1),
+            new SingleWeight(1.2),
+            new SingleWeight(1.3),
+            new SingleWeight(1.4),
+            new SingleWeight(1.5),
+            new SingleWeight(1.6),
+            new SingleWeight(1.7),
+            new SingleWeight(1.8),
+            new SingleWeight(1.9),
+            new SingleWeight(2.0),
+            new SingleWeight(2.1),
+            new SingleWeight(2.2),
+            new SingleWeight(2.3),
+            new SingleWeight(2.4),
+            new SingleWeight(2.5),
+            new SingleWeight(2.6),
+            new SingleWeight(2.7),
+            new SingleWeight(2.8),
+            new SingleWeight(2.9),
+            new SingleWeight(3.0),
+    };
+
+    public final SingleWeight[] BASIC_WEIGHTS_STARTS_AT_3 = {
+            new SingleWeight(3),
+            new SingleWeight(5),
+            new SingleWeight(10),
+            new SingleWeight(20),
+            new SingleWeight(30),
+            new SingleWeight(50),
+            new SingleWeight(100),
+            new SingleWeight(200),
+            new SingleWeight(500),
+            new SingleWeight(1000),
+    };
+
+    // Will contain BASIC_WEIGHTS + LOW_WEIGHTS (will be initialized in the constructor)
+    public final SingleWeight[] EXTENDED_WEIGHTS;
+    // Same as BASIC_WEIGHTS (will be initialized in the constructor)
+    public final SingleWeight[] BASIC_WEIGHTS;
 
     public class SingleWeight implements Comparable<SingleWeight> {
         public double wh;
@@ -52,56 +96,47 @@ public class Weights {
     }
 
     /**
+     * Creates a specific weight with the given value of h
+     *
+     * @param weight The required value of h
+     *
+     * @return The created weight
+     */
+    public SingleWeight getWeight(double weight) {
+        return new SingleWeight(weight);
+    }
+
+    /**
+     * The function appends two given arrays and creates a unified (sorted) array
+     *
+     * @param first The first array
+     * @param second The second array
+     *
+     * @return The unified result
+     */
+    private SingleWeight[] appendTwoArrays(SingleWeight[] first, SingleWeight[] second) {
+        int unifiedSize = first.length + second.length;
+        List<SingleWeight> firstAsList = Arrays.asList(first);
+        List<SingleWeight> secondAsList = Arrays.asList(second);
+        List<SingleWeight> unified = new ArrayList<>(unifiedSize);
+        unified.addAll(firstAsList);
+        unified.addAll(secondAsList);
+        SingleWeight[] result = unified.toArray(new SingleWeight[unifiedSize]);
+        Arrays.sort(result);
+        return result;
+    }
+
+    /**
      * The constructor of the class
      */
     public Weights() {
-        this.EXTENDED_WEIGHTS = new SingleWeight[this.BASIC_WEIGHTS.length + this.LOW_WEIGHTS.length];
-        List<SingleWeight> basicWeights = Arrays.asList(this.BASIC_WEIGHTS);
-        List<SingleWeight> lowWeights = Arrays.asList(this.LOW_WEIGHTS);
-        List<SingleWeight> extended = new ArrayList<>(this.EXTENDED_WEIGHTS.length);
-        extended.addAll(basicWeights);
-        extended.addAll(lowWeights);
-        this.EXTENDED_WEIGHTS = extended.toArray(new SingleWeight[extended.size()]);
-        Arrays.sort(this.EXTENDED_WEIGHTS);
+        this.BASIC_WEIGHTS = new SingleWeight[this.BASIC_WEIGHTS_STARTS_AT_3.length + 1];
+        System.arraycopy(this.BASIC_WEIGHTS_STARTS_AT_3, 0, this.BASIC_WEIGHTS, 1, this.BASIC_WEIGHTS_STARTS_AT_3.length);
+        // Add the additional weight of 1.5 to BASIC_WEIGHTS
+        this.BASIC_WEIGHTS[0] =  new SingleWeight(2, 3);
+
+        this.EXTENDED_WEIGHTS = this.appendTwoArrays(this.BASIC_WEIGHTS, this.LOW_WEIGHTS);
     }
-
-    public final SingleWeight[] BASIC_WEIGHTS = {
-            new SingleWeight(2, 3),
-            new SingleWeight(3),
-            new SingleWeight(5),
-            new SingleWeight(10),
-            new SingleWeight(20),
-            new SingleWeight(30),
-            new SingleWeight(50),
-            new SingleWeight(100),
-            new SingleWeight(200),
-            new SingleWeight(500),
-            new SingleWeight(1000),
-    };
-
-    public final SingleWeight[] LOW_WEIGHTS = {
-            new SingleWeight(1.05),
-            new SingleWeight(1.1),
-            new SingleWeight(1.2),
-            new SingleWeight(1.3),
-            new SingleWeight(1.4),
-            new SingleWeight(1.5),
-            new SingleWeight(1.6),
-            new SingleWeight(1.7),
-            new SingleWeight(1.8),
-            new SingleWeight(1.9),
-            new SingleWeight(2.0),
-            new SingleWeight(2.1),
-            new SingleWeight(2.2),
-            new SingleWeight(2.3),
-            new SingleWeight(2.4),
-            new SingleWeight(2.5),
-            new SingleWeight(2.6),
-            new SingleWeight(2.7),
-            new SingleWeight(2.8),
-            new SingleWeight(2.9),
-            new SingleWeight(3.0),
-    };
 
     public SingleWeight[] KORF_WEIGHTS = {
     /*
