@@ -2,6 +2,8 @@ package org.cs4j.core.domains;
 
 import org.cs4j.core.collections.PairInt;
 
+import java.util.List;
+
 /**
  * This class contains general util functions that are required in more than a single domain
  *
@@ -9,6 +11,22 @@ import org.cs4j.core.collections.PairInt;
  *
  */
 public class Utils {
+
+    /**
+     * Converts a given list that contains Integer objects, to an array of ints
+     *
+     * @param list The input list
+     *
+     * @return An array of integers (int) that contains all the elements in list
+     */
+    public static int[] integerListToArray(List<Integer> list) {
+        int[] toReturn = new int[list.size()];
+        int index = 0;
+        for (int element : list) {
+            toReturn[index++] = element;
+        }
+        return toReturn;
+    }
 
     /**
      * Calculates Manhattan distance between two locations
