@@ -381,7 +381,7 @@ public class DockyardRobot implements SearchDomain {
      * number of cranes at the location
      */
     @Override
-    public long pack(State s) {
+    public long[] pack(State s) {
         DRobotState state = (DRobotState)s;
         // Current index
         int cur = 0;
@@ -451,7 +451,7 @@ public class DockyardRobot implements SearchDomain {
             }
         */
 
-        return packed;
+        return new long[]{packed};
     }
 
     /**
@@ -554,9 +554,10 @@ public class DockyardRobot implements SearchDomain {
      * @return The unpacked state
      */
     @Override
-    public DRobotState unpack(long packed) {
+    public DRobotState unpack(long[] packed) {
+        assert packed.length == 1;
         DRobotState dst = new DRobotState();
-        unpack(packed, dst);
+        unpack(packed[0], dst);
         return dst;
     }
 

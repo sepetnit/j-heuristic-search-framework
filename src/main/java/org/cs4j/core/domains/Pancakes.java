@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.cs4j.core.SearchDomain;
 
@@ -28,6 +30,13 @@ public class Pancakes implements SearchDomain {
     private int[] init;
     private Operator[] possibleOperators;
 
+    private int bitsForSinglePancake;
+    private long maskForSinglePancake;
+    // The number of cakes that can be stored in a single long
+    private int packedCakesInSingleLong;
+    // The number of long numbers to store the packed state
+    private int packedLongsCount;
+
     // This static variable defines the minimum pancake index that is checked when checking for goal -
     // in case we use the domain to compute PDB, we refer to partial portion of the pancakes
     public static int MIN_PANCAKE_FOR_PDB = 0;
@@ -50,6 +59,14 @@ public class Pancakes implements SearchDomain {
         } else {
             this.maxPancakeForPDB = Pancakes.MAX_PANCAKE_FOR_PDB;
         }
+        // calculate the bits and bitmask to store single pancake
+        this.bitsForSinglePancake = Utils.bits(this.numCakes);
+        this.maskForSinglePancake = Utils.mask(this.bitsForSinglePancake);
+        this.packedCakesInSingleLong = Math.min(this.numCakes, (int)Math.floor(64.0d / this.bitsForSinglePancake));
+        this.packedLongsCount = (int)Math.ceil(this.numCakes * this.bitsForSinglePancake / 64.0d);
+        // Current debugs ..
+        assert(this.bitsForSinglePancake == 5);
+        assert this.packedLongsCount == 2;
     }
 
     /**
@@ -67,7 +84,7 @@ public class Pancakes implements SearchDomain {
             String line = reader.readLine();
             this.numCakes = Integer.parseInt(line);
             // The number of pancakes can be 2-15 only (15 in order to allow packing into long - 64 bit number)
-            assert this.numCakes >= 2 && this.numCakes <= 15;
+            // assert this.numCakes >= 2 && this.numCakes <= 15;
             this.init = new int[this.numCakes];
             // Read the cakes
             line = reader.readLine();
@@ -227,23 +244,31 @@ public class Pancakes implements SearchDomain {
     }
 
     @Override
-    public long pack(State s) {
+    public long[] pack(State s) {
         PancakeState ps = (PancakeState)s;
-        long word = 0;
-        // We need at least 60 bits (for 15 pancakes)
-        for (int i = 0; i < this.numCakes; ++i) {
-            word = (word << 4) | ps.cakes[i];
+        long[] packed = new long[this.packedLongsCount];
+        int index = 0;
+        for (int i = 0; i < this.packedLongsCount; ++i) {
+            long word = 0;
+            for (int j = 0; (j < this.packedCakesInSingleLong) && (index <= this.numCakes - 1); ++j) {
+                word = (word << this.bitsForSinglePancake) | ps.cakes[index++];
+            }
+            packed[i] = word;
         }
-        return word;
+        return packed;
     }
 
     @Override
-    public State unpack(long word) {
+    public State unpack(long[] packed) {
         PancakeState state = new PancakeState(this.numCakes);
-        for (int i = this.numCakes - 1; i >= 0; --i) {
-            int t = (int) word & 0xF;
-            word >>= 4;
-            state.cakes[i] = t;
+        int index = this.numCakes - 1;
+        for (int i = packed.length - 1; i >= 0; --i) {
+            long current = packed[i];
+            while (current != 0 && index >= 0) {
+                int p = (int) (current & (int)this.maskForSinglePancake);
+                current >>= this.bitsForSinglePancake;
+                state.cakes[index--] = p;
+            }
         }
         state.h = this._countGaps(state.cakes, this.costFunction);
         state.d = this._countGaps(state.cakes, COST_FUNCTION.UNIT);
@@ -310,6 +335,19 @@ public class Pancakes implements SearchDomain {
         public boolean equals(Object object) {
             try {
                 PancakeState pancakeState = (PancakeState)object;
+                // Treat only the places of the specific pancakes
+                if (Pancakes.MIN_PANCAKE_FOR_PDB > 0) {
+                    for (int i = 0; i < this.numCakes; ++i) {
+                        if (this.cakes[i] >= Pancakes.MIN_PANCAKE_FOR_PDB &&
+                                this.cakes[i] <= Pancakes.this.maxPancakeForPDB) {
+                           if (pancakeState.cakes[i] != this.cakes[i]) {
+                               return false;
+                           }
+                        }
+                    }
+                    return true;
+                }
+                // Otherwise, perform a regular comparison operation
                 return Arrays.equals(this.cakes, pancakeState.cakes);
             } catch (ClassCastException e) {
                 return false;

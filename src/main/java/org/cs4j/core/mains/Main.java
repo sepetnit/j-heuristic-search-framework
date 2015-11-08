@@ -7,6 +7,8 @@ import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.*;
 import org.cs4j.core.data.Weights;
 import org.cs4j.core.domains.*;
+import org.cs4j.core.old.EESKBFS;
+import org.cs4j.core.old.EESKBFSV2;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -84,7 +86,7 @@ public class Main {
     }
 
     public SearchDomain createPancakesUnit(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/pancakes/mine/"+instance));
+        InputStream is = new FileInputStream(new File("input/pancakes/generated/"+instance));
         Pancakes puzzle = new Pancakes(is);
         Pancakes.MIN_PANCAKE_FOR_PDB = 10;
         return puzzle;

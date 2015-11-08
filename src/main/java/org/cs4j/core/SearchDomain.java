@@ -79,7 +79,7 @@ public interface SearchDomain {
      * @param state the state
      * @return the packed state as a long
      */
-    long pack(State state);
+    long[] pack(State state);
 
     /**
      * Unpacks the specified packed representation into a new state.
@@ -87,7 +87,7 @@ public interface SearchDomain {
      * @param packed the long representation
      * @return the new state
      */
-    State unpack(long packed);
+    State unpack(long[] packed);
 
 
     /**

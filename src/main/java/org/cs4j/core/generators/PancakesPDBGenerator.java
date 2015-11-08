@@ -1,12 +1,15 @@
 package org.cs4j.core.generators;
 
 import org.cs4j.core.SearchResult;
+import org.cs4j.core.algorithms.AStar;
 import org.cs4j.core.algorithms.DFS;
+import org.cs4j.core.algorithms.EES;
+import org.cs4j.core.collections.Pair;
+import org.cs4j.core.domains.Pancakes;
+import org.cs4j.core.domains.Utils;
 //import org.cs4j.core.domains.PancakesWithDontCares;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by sepetnit on 11/7/2015.
@@ -15,6 +18,27 @@ import java.util.List;
  *
  */
 public class PancakesPDBGenerator {
+    private int size;
+    private int specificStartIndex;
+
+    private Map<Long, Map<Long, Long>> pdb;
+    private int[] specific;
+    private List<Integer> specificAsList;
+    Map<Integer, Integer> converter;
+
+    public PancakesPDBGenerator(int size, int specificStartIndex) {
+        this.size = size;
+        this.specificStartIndex = specificStartIndex;
+
+        this.specific = this._getSpecificIndexes(size, specificStartIndex);
+        this.specificAsList = Utils.intArrayToIntegerList(this.specific);
+        this.converter = new HashMap<>();
+        for (int i = 0; i < this.specific.length; ++i) {
+            converter.put(this.specific[i], i);
+        }
+
+        this.pdb = new HashMap<>();
+    }
 
     /**
      * Implement (n k) in o(k)
@@ -101,6 +125,15 @@ public class PancakesPDBGenerator {
 
     private int[][] getAllPossibleSubProblems(int size, int[] specificPancakes) {
         assert specificPancakes.length < size;
+        List<Integer> specificPancakesAsList = Utils.intArrayToIntegerList(specificPancakes);
+        int[] otherPancakes = new int[size - specificPancakes.length];
+        // Fill other pancakes
+        int index = 0;
+        for (int p = 0; p < size; ++p) {
+            if (!specificPancakesAsList.contains(p)) {
+                otherPancakes[index++] = p;
+            }
+        }
         // Get all the possible combination of indexes for the specific pancakes
         List<List<Integer>> possibleIndexesCombinations =
                 this._getPossibleCombinations(
@@ -110,29 +143,113 @@ public class PancakesPDBGenerator {
         for (int i = 0; i < possibleIndexesCombinations.size(); ++i) {
             // System.out.println("Creating problem # " + i);
             inputPancakesProblems[i] = new int[size];
-            // Fill with default values
-            Arrays.fill(inputPancakesProblems[i], 100);
+            // Fill with default value
+            Arrays.fill(inputPancakesProblems[i], -1);
             List<Integer> currentIndexes = possibleIndexesCombinations.get(i);
             // Fill specific pancakes
             for (int j = 0; j < specificPancakes.length; ++j) {
                 inputPancakesProblems[i][currentIndexes.get(j)] = specificPancakes[j];
             }
+            index = 0;
+            for (int j = 0; j < inputPancakesProblems[i].length; ++j) {
+                // Fill some value if -1
+                if (inputPancakesProblems[i][j] == -1) {
+                    inputPancakesProblems[i][j] = otherPancakes[index++];
+                }
+            }
         }
         return inputPancakesProblems;
     }
 
-    public void createPDB(int size, int[] specificPancakes) {
-        /*
-        int[][] allSubProblems = this.getAllPossibleSubProblems(size, specificPancakes);
-        DFS dfs = new DFS();
-        for (int[] subProblem : allSubProblems) {
-            System.out.println(Arrays.toString(subProblem));
-            PancakesWithDontCares instance = new PancakesWithDontCares(subProblem, specificPancakes);
-            SearchResult result = dfs.search(instance);
+    private int[] _getSpecificIndexes(int size, int specificStartIndex) {
+        int[] toReturn = new int[size - specificStartIndex];
+        for (int i = 0; i < toReturn.length; ++i) {
+            toReturn[i] = specificStartIndex + i;
+        }
+        return toReturn;
+    }
+
+    private void swap(int[] arr, int first, int second) {
+        int tmp = arr[first];
+        arr[first] = arr[second];
+        arr[second] = tmp;
+    }
+
+    public long _getMyrvoldAndRuskeyHashValue(int[] pancakes, int[] w, int n) {
+        if (n == 1) {
+            return 0;
+        }
+        int d = pancakes[n - 1];
+        this.swap(pancakes, pancakes[n - 1], pancakes[w[n - 1]]);
+        this.swap(pancakes, w[n - 1], w[d]);
+        return d + n * _getMyrvoldAndRuskeyHashValue(pancakes, w, n - 1);
+    }
+
+    public long _getMyrvoldAndRuskeyHashValue(int[] pancakes) {
+        int[] pancakesCopy = new int[pancakes.length];
+        System.arraycopy(pancakes, 0, pancakesCopy, 0, pancakes.length);
+        int[] w = new int[pancakesCopy.length];
+        for (int i = 0; i < pancakesCopy.length - 1; ++i) {
+            w[pancakesCopy[i]] = i;
+        }
+        return this._getMyrvoldAndRuskeyHashValue(pancakesCopy, w, pancakes.length);
+    }
+
+    public Pair<Long, Long> hash(int[] pancakes,  List<Integer> specificPancakes, Map<Integer, Integer> converter) {
+        int[] specific = new int[specificPancakes.size()];
+        long hash1 = this._getMyrvoldAndRuskeyHashValue(specific);
+        int previousIndex = -1;
+        int currentIndex = -1;
+        long hash2 = 0;
+        for (int p = 0; p < pancakes.length; ++p) {
+            if (specificPancakes.contains(pancakes[p])) {
+                if (previousIndex == -1) {
+                    previousIndex = p;
+                } else if (currentIndex == -1) {
+                    currentIndex = p;
+                    hash2 |= (currentIndex - previousIndex);
+                } else {
+                    previousIndex = currentIndex;
+                    currentIndex = p;
+                    hash2 |= (currentIndex - previousIndex);
+                }
+                hash2 <<= 4;
+            }
+        }
+        return new Pair<>(hash1, hash2);
+    }
+
+    private void _store(int[] subProblem, long cost) {
+        Pair<Long, Long> hashValues = this.hash(subProblem, specificAsList, converter);
+        System.out.println("[INFO] Solved (PDB[" + hashValues.toString() + "] = " + cost + ")");
+        Map<Long, Long> internal = this.pdb.get(hashValues.getKey());
+        if (internal == null) {
+            internal = new HashMap<>();
+            pdb.put(hashValues.getKey(), internal);
+        }
+        assert !internal.containsKey(hashValues.getValue());
+        internal.put(hashValues.getValue(), cost);
+    }
+
+    public void createPDB() {
+        // Preserve previous
+        int tmp = Pancakes.MIN_PANCAKE_FOR_PDB;
+        Pancakes.MIN_PANCAKE_FOR_PDB = this.specificStartIndex;
+        int[][] allSubProblems =
+                this.getAllPossibleSubProblems(size, this.specific);
+        EES ees = new EES(1.0);
+        for (int count = 0; count < allSubProblems.length; ++count) {
+            int[] subProblem = allSubProblems[count];
+            System.out.println("[INFO] Solving: (" + (count + 1) + "/" + allSubProblems.length + ") " + Arrays.toString(subProblem));
+            Pancakes instance = new Pancakes(subProblem);
+            SearchResult result = ees.search(instance);
             assert result != null;
-            System.out.println(result + " " + result.getSolutions().size());
-            System.out.println("Cost is " + result.getSolutions().get(0).getCost());
-        }*/
+            long cost = (long)result.getSolutions().get(0).getCost();
+            this._store(subProblem, cost);
+            System.out.printf("\n");
+        }
+        Pancakes.MIN_PANCAKE_FOR_PDB = tmp;
+
     }
 
     /**
@@ -141,9 +258,8 @@ public class PancakesPDBGenerator {
      * @param args The arguments to main - should contain only the size of the Pancakes problem
      */
     public static void main(String[] args) {
-        PancakesPDBGenerator generator = new PancakesPDBGenerator();
-        int[] specific = {10, 11, 12, 13, 14, 15, 16};
-        generator.createPDB(17, specific);
+        PancakesPDBGenerator generator = new PancakesPDBGenerator(17, 10);
+        generator.createPDB();
         System.out.println("Done.");
     }
 }

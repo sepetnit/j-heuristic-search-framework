@@ -382,7 +382,7 @@ public final class FifteenPuzzle implements SearchDomain {
     }
 
     @Override
-    public long pack(State s) {
+    public long[] pack(State s) {
         TileState ts = (TileState) s;
         long result = 0;
         // TODO: Sounds that the value of blank is unnecessary
@@ -392,17 +392,19 @@ public final class FifteenPuzzle implements SearchDomain {
         for (int i = 0; i < this.tilesNumber; ++i) {
             result = (result << 4) | ts.tiles[i];
         }
-        return result;
+        return new long[]{result};
     }
 
     @Override
-    public State unpack(long packed) {
+    public State unpack(long[] packed) {
+        assert packed.length == 1;
+        long firstPacked = packed[0];
         TileState ts = new TileState();
         ts.blank = -1;
         // Start from end and go to start
         for (int i = this.tilesNumber - 1; i >= 0; --i) {
             // Each time, extract a single tile
-            int t = (int) packed & 0xF;
+            int t = (int) firstPacked & 0xF;
             // Initialize this tile
             ts.tiles[i] = t;
             // Mark the blank (in this case there is no need to update the distance between the tile
@@ -414,7 +416,7 @@ public final class FifteenPuzzle implements SearchDomain {
                 ts.d += this.mdUnit[t][i];
             }
             // Update the word so that the next tile can be now extracted
-            packed >>= 4;
+            firstPacked >>= 4;
         }
         return ts;
     }

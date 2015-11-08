@@ -50,7 +50,7 @@ public class AStar implements SearchAlgorithm {
     // Open list (frontier)
     private SearchQueue<Node> open;
     // Closed list (seen states)
-    private Map<Long, Node> closed = new HashMap<Long, Node>();
+    private Map<long[], Node> closed;
 
     // TODO ...
     private HeapType heapType;
@@ -73,7 +73,6 @@ public class AStar implements SearchAlgorithm {
         this.weight = weight;
         this.maxCost = maxCost;
         this.heapType = heapType;
-        this.open = buildHeap(heapType, 100);
         this.reopen = reopen;
     }
 
@@ -118,11 +117,17 @@ public class AStar implements SearchAlgorithm {
         return heap;
     }
 
+    private void _initDataStructures() {
+        this.open = buildHeap(heapType, 100);
+        this.closed = new HashMap<long[], Node>();
+    }
+
     @Override
     public SearchResult search(SearchDomain domain) {
         this.domain = domain;
         double goalCost = Double.MAX_VALUE;
-
+        // Initialize all the data structures required for the search
+        this._initDataStructures();
         SearchResultImpl result = new SearchResultImpl();
         result.startTimer();
 
@@ -237,7 +242,7 @@ public class AStar implements SearchAlgorithm {
         private Operator pop;
 
         private Node parent;
-        private long packed;
+        private long[] packed;
         private int[] secondaryIndex;
 
         private Node(State state, Node parent, Operator op, Operator pop) {

@@ -698,7 +698,7 @@ public class GridPathFinding implements SearchDomain {
      * agent
      */
     @Override
-    public long pack(State s) {
+    public long[] pack(State s) {
         GridPathFindingState state = (GridPathFindingState)s;
         long packed = 0L;
         // pack the location of the robot
@@ -707,7 +707,7 @@ public class GridPathFinding implements SearchDomain {
          * VacuumRobotState test = unpack(packed);
          * assert(test.equals(state));
          */
-        return packed;
+        return new long[]{packed};
     }
 
     /**
@@ -740,9 +740,10 @@ public class GridPathFinding implements SearchDomain {
      * Unpacks the Vacuum Robot state from a long number
      */
     @Override
-    public GridPathFindingState unpack(long packed) {
+    public GridPathFindingState unpack(long[] packed) {
+        assert packed.length == 1;
         GridPathFindingState dst = new GridPathFindingState();
-        this.unpack(packed, dst);
+        this.unpack(packed[0], dst);
         return dst;
     }
 

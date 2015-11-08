@@ -28,7 +28,7 @@ public class PTS implements SearchAlgorithm {
 
     // OPEN and CLOSED lists
     private SearchQueue<Node> open;
-    private Map<Long, Node> closed = new HashMap<Long, Node>();
+    private Map<long[], Node> closed = new HashMap<>();
     // Whether reopening is allowed
     private boolean reopen;
 
@@ -155,7 +155,7 @@ public class PTS implements SearchAlgorithm {
         private double f, g, h;
         private SearchDomain.Operator op, pop;
         private Node parent;
-        private long packed;
+        private long[] packed;
         private int[] secondaryIndex;
 
         /**

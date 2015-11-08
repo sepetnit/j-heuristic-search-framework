@@ -1285,7 +1285,7 @@ public class VacuumRobot implements SearchDomain {
      * The next part stores a bit vector which indicated for each possible location, whether it is dirty
      */
     @Override
-    public long pack(State s) {
+    public long[] pack(State s) {
         VacuumRobotState state = (VacuumRobotState)s;
 
         long packed = 0L;
@@ -1303,7 +1303,7 @@ public class VacuumRobot implements SearchDomain {
          * VacuumRobotState test = unpack(packed);
          * assert(test.equals(state));
          */
-        return packed;
+        return new long[]{packed};
     }
 
     /**
@@ -1355,9 +1355,10 @@ public class VacuumRobot implements SearchDomain {
      * Unpacks the Vacuum Robot state from a long number
      */
     @Override
-    public VacuumRobotState unpack(long packed) {
+    public VacuumRobotState unpack(long[] packed) {
+        assert packed.length == 1;
         VacuumRobotState dst = new VacuumRobotState();
-        this.unpack(packed, dst);
+        this.unpack(packed[0], dst);
         return dst;
     }
 

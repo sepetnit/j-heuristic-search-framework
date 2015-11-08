@@ -34,7 +34,8 @@ public class EES implements SearchAlgorithm {
     // cleanup is implemented as a binary heap and actually contains nodes ordered by their f values
     private BinHeap<Node> cleanup;
     // Closed list
-    private LongObjectOpenHashMap<Node> closed;
+    // private LongObjectOpenHashMap<Node> closed;
+    private Map<long[], Node> closed;
 
     /**
      * Initializes all the data structures required for the search, especially OPEN, FOCAL, CLEANUP and CLOSED lists
@@ -51,7 +52,8 @@ public class EES implements SearchAlgorithm {
                         new CleanupNodeComparator(),
                         EES.CLEANUP_ID);
 
-        this.closed = new LongObjectOpenHashMap<>();
+        //this.closed = new LongObjectOpenHashMap<>();
+        this.closed = new HashMap<>();
     }
 
 
@@ -297,7 +299,7 @@ public class EES implements SearchAlgorithm {
                 statesPath.add(domain.unpack(p.packed));
             }
             // The actual size of the found path can be only lower the G value of the found goal
-            assert statesPath.size() <= goal.g - 1;
+            assert statesPath.size() <= goal.g + 1;
             if (statesPath.size() - goal.g < 1) {
                 System.out.println("[INFO] Goal G is higher that the actual path " +
                     "(G: " + goal.g +  ", Actual: " + statesPath.size() + ")");
@@ -439,9 +441,9 @@ public class EES implements SearchAlgorithm {
         private Node parent;
 
         // The immediate children of the node
-        private Map<Long, Node> children;
+        private Map<long[], Node> children;
 
-        private long packed;
+        private long[] packed;
         private RBTreeNode<Node, Node> rbnode = null;
 
         /**

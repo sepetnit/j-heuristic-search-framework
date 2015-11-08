@@ -23,7 +23,7 @@ public class DFS implements SearchAlgorithm {
     private List<SearchDomain.Operator> path = new ArrayList<>(3);
     private List<SearchDomain.State> statesPath = new ArrayList<>(3);
     // Visited list (seen states)
-    private Map<Long, Node> visited;
+    private Map<long[], Node> visited;
 
     Stack<Node> stack;
 
@@ -130,7 +130,7 @@ public class DFS implements SearchAlgorithm {
      */
     protected final class Node extends SearchQueueElementImpl {
         private Node parent;
-        private long packed;
+        private long[] packed;
         private SearchDomain.Operator op;
         private SearchDomain.Operator pop;
 
