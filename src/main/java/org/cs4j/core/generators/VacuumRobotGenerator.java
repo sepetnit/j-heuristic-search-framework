@@ -199,7 +199,7 @@ public class VacuumRobotGenerator {
      *
      * @return An array which represents a grid, with the required parameters (size, obstacles percentage and dirty)
      */
-    public char[] _generateInstance(int w, int h, double obstaclesPercentage, int dirtyCount) {
+    private char[] _generateInstance(int w, int h, double obstaclesPercentage, int dirtyCount) {
         int mapSize = w * h;
         assert obstaclesPercentage >= 0.0d && obstaclesPercentage < 100.0d;
         int obstaclesCount = (int)Math.ceil(mapSize * (obstaclesPercentage / 100));
@@ -306,6 +306,16 @@ public class VacuumRobotGenerator {
         return map;
     }
 
+    /**
+     * The function generates a single instance of the VacuumRobot domain and returns its string representation
+     *
+     * @param w Required width of the grid
+     * @param h Required height of the grid
+     * @param obstaclesPercentage Required percentage of obstacles on the grid
+     * @param dirtyCount The required count of dirty locations
+     *
+     * @return A string representation of the generated instance
+     */
     public String generateInstance(int w, int h, double obstaclesPercentage, int dirtyCount) {
         char[] grid = null;
         // Try more than a single time (if required)
