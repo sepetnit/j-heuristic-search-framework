@@ -8,8 +8,8 @@ import java.util.*;
 /**
  * This class generated instances of the Pancakes domain
  */
-public class PancakesGenerator {
-    private static final int RANDOM_FLIP_COUNT_FOR_PROBLEM = 1000;
+public class PancakesGenerator extends GeneralInstancesGenerator {
+    private static final int RANDOM_FLIP_COUNT_FOR_PROBLEM = 10000;
 
 
     /**
@@ -110,14 +110,13 @@ public class PancakesGenerator {
      * Generates a single instance of Pancakes domain and returns its string representation
      *
      * @param size The size of the stack of pancakes
-     *
-     * @return An string representation of the instance, which can be written to file
+     ** @return An string representation of the instance, which can be written to file
      */
     public String generateInstance(int size) {
         int[] instance = this._generateInstanceByRandomFlips(size);
         StringBuilder sb = new StringBuilder();
         sb.append(instance.length);
-        sb.append('\n');
+        this._appendNewLine(sb);
         // Append all the pancakes with a following space
         for (int i = 0; i < instance.length - 1; ++i) {
             sb.append(instance[i]);

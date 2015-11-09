@@ -16,6 +16,8 @@
  */
 package org.cs4j.core;
 
+import org.cs4j.core.collections.PackedElement;
+
 /**
  * The search domain interface.
  *
@@ -79,7 +81,7 @@ public interface SearchDomain {
      * @param state the state
      * @return the packed state as a long
      */
-    long[] pack(State state);
+    PackedElement pack(State state);
 
     /**
      * Unpacks the specified packed representation into a new state.
@@ -87,7 +89,7 @@ public interface SearchDomain {
      * @param packed the long representation
      * @return the new state
      */
-    State unpack(long[] packed);
+    State unpack(PackedElement packed);
 
 
     /**

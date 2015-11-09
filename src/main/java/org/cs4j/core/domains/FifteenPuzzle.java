@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 
 import org.cs4j.core.SearchDomain;
+import org.cs4j.core.collections.PackedElement;
 
 /**
  * The 4x4 sliding-tiles domain class.
@@ -382,23 +383,23 @@ public final class FifteenPuzzle implements SearchDomain {
     }
 
     @Override
-    public long[] pack(State s) {
+    public PackedElement pack(State s) {
         TileState ts = (TileState) s;
         long result = 0;
         // TODO: Sounds that the value of blank is unnecessary
         ts.tiles[ts.blank] = 0;
         // We need at most 4 bits in order to pack a single Fifteen-Puzzle tile: (0b1111 is 15)
-        // Thus, we need at most 4 * 16 = 64 bits to pack the full state (64 bits = a lonng number)
+        // Thus, we need at most 4 * 16 = 64 bits to pack the full state (64 bits = a long number)
         for (int i = 0; i < this.tilesNumber; ++i) {
             result = (result << 4) | ts.tiles[i];
         }
-        return new long[]{result};
+        return new PackedElement(result);
     }
 
     @Override
-    public State unpack(long[] packed) {
-        assert packed.length == 1;
-        long firstPacked = packed[0];
+    public State unpack(PackedElement packed) {
+        assert packed.getLongsCount() == 1;
+        long firstPacked = packed.getFirst();
         TileState ts = new TileState();
         ts.blank = -1;
         // Start from end and go to start

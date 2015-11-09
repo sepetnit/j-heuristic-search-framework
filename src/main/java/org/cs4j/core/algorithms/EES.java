@@ -8,10 +8,7 @@ import org.cs4j.core.SearchDomain.Operator;
 import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
-import org.cs4j.core.collections.BinHeap;
-import org.cs4j.core.collections.GEQueue;
-import org.cs4j.core.collections.RBTreeElement;
-import org.cs4j.core.collections.RBTreeNode;
+import org.cs4j.core.collections.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,7 +32,7 @@ public class EES implements SearchAlgorithm {
     private BinHeap<Node> cleanup;
     // Closed list
     // private LongObjectOpenHashMap<Node> closed;
-    private Map<long[], Node> closed;
+    private Map<PackedElement, Node> closed;
 
     /**
      * Initializes all the data structures required for the search, especially OPEN, FOCAL, CLEANUP and CLOSED lists
@@ -223,8 +220,9 @@ public class EES implements SearchAlgorithm {
                         Node dupChildNode = this.closed.get(childNode.packed);
                         // In case the node should be re-considered
                         if (dupChildNode.f > childNode.f) {
-                            // This must be true (since h values are the same)
-                            assert dupChildNode.g > childNode.g;
+                            // This must be true (since h values are the same) - however, PathMax ...
+                            // assert dupChildNode.g > childNode.g;
+
                             // ==> Means it is in OPEN ==> remove it and reinsert with updated values
                             if (dupChildNode.getIndex(EES.CLEANUP_ID) != -1) {
                                 ++result.opupdated;
@@ -242,7 +240,6 @@ public class EES implements SearchAlgorithm {
                                 // If re-opening is allowed: insert the node back to lists (OPEN, FOCAL and CLEANUP)
                                 if (this.reopen) {
                                     ++result.reopened;
-
 
                                     // Update all the pointers
                                     this._updateParentAndChildPointers(dupChildNode, bestNode, childNode);
@@ -292,9 +289,11 @@ public class EES implements SearchAlgorithm {
             List<Operator> path = new ArrayList<>();
             List<State> statesPath = new ArrayList<>();
             System.out.println("[INFO] Solved - Generating output path.");
+            long cost = 0;
             for (Node p = goal; p != null; p = p.parent) {
                 if (p.op != null) {
                     path.add(p.op);
+                    cost += p.op.getCost(domain.unpack(p.parent.packed));
                 }
                 statesPath.add(domain.unpack(p.packed));
             }
@@ -311,7 +310,7 @@ public class EES implements SearchAlgorithm {
             Collections.reverse(statesPath);
             solution.addStates(statesPath);
 
-            solution.setCost(goal.g);
+            solution.setCost(cost);
             result.addSolution(solution);
         }
 
@@ -441,9 +440,9 @@ public class EES implements SearchAlgorithm {
         private Node parent;
 
         // The immediate children of the node
-        private Map<long[], Node> children;
+        private Map<PackedElement, Node> children;
 
-        private long[] packed;
+        private PackedElement packed;
         private RBTreeNode<Node, Node> rbnode = null;
 
         /**

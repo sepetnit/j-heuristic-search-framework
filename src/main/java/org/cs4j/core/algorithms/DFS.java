@@ -3,6 +3,7 @@ package org.cs4j.core.algorithms;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
+import org.cs4j.core.collections.PackedElement;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,7 +24,7 @@ public class DFS implements SearchAlgorithm {
     private List<SearchDomain.Operator> path = new ArrayList<>(3);
     private List<SearchDomain.State> statesPath = new ArrayList<>(3);
     // Visited list (seen states)
-    private Map<long[], Node> visited;
+    private Map<PackedElement, Node> visited;
 
     Stack<Node> stack;
 
@@ -130,7 +131,7 @@ public class DFS implements SearchAlgorithm {
      */
     protected final class Node extends SearchQueueElementImpl {
         private Node parent;
-        private long[] packed;
+        private PackedElement packed;
         private SearchDomain.Operator op;
         private SearchDomain.Operator pop;
 

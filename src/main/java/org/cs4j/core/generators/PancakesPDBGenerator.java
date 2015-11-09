@@ -17,7 +17,7 @@ import java.util.*;
  * Generates a PDB for the generic Pancakes problem
  *
  */
-public class PancakesPDBGenerator {
+public class PancakesPDBGenerator extends GeneralInstancesGenerator {
     private int size;
     private int specificStartIndex;
 
@@ -240,13 +240,13 @@ public class PancakesPDBGenerator {
         EES ees = new EES(1.0);
         for (int count = 0; count < allSubProblems.length; ++count) {
             int[] subProblem = allSubProblems[count];
-            System.out.println("[INFO] Solving: (" + (count + 1) + "/" + allSubProblems.length + ") " + Arrays.toString(subProblem));
+            System.out.println("[INFO] Solving: (" + (count + 1) + "/" + allSubProblems.length + ") " +
+                    Arrays.toString(subProblem));
             Pancakes instance = new Pancakes(subProblem);
             SearchResult result = ees.search(instance);
             assert result != null;
             long cost = (long)result.getSolutions().get(0).getCost();
             this._store(subProblem, cost);
-            System.out.printf("\n");
         }
         Pancakes.MIN_PANCAKE_FOR_PDB = tmp;
 

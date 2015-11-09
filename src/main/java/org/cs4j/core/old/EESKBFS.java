@@ -7,10 +7,7 @@ import org.cs4j.core.SearchDomain.Operator;
 import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.SearchQueueElementImpl;
-import org.cs4j.core.collections.BinHeap;
-import org.cs4j.core.collections.GEQueue;
-import org.cs4j.core.collections.RBTreeElement;
-import org.cs4j.core.collections.RBTreeNode;
+import org.cs4j.core.collections.*;
 
 import java.util.Comparator;
 
@@ -195,7 +192,7 @@ public class EESKBFS implements SearchAlgorithm {
         int depth;
         Operator op, pop;
         Node parent;
-        long[] packed;
+        PackedElement packed;
         RBTreeNode<Node, Node> rbnode = null;
 
         private Node(State state, Node parent, Operator op, final Operator pop) {

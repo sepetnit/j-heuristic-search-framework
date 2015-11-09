@@ -23,6 +23,11 @@ public class PairInt {
     }
 
     @Override
+    public int hashCode() {
+        return (int)(Math.pow(2, this.first) * Math.pow(3, this.second));
+    }
+
+    @Override
     public boolean equals(Object other) {
         try {
             PairInt otherPair = (PairInt) other;
@@ -32,8 +37,14 @@ public class PairInt {
         }
     }
 
+    public String toStringNoParen() {
+        return this.first + "," + this.second;
+    }
+
     @Override
     public String toString() {
-        return "(" + this.first + ", " + this.second + ")";
+        return "(" + this.toStringNoParen() + ")";
     }
+
+
 }

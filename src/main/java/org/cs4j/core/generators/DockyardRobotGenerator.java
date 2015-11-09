@@ -14,31 +14,9 @@ import java.util.*;
  * Created by sepetnit on 11/8/2015.
  *
  */
-public class DockyardRobotGenerator {
+public class DockyardRobotGenerator extends GeneralInstancesGenerator {
     private static final int MAX_DISTANCE = 1000;
     private static final int AVERAGE_DISTANCE = DockyardRobotGenerator.MAX_DISTANCE / 2;
-
-    private Random rand;
-
-    public DockyardRobotGenerator() {
-        this.rand = new Random();
-    }
-
-    /**
-     * Appends a newline to the given StringBuild
-     *
-     * @param sb A StringBuilder object to update
-     */
-    public void _appendNewLine(StringBuilder sb) {
-        sb.append("\n");
-    }
-
-    private void _appendIntFieldToStringBuilder(String fieldName, int value, StringBuilder sb) {
-        sb.append(fieldName);
-        sb.append(": ");
-        sb.append(value);
-        this._appendNewLine(sb);
-    }
 
     /**
      * Generates a single instance of Dockyard Robot domain and returns its string representation
@@ -156,33 +134,6 @@ public class DockyardRobotGenerator {
         }
 
         return sb.toString();
-    }
-
-    /**
-     * Reads an integer from the input argument and assures its validity
-     *
-     * @param input The input to parse and read an integer from
-     * @param min The minimum enforced value of the integer (-1 if irrelevant)
-     * @param max The maximum enforced value of the integer (-1 if irrelevant)
-     * @param type What the integer represents (a string representation)
-     *
-     * @return The parsed integer
-     *
-     * @throws IOException If something wrong occurred
-     */
-    private static int readIntNumber(String input, int min, int max, String type) throws IOException {
-        try {
-            // Parse the input
-            int toReturn = Integer.parseInt(input);
-            if (min != -1 && toReturn < min) {
-                throw new IOException("Too low " + type + " (must be >= " + min + "): " + input);
-            } else if (max != -1 && toReturn > max) {
-                throw new IOException("Too high " + type + " (must be <= " + max + "): " + input);
-            }
-            return toReturn;
-        } catch (NumberFormatException e) {
-            throw new IOException("Invalid " + type + ": " + input);
-        }
     }
 
     public static void main(String args[]) throws IOException {

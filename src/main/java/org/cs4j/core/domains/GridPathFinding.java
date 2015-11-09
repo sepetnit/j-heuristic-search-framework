@@ -1,15 +1,11 @@
 package org.cs4j.core.domains;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 
 import org.cs4j.core.SearchDomain;
-import org.cs4j.core.collections.GeneralPair;
+import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.PairInt;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Represents some grid (not a full problem!!!, only the grid!!!
@@ -24,7 +20,7 @@ public class GridPathFinding implements SearchDomain {
 
     private static final int NUM_MOVES = 4;
 
-    private static final char OBSTACLE_MARKER = '@';
+    public static final char OBSTACLE_MARKER = '@';
     public static final char START_MARKER = 'S';
     public static final char GOAL_MARKER = 'G';
 
@@ -122,6 +118,7 @@ public class GridPathFinding implements SearchDomain {
             this.obstaclesCount = obstaclesCount;
             this.mapWidth = mapWidth;
             this.mapHeight = mapHeight;
+
             // The total size of the map
             this.mapSize = this.mapWidth * this.mapHeight;
             // The locations of the map : (mapWidth * mapHeight)
@@ -151,7 +148,7 @@ public class GridPathFinding implements SearchDomain {
          *
          * @param location The location to block
          */
-        void setBlocked(int location) {
+        private void setBlocked(int location) {
             this.map[location] = '#';
         }
 
@@ -162,7 +159,7 @@ public class GridPathFinding implements SearchDomain {
          *
          * @return True if the location is blocked and False otherwise
          */
-        boolean isBlocked(int location) {
+        private boolean isBlocked(int location) {
             return this.map[location] == '#' ||
                     this.map[location] == 'T' ||
                     this.map[location] == GridPathFinding.OBSTACLE_MARKER;
@@ -176,7 +173,7 @@ public class GridPathFinding implements SearchDomain {
          *
          * @return The calculated index
          */
-        int getLocationIndex(int x, int y) {
+        private int getLocationIndex(int x, int y) {
             return y * this.mapWidth + x;
         }
 
@@ -198,7 +195,7 @@ public class GridPathFinding implements SearchDomain {
          * @param location The required location
          * @return The calculated Pair
          */
-        PairInt getPosition(int location) {
+        private PairInt getPosition(int location) {
             return new PairInt(location % this.mapWidth, location / this.mapWidth);
         }
 
@@ -210,7 +207,7 @@ public class GridPathFinding implements SearchDomain {
         }
 
         /**
-         * @return The probability of a single location to contain an obstaccle
+         * @return The probability of a single location to contain an obstacle
          */
         public double getObstaclesProbability() {
             return this.getObstaclesCount() / (double) (this.mapSize);
@@ -307,6 +304,134 @@ public class GridPathFinding implements SearchDomain {
     }
 
     /**
+     * Reads and initializes map from the given the (pre-)initialized buffered reader
+     *
+     * @param width The width of the map
+     * @param height The height of the map
+     * @param in The reader to read from
+     *
+     * @throws IOException In case the read operation failed
+     */
+    private void _readMap(int width, int height, BufferedReader in) throws IOException {
+        // Create the map
+        this.map = new GridMap(width, height);
+        // Now, read all the locations
+        for (int y = 0; y < height; ++y) {
+            String line = in.readLine();
+            char[] chars = line.toCharArray();
+            int ci = 0;
+            // Horizontal
+            for (int x = 0; x < width; ++x) {
+                char c = chars[ci++];
+                switch (c) {
+                    // An obstacle
+                    case GridPathFinding.OBSTACLE_MARKER:
+                    case '#':
+                    case 'T': {
+                        this.map.setBlocked(this.map.getLocationIndex(x, y));
+                        break;
+                        // The start location
+                    } case GridPathFinding.START_MARKER:
+                    case 's':
+                    case 'V': {
+                        this.startX = x;
+                        this.startY = y;
+                        break;
+                        // The end location
+                    } case 'g':
+                    case GridPathFinding.GOAL_MARKER: {
+                        this.goals.add(this.map.getLocationIndex(x, y));
+                        this.goalsPairs.add(new PairInt(x, y));
+                        break;
+                        // Empty location
+                    } case '.':
+                    case '_':
+                    case ' ': {
+                        break;
+                        // End of line
+                    } case '\n': {
+                        assert x == chars.length;
+                        break;
+                        // Something strange
+                    } default: {
+                        Utils.fatal("Unknown character: " + c);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Reads a value of some field from the given reader
+     *
+     * @param in The reader to read from
+     * @param fieldName The name of the field to check
+     *
+     * @return The read value
+     *
+     * @throws IOException If something wrong occurred
+     */
+    private int _readSingleIntValueFromLine(BufferedReader in, String fieldName) throws IOException {
+        String[] sz = in.readLine().trim().split(" ");
+        if (fieldName != null) {
+            assert sz.length == 2 && sz[0].equals(fieldName);
+        }
+        return Integer.parseInt(sz[1]);
+    }
+
+    /**
+     * Reads a map file of the following format:
+     *
+     * <link to map (.map file)
+     * start <start location>
+     * goal <goal location>
+     *
+     * @param mapFilePath A path to a .map file
+     * @param in A buffered reader for reading the rest of the file
+     */
+    private void _initMapFormat2(String mapFilePath, BufferedReader in) throws IOException {
+        try {
+            BufferedReader mapReader =
+                    new BufferedReader(
+                            new InputStreamReader(
+                                    new FileInputStream(mapFilePath)));
+            // First, read the first line (should be ignored)
+            String sz[] = mapReader.readLine().trim().split(" ");
+            assert sz.length == 2 && sz[0].equals("type");
+            // Now, read the height of the map
+            int height = this._readSingleIntValueFromLine(mapReader, "height");
+            // Now, read the height of the map
+            int width = this._readSingleIntValueFromLine(mapReader, "width");
+            sz = mapReader.readLine().trim().split(" ");
+            assert sz.length == 1 && sz[0].equals("map");
+            // Now, read the map itself by calling the relevant function
+            this._readMap(width, height, mapReader);
+            System.out.println("[INFO] Map read from " + mapFilePath);
+            // Read start location
+            sz = in.readLine().trim().split(" ");
+            assert sz.length == 2 && sz[0].equals("start:");
+            String start[] = sz[1].split(",");
+            assert start.length == 2;
+            this.startX = Integer.parseInt(start[0]);
+            this.startY = Integer.parseInt(start[1]);
+            // Read goal locations
+            sz = in.readLine().trim().split(" ");
+            assert sz.length >= 2 && sz[0].equals("goals:");
+            for (int i = 1; i < sz.length; ++i) {
+                String goal[] = sz[i].split(",");
+                assert goal.length == 2;
+                int goalX = Integer.parseInt(goal[0]);
+                int goalY = Integer.parseInt(goal[1]);
+                this.goals.add(this.map.getLocationIndex(goalX, goalY));
+                this.goalsPairs.add(new PairInt(goalX, goalY));
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("[ERROR] Can't find reference map file: " + mapFilePath);
+            throw new IOException();
+        }
+    }
+
+    /**
      * The constructor of the general GridPathFinding domain
      *
      * @param stream The input stream for parsing the instance
@@ -318,59 +443,18 @@ public class GridPathFinding implements SearchDomain {
         // Initialize the input-reader to allow parsing the state
         BufferedReader in = new BufferedReader(new InputStreamReader(stream));
         try {
-            // First, read the size of the grid
-            String sz[] = in.readLine().trim().split(" ");
-            int width = Integer.parseInt(sz[0]);
-            int height = Integer.parseInt(sz[1]);
-
-            // Create the map
-            this.map = new GridMap(width, height);
             this.goals = new ArrayList<>(1);
             this.goalsPairs = new ArrayList<>(1);
-
-            // Now, read all the locations
-            for (int y = 0; y < height; ++y) {
-                String line = in.readLine();
-                char[] chars = line.toCharArray();
-                int ci = 0;
-                // Horizontal
-                for (int x = 0; x < width; ++x) {
-                    char c = chars[ci++];
-                    switch (c) {
-                        // An obstacle
-                        case GridPathFinding.OBSTACLE_MARKER:
-                        case '#':
-                        case 'T': {
-                            this.map.setBlocked(this.map.getLocationIndex(x, y));
-                            break;
-                        // The start location
-                        } case GridPathFinding.START_MARKER:
-                          case 's':
-                          case 'V': {
-                            this.startX = x;
-                            this.startY = y;
-                            break;
-                        // The end location
-                        } case 'g':
-                          case GridPathFinding.GOAL_MARKER: {
-                            this.goals.add(this.map.getLocationIndex(x, y));
-                            this.goalsPairs.add(new PairInt(x, y));
-                            break;
-                        // Empty location
-                        } case '.':
-                          case '_':
-                          case ' ': {
-                            break;
-                        // End of line
-                        } case '\n': {
-                            assert x == chars.length;
-                            break;
-                        // Something strange
-                        } default: {
-                            Utils.fatal("Unknown character: " + c);
-                        }
-                    }
-                }
+            // First, read the size of the grid
+            String sz[] = in.readLine().trim().split(" ");
+            assert sz.length == 2;
+            if (sz[0].equals("map:")) {
+                this._initMapFormat2(sz[1], in);
+            } else {
+                int width = Integer.parseInt(sz[0]);
+                int height = Integer.parseInt(sz[1]);
+                // Read the map itself
+                this._readMap(width, height, in);
             }
             // Assure there is a start location
             if (this.startX < 0 || this.startY < 0) {
@@ -401,7 +485,7 @@ public class GridPathFinding implements SearchDomain {
      * @return The computed value
      */
     private double[] computeHD(GridPathFindingState s) {
-        assert this.goalsPairs.size() == 0;
+        assert this.goalsPairs.size() == 1;
         int md = Utils.calcManhattanDistance(
                 this.map.getPosition(s.agentLocation),
                 this.goalsPairs.get(0));
@@ -412,7 +496,6 @@ public class GridPathFinding implements SearchDomain {
      * A GridPathFinding State
      */
     private final class GridPathFindingState implements State {
-        private double g = -1;
         private double h = -1;
         private double d = -1;
 
@@ -499,7 +582,7 @@ public class GridPathFinding implements SearchDomain {
 
         @Override
         public String dumpStateShort() {
-            return null;
+            return GridPathFinding.this.map.getPosition(this.agentLocation).toString();
         }
 
     }
@@ -579,11 +662,15 @@ public class GridPathFinding implements SearchDomain {
         // Additional newline
         sb.append('\n');
         PairInt agentLocation = this.map.getPosition(lastState.agentLocation);
-        sb.append("Agent location: (");
-        sb.append(agentLocation);
-        sb.append(", ");
-        sb.append(agentLocation.second);
-        sb.append(")\n");
+        sb.append("Agent location: ");
+        sb.append(agentLocation.toString());
+        sb.append("\n");
+        sb.append("Goals:");
+        for (PairInt goal: this.goalsPairs) {
+            sb.append(" ");
+            sb.append(goal.toString());
+        }
+        sb.append("\n");
         sb.append("obstacles count: ");
         sb.append(obstaclesCountArray[0]);
         sb.append("\n");
@@ -614,6 +701,8 @@ public class GridPathFinding implements SearchDomain {
     private boolean _isValidMove(int location, Move move) {
         // Add the delta of the move and get the next location
         int next = location + move.delta;
+
+        // (next = y * this.mapWidth + x)
 
         // Assure the move doesn't cause the state to exceed the grid and also that the move
         // doesn't cause the state to reach a blocked location
@@ -698,7 +787,7 @@ public class GridPathFinding implements SearchDomain {
      * agent
      */
     @Override
-    public long[] pack(State s) {
+    public PackedElement pack(State s) {
         GridPathFindingState state = (GridPathFindingState)s;
         long packed = 0L;
         // pack the location of the robot
@@ -707,7 +796,7 @@ public class GridPathFinding implements SearchDomain {
          * VacuumRobotState test = unpack(packed);
          * assert(test.equals(state));
          */
-        return new long[]{packed};
+        return new PackedElement(packed);
     }
 
     /**
@@ -740,10 +829,10 @@ public class GridPathFinding implements SearchDomain {
      * Unpacks the Vacuum Robot state from a long number
      */
     @Override
-    public GridPathFindingState unpack(long[] packed) {
-        assert packed.length == 1;
+    public GridPathFindingState unpack(PackedElement packed) {
+        assert packed.getLongsCount() == 1;
         GridPathFindingState dst = new GridPathFindingState();
-        this.unpack(packed[0], dst);
+        this.unpack(packed.getFirst(), dst);
         return dst;
     }
 
@@ -773,16 +862,9 @@ public class GridPathFinding implements SearchDomain {
 
         grs.depth++;
 
-        // Update the cost of the operation
-        grs.g += op.getCost(s);
-        double p[] = this.computeHD(s);
+        double p[] = this.computeHD(grs);
         grs.h = p[0];
         grs.d = p[1];
-
-        // PathMax
-        double costsDiff = grs.g - s.g;
-        grs.h = Math.max(s.h, (s.h - costsDiff));
-
         grs.parent = s;
 
         //dumpState(s);
@@ -820,7 +902,7 @@ public class GridPathFinding implements SearchDomain {
 
         @Override
         public double getCost(State s) {
-            GridPathFindingState vrs = (GridPathFindingState) s;
+            GridPathFindingState grs = (GridPathFindingState) s;
             double cost = 1.0d;
             // TODO: Heavy???
             return cost;

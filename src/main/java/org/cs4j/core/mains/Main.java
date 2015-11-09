@@ -74,7 +74,7 @@ public class Main {
     }
 
     public SearchDomain createGridPathFinding(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/test/"+instance));
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/"+instance));
         GridPathFinding gridPathFindingInstance = new GridPathFinding(is);
         return gridPathFindingInstance;
     }
@@ -126,9 +126,11 @@ public class Main {
 
     public static void mainGridPathFindingDomain(String[] args) throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createGridPathFinding("brc202d.map");
-        SearchAlgorithm alg = new AStar();
+        SearchDomain domain = mainTest.createGridPathFinding("8.in");
+        //SearchAlgorithm alg = new EES(1, true);
+        SearchAlgorithm alg = new AStar(1.0, true);
         SearchResult result = alg.search(domain);
+        assert result.getSolutions().size() == 1;
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
                     1,
@@ -139,7 +141,7 @@ public class Main {
                     result.getExpanded(),
                     ((SearchResultImpl) result).reopened};
             System.out.println(Arrays.toString(d));
-            System.out.println(result.getSolutions().get(0).dumpSolution());
+            //System.out.println(result.getSolutions().get(0).dumpSolution());
         } else {
             System.out.println("No solution :-(");
         }
@@ -169,7 +171,7 @@ public class Main {
     public static void mainDockyardRobotDomain() throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createDockyardRobot("1.in");
-        SearchAlgorithm alg = new AStar();
+        SearchAlgorithm alg = new EES(500000);
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
@@ -189,7 +191,7 @@ public class Main {
 
     public static void mainVacuumRobotDomain(String[] args) throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createVacuumRobot("1.in");
+        SearchDomain domain = mainTest.createVacuumRobot("8.in");
         SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
@@ -202,7 +204,6 @@ public class Main {
                     result.getExpanded(),
                     ((SearchResultImpl) result).reopened};
             System.out.println(Arrays.toString(d));
-            System.out.printf(result.getSolutions().get(0).dumpSolution());
         } else {
             System.out.println("No solution :-(");
         }
@@ -311,9 +312,9 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         //Main.mainFifteenPuzzle(args);
-        //Main.mainGridPathFinding(args);
+        //Main.mainGridPathFindingDomain(args);
         //Main.mainPancakesDomain(args);
-        //Main.mainVacuumRobotDomain(args);
-        Main.mainDockyardRobotDomain();
+        Main.mainVacuumRobotDomain(args);
+        //Main.mainDockyardRobotDomain();
     }
 }

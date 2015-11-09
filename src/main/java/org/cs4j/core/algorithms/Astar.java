@@ -32,6 +32,7 @@ import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
 import org.cs4j.core.collections.BinHeap;
 import org.cs4j.core.collections.BucketHeap;
 import org.cs4j.core.collections.BucketHeap.BucketHeapElement;
+import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.SearchQueue;
 
 /**
@@ -50,7 +51,7 @@ public class AStar implements SearchAlgorithm {
     // Open list (frontier)
     private SearchQueue<Node> open;
     // Closed list (seen states)
-    private Map<long[], Node> closed;
+    private Map<PackedElement, Node> closed;
 
     // TODO ...
     private HeapType heapType;
@@ -73,6 +74,13 @@ public class AStar implements SearchAlgorithm {
         this.weight = weight;
         this.maxCost = maxCost;
         this.heapType = heapType;
+        this.reopen = reopen;
+    }
+
+    public AStar(double weight, boolean reopen) {
+        this.weight = weight;
+        this.maxCost = Double.MAX_VALUE;
+        this.heapType = HeapType.BIN;
         this.reopen = reopen;
     }
 
@@ -119,22 +127,22 @@ public class AStar implements SearchAlgorithm {
 
     private void _initDataStructures() {
         this.open = buildHeap(heapType, 100);
-        this.closed = new HashMap<long[], Node>();
+        this.closed = new HashMap<>();
     }
 
     @Override
     public SearchResult search(SearchDomain domain) {
         this.domain = domain;
-        double goalCost = Double.MAX_VALUE;
+        Node goal = null;
         // Initialize all the data structures required for the search
         this._initDataStructures();
         SearchResultImpl result = new SearchResultImpl();
         result.startTimer();
 
         // Let's instantiate the initial state
-        State state = domain.initialState();
+        State currentState = domain.initialState();
         // Create a graph node from this state
-        Node initNode = new Node(state);
+        Node initNode = new Node(currentState);
 
         // And add it to the frontier
         this.open.add(initNode);
@@ -144,86 +152,107 @@ public class AStar implements SearchAlgorithm {
         // Loop over the frontier
         while (!this.open.isEmpty()) {
             // Take the first state (still don't remove it)
-            Node n = this.open.poll();
+            Node currentNode = this.open.poll();
             // Extract the state from the packed value of the node
-            state = domain.unpack(n.packed);
+            currentState = domain.unpack(currentNode.packed);
 
+            //System.out.println(currentState.dumpStateShort());
             // Check for goal condition
-            if (domain.isGoal(state)) {
-                // Goal cost in this case is the value of g - how many steps we performed
-                goalCost = n.g;
-                // Let' extract the solution path
-                for (Node p = n; p != null; p = p.parent) {
-                    // Operators path
-                    this.path.add(p.op);
-                    // States path
-                    this.statesPath.add(domain.unpack(p.packed));
-                }
-                // Finally, reverse the paths (make them to be presented from start to goal)
-                Collections.reverse(path);
-                Collections.reverse(statesPath);
+            if (domain.isGoal(currentState)) {
+                goal = currentNode;
                 break;
             }
 
             // Expand the current node
-            result.expanded++;
+            ++result.expanded;
             // Go over all the possible operators and apply them
-            for (int i = 0; i < domain.getNumOperators(state); ++i) {
-                Operator op = domain.getOperator(state, i);
+            for (int i = 0; i < domain.getNumOperators(currentState); ++i) {
+                Operator op = domain.getOperator(currentState, i);
                 // Try to avoid loops
-                if (op.equals(n.pop)) {
+                if (op.equals(currentNode.pop)) {
                     continue;
                 }
                 // Here we actually generate a new state
-                result.generated++;
-                State childState = domain.applyOperator(state, op);
-                Node node = new Node(childState, n, op, op.reverse(state));
+                ++result.generated;
+                State childState = domain.applyOperator(currentState, op);
+                Node childNode = new Node(childState, currentNode, op, op.reverse(currentState));
 
                 // Treat duplicates
-                if (this.closed.containsKey(node.packed)) {
+                if (this.closed.containsKey(childNode.packed)) {
                     // Count them
-                    result.duplicates++;
+                    ++result.duplicates;
                     // Get the previous copy of this node (and extract it)
-                    Node dup = this.closed.get(node.packed);
+                    Node dupChildNode = this.closed.get(childNode.packed);
                     // All this is relevant only if we reached the node via a cheaper path
-                    if (dup.g > node.g) {
+                    if (dupChildNode.f > childNode.f) {
+                        // If false - let's check it!
+                        assert dupChildNode.g > childNode.g;
+                        if (dupChildNode.g > childNode.g) {
+                            // In any case update the duplicate with the new values - we reached it via a shorter path
+                            dupChildNode.f = childNode.f;
+                            dupChildNode.g = childNode.g;
+                            dupChildNode.op = childNode.op;
+                            dupChildNode.pop = childNode.pop;
+                            dupChildNode.parent = childNode.parent;
 
-                        // In any case update the duplicate with the new values - we reached it via a shorter path
-                        dup.f = node.f;
-                        dup.g = node.g;
-                        dup.op = node.op;
-                        dup.pop = node.pop;
-                        dup.parent = node.parent;
-
-                        // In case the duplicate is also in the open list - let's just update it there
-                        // (since we updated g and f)
-                        if (dup.getIndex(this.open.getKey()) != -1) {
-                            this.open.update(dup);
-                        // Otherwise, consider to reopen the node
-                        } else {
-                            // Return to OPEN list only if reopening is allowed
-                            if (this.reopen) {
-                                ++result.reopened;
-                                this.open.add(dup);
+                            // In case the duplicate is also in the open list - let's just update it there
+                            // (since we updated g and f)
+                            if (dupChildNode.getIndex(this.open.getKey()) != -1) {
+                                this.open.update(dupChildNode);
+                                this.closed.put(dupChildNode.packed, dupChildNode);
+                                // Otherwise, consider to reopen the node
+                            } else {
+                                // For debugging issues!
+                                if (this.weight == 1.0) {
+                                    assert false;
+                                }
+                                // Return to OPEN list only if reopening is allowed
+                                if (this.reopen) {
+                                    ++result.reopened;
+                                    this.open.add(dupChildNode);
+                                }
+                                this.closed.put(dupChildNode.packed, dupChildNode);
                             }
                         }
                     }
                 // Otherwise, the node is new (hasn't been reached yet)
                 } else {
-                    this.open.add(node);
-                    this.closed.put(node.packed, node);
+                    this.open.add(childNode);
+                    this.closed.put(childNode.packed, childNode);
                 }
             }
         }
 
         result.stopTimer();
 
-        // If a path was found, let's instantiate a solution
-        if (this.path != null && this.path.size() > 0) {
+        // If a goal was found: update the solution
+        if (goal != null) {
             SolutionImpl solution = new SolutionImpl(this.domain);
-            solution.addOperators(this.path);
-            solution.addStates(this.statesPath);
-            solution.setCost(goalCost);
+            List<Operator> path = new ArrayList<>();
+            List<State> statesPath = new ArrayList<>();
+            System.out.println("[INFO] Solved - Generating output path.");
+            long cost = 0;
+            for (Node p = goal; p != null; p = p.parent) {
+                if (p.op != null) {
+                    path.add(p.op);
+                    cost += p.op.getCost(domain.unpack(p.parent.packed));
+                }
+                statesPath.add(domain.unpack(p.packed));
+            }
+            // The actual size of the found path can be only lower the G value of the found goal
+            assert statesPath.size() <= goal.g + 1;
+            if (statesPath.size() - goal.g < 1) {
+                System.out.println("[INFO] Goal G is higher that the actual path " +
+                        "(G: " + goal.g +  ", Actual: " + statesPath.size() + ")");
+            }
+
+            Collections.reverse(path);
+            solution.addOperators(path);
+
+            Collections.reverse(statesPath);
+            solution.addStates(statesPath);
+
+            solution.setCost(cost);
             result.addSolution(solution);
         }
 
@@ -242,7 +271,7 @@ public class AStar implements SearchAlgorithm {
         private Operator pop;
 
         private Node parent;
-        private long[] packed;
+        private PackedElement packed;
         private int[] secondaryIndex;
 
         private Node(State state, Node parent, Operator op, Operator pop) {
@@ -252,9 +281,20 @@ public class AStar implements SearchAlgorithm {
             this.secondaryIndex = new int[(heapType == HeapType.BUCKET) ? 2 : 1];
             double cost = (op != null) ? op.getCost(state) : 0;
             this.h = state.getH();
+
             // If each operation costs something, we should add the cost to the g value of the parent
             this.g = (parent != null) ? parent.g + cost : cost;
+
+            // Start of PathMax
+            /*
+            if (parent != null) {
+                double costsDiff = this.g - parent.g;
+                this.h = Math.max(this.h, (parent.h - costsDiff));
+            }
+            */
+            // End of PathMax
             this.f = this.g + (AStar.this.weight * this.h);
+
             // Parent node
             this.parent = parent;
             this.packed = AStar.this.domain.pack(state);

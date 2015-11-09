@@ -5,6 +5,7 @@ import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.collections.BinHeap;
 import org.cs4j.core.collections.BucketHeap;
+import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.SearchQueue;
 
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public class PTS implements SearchAlgorithm {
 
     // OPEN and CLOSED lists
     private SearchQueue<Node> open;
-    private Map<long[], Node> closed = new HashMap<>();
+    private Map<PackedElement, Node> closed = new HashMap<>();
     // Whether reopening is allowed
     private boolean reopen;
 
@@ -155,7 +156,7 @@ public class PTS implements SearchAlgorithm {
         private double f, g, h;
         private SearchDomain.Operator op, pop;
         private Node parent;
-        private long[] packed;
+        private PackedElement packed;
         private int[] secondaryIndex;
 
         /**

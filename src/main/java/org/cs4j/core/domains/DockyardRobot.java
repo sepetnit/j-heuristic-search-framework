@@ -18,6 +18,7 @@ package org.cs4j.core.domains;
 
 import com.sun.istack.internal.NotNull;
 import org.cs4j.core.SearchDomain;
+import org.cs4j.core.collections.PackedElement;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -380,7 +381,7 @@ public class DockyardRobot implements SearchDomain {
      * number of cranes at the location
      */
     @Override
-    public long[] pack(State s) {
+    public PackedElement pack(State s) {
         DRobotState state = (DRobotState)s;
         // Current index
         int cur = 0;
@@ -450,7 +451,7 @@ public class DockyardRobot implements SearchDomain {
             }
         */
 
-        return new long[]{packed};
+        return new PackedElement(packed);
     }
 
     /**
@@ -553,10 +554,10 @@ public class DockyardRobot implements SearchDomain {
      * @return The unpacked state
      */
     @Override
-    public DRobotState unpack(long[] packed) {
-        assert packed.length == 1;
+    public DRobotState unpack(PackedElement packed) {
+        assert packed.getLongsCount() == 1;
         DRobotState dst = new DRobotState();
-        unpack(packed[0], dst);
+        unpack(packed.getFirst(), dst);
         return dst;
     }
 
@@ -1340,6 +1341,11 @@ public class DockyardRobot implements SearchDomain {
             // Perform deep copy of boxes locations
             System.arraycopy(state.boxesLocations, 0, this.boxesLocations, 0, this.boxesLocations.length);
             this.parent = state.parent;
+        }
+
+        @Override
+        public int hashCode() {
+            return DockyardRobot.this.pack(this).hashCode();
         }
 
         @Override

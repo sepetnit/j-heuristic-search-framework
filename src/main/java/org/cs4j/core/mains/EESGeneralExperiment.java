@@ -4,13 +4,17 @@ import org.cs4j.core.OutputResult;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
+import org.cs4j.core.algorithms.AStar;
 import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.data.Weights;
+import org.cs4j.core.domains.FifteenPuzzle;
+import org.cs4j.core.domains.GridPathFinding;
 import org.cs4j.core.domains.Pancakes;
 import org.cs4j.core.domains.VacuumRobot;
 
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -18,6 +22,12 @@ import java.util.List;
  *
  */
 public class EESGeneralExperiment {
+
+
+    public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/" + instance));
+        return new GridPathFinding(is);
+    }
 
     public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/pancakes/generated/" + instance));
@@ -27,6 +37,11 @@ public class EESGeneralExperiment {
     public static SearchDomain createVacuumRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/vacuumrobot/generated/" + instance));
         return new VacuumRobot(is);
+    }
+
+    public static SearchDomain create15PuzzleInstanceFromKorfInstances(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
+        return new FifteenPuzzle(is);
     }
 
     /**
@@ -43,8 +58,13 @@ public class EESGeneralExperiment {
         OutputResult output;
         try {
             // Create the result file + overwrite if exists!
-            output = new OutputResult("results/pancakes/generated+ees+optimal", true);
+            //output = new OutputResult("results/gridpathfinding/generated/brc202d.map/generated+ees+extended", true);
 
+            //output = new OutputResult("results/vacuumrobot/generated+ees+extended-test", true);
+
+            //output = new OutputResult("results/fifteenpuzzle/korf100-new", true);
+
+            output = new OutputResult("results/pancakes/generated+ees+optimal", true);
 
             // Write the header line
             output.writeln(
@@ -57,11 +77,12 @@ public class EESGeneralExperiment {
             for (int i = 1; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
                 SearchDomain domain = EESGeneralExperiment.createPancakesInstanceFromAutomaticallyGenerated(i + ".in");
-                for (Weights.SingleWeight w : weights.EXTENDED_WEIGHTS) {
+                for (Weights.SingleWeight w : weights.OPTIMAL_WEIGHTS) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : reopenPossibilities) {
-                        SearchAlgorithm alg = new EES(weight, reopen);
+                        SearchAlgorithm alg = new AStar(weight, reopen);
+                        //SearchAlgorithm alg = new EES(weight, reopen);
                         System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
 
                         try {
@@ -91,7 +112,8 @@ public class EESGeneralExperiment {
                                         result.getUpdatedInOpen(),
                                         result.getReopened(),
                                 };
-                                // System.out.println(solutions.get(0).dumpSolution());
+                                // System.out.println(Arrays.toString(resultData));
+                                //System.out.println(solutions.get(0).dumpSolution());
                                 output.appendNewResult(resultData);
                             }
                         } catch (OutOfMemoryError e) {

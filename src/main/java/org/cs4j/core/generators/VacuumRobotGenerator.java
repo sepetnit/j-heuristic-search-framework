@@ -17,7 +17,7 @@ import java.util.Random;
 /**
  * This class generated instances of the VacuumRobot domain
  */
-public class VacuumRobotGenerator {
+public class VacuumRobotGenerator extends GeneralInstancesGenerator {
     private static final char FREE_CHARACTER = '.';
     private static final char OBSTACLE_CHARACTER = '#';
     private static final char ROBOT_CHARACTER = 'V';
@@ -329,11 +329,11 @@ public class VacuumRobotGenerator {
         sb.append(w);
         sb.append(" ");
         sb.append(h);
-        sb.append("\n");
+        this._appendNewLine(sb);
         // Now, dump the Map with all the dirty locations and the location of the robot
         for (int y = 0; y < h; ++y) {
             // Add newline after end of a single characters line
-            sb.append("\n");
+            this._appendNewLine(sb);
             // Horizontal
             for (int x = 0; x < w; ++x) {
                 // Get the index of the current location

@@ -2,6 +2,7 @@ package org.cs4j.core.domains;
 
 import com.sun.istack.internal.NotNull;
 import org.cs4j.core.SearchDomain;
+import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.PairInt;
 
 import java.io.BufferedReader;
@@ -764,7 +765,7 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
-     * Calculates mapHeight and d addend values created by considering a single edge formed by
+     * Calculates h and d addend values created by considering a single edge formed by
      * moving the robot to closest dirty locations
      *
      * @param s The current VacuumRobot state (required in order to know the current number of
@@ -1023,7 +1024,7 @@ public class VacuumRobot implements SearchDomain {
                 minDistDirtyIndexArray
         );
 
-        // Increase mapHeight and d values by moving the robot to the closest dirty location
+        // Increase h and d values by moving the robot to the closest dirty location
         h += hdAddend[0];
         d += hdAddend[1];
         // Extract the output values: the index of the dirty location, closest to the robot
@@ -1045,7 +1046,7 @@ public class VacuumRobot implements SearchDomain {
             int[] minDirtyDirtAndDistance =
                     this.__getMinimumDirtAndDistanceToDirty(
                             // Current dirty location
-                            dirtyLocations.get(minDirtyIndex),
+                            this.dirtyLocations.get(minDirtyIndex),
                             // Indexes of locations to ignore
                             used,
                             s
@@ -1285,7 +1286,7 @@ public class VacuumRobot implements SearchDomain {
      * The next part stores a bit vector which indicated for each possible location, whether it is dirty
      */
     @Override
-    public long[] pack(State s) {
+    public PackedElement pack(State s) {
         VacuumRobotState state = (VacuumRobotState)s;
 
         long packed = 0L;
@@ -1303,7 +1304,7 @@ public class VacuumRobot implements SearchDomain {
          * VacuumRobotState test = unpack(packed);
          * assert(test.equals(state));
          */
-        return new long[]{packed};
+        return new PackedElement(packed);
     }
 
     /**
@@ -1355,10 +1356,10 @@ public class VacuumRobot implements SearchDomain {
      * Unpacks the Vacuum Robot state from a long number
      */
     @Override
-    public VacuumRobotState unpack(long[] packed) {
-        assert packed.length == 1;
+    public VacuumRobotState unpack(PackedElement packed) {
+        assert packed.getLongsCount() == 1;
         VacuumRobotState dst = new VacuumRobotState();
-        this.unpack(packed[0], dst);
+        this.unpack(packed.getFirst(), dst);
         return dst;
     }
 
@@ -1409,7 +1410,7 @@ public class VacuumRobot implements SearchDomain {
         //dumpState(s);
         //dumpState(vrs);
 
-        double p[] = this.computeHD(s);
+        double p[] = this.computeHD(vrs);
         vrs.h = p[0];
         vrs.d = p[1];
 
