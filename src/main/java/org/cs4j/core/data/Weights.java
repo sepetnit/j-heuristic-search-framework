@@ -40,7 +40,6 @@ public class Weights {
             new SingleWeight(2.7),
             new SingleWeight(2.8),
             new SingleWeight(2.9),
-            new SingleWeight(3.0),
     };
 
     public final SingleWeight[] BASIC_WEIGHTS_STARTS_AT_3 = {
@@ -139,7 +138,7 @@ public class Weights {
         // Add the additional weight of 1.5 to BASIC_WEIGHTS
         this.BASIC_WEIGHTS[0] =  new SingleWeight(2, 3);
 
-        this.EXTENDED_WEIGHTS = this.appendTwoArrays(this.BASIC_WEIGHTS, this.LOW_WEIGHTS);
+        this.EXTENDED_WEIGHTS = this.appendTwoArrays(this.BASIC_WEIGHTS_STARTS_AT_3, this.LOW_WEIGHTS);
     }
 
     public SingleWeight[] KORF_WEIGHTS = {
