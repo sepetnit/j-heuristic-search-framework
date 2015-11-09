@@ -188,7 +188,13 @@ public class AStar implements SearchAlgorithm {
                         // If false - let's check it!
                         assert dupChildNode.g > childNode.g;
                         if (dupChildNode.g > childNode.g) {
-                            // In any case update the duplicate with the new values - we reached it via a shorter path
+
+                            if (weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1) {
+                                System.out.println(dupChildNode.f + " " + childNode.f);
+                                System.out.println(dupChildNode.g + " " + childNode.g);
+                            }
+
+                                // In any case update the duplicate with the new values - we reached it via a shorter path
                             dupChildNode.f = childNode.f;
                             dupChildNode.g = childNode.g;
                             dupChildNode.op = childNode.op;
