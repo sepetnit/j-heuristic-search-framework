@@ -25,13 +25,19 @@ public class EESGeneralExperiment {
 
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/" + instance));
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/ost003d.map/" + instance));
         return new GridPathFinding(is);
     }
 
     public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/pancakes/generated/" + instance));
-        return new Pancakes(is);
+        String filename = "input/pancakes/generated/" + instance;
+        try {
+            InputStream is = new FileInputStream(new File(filename));
+            return new Pancakes(is);
+        } catch (FileNotFoundException e) {
+            System.out.println("[WARNING] File " + filename + " not found");
+            return null;
+        }
     }
 
     public static SearchDomain createVacuumRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
@@ -58,13 +64,13 @@ public class EESGeneralExperiment {
         OutputResult output;
         try {
             // Create the result file + overwrite if exists!
-            //output = new OutputResult("results/gridpathfinding/generated/brc202d.map/generated+ees+extended", true);
+            output = new OutputResult("results/gridpathfinding/generated/ost003d.map/generated+wastar+extended", true);
 
             //output = new OutputResult("results/vacuumrobot/generated+ees+extended-test", true);
 
             //output = new OutputResult("results/fifteenpuzzle/korf100-new", true);
 
-            output = new OutputResult("results/pancakes/generated+ees+optimal", true);
+            //output = new OutputResult("results/pancakes/generated-40/generated+ees+extended", true);
 
             // Write the header line
             output.writeln(
@@ -76,8 +82,12 @@ public class EESGeneralExperiment {
             // Go over all the possible combinations and solve!
             for (int i = 1; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
-                SearchDomain domain = EESGeneralExperiment.createPancakesInstanceFromAutomaticallyGenerated(i + ".in");
-                for (Weights.SingleWeight w : weights.OPTIMAL_WEIGHTS) {
+                SearchDomain domain = EESGeneralExperiment.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+                // Bypass not found files
+                if (domain == null) {
+                    continue;
+                }
+                for (Weights.SingleWeight w : weights.EXTENDED_WEIGHTS) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : reopenPossibilities) {
