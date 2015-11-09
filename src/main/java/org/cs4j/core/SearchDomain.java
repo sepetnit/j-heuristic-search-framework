@@ -151,7 +151,7 @@ public interface SearchDomain {
     interface Operator {
 
         /**
-         * Returns the cost for this operator as it applies to the specified state.
+         * Finds the cost for this operator as it applies to the specified state.
          *
          * @return the cost
          */
