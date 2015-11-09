@@ -38,12 +38,13 @@ public class VacuumRobot implements SearchDomain {
     private GridMap map;
     private boolean heavy = false;
 
+    private int robotLocationBits;
     private long robotLocationBitMask;
     private long singleBitMask;
 
     public enum COST_FUNCTION {HEAVY, LITE, UNIT};
 
-    // An array of pre-computed {mapHeight, d} pairs, each one based on some combination of dirty
+    // An array of pre-computed {h, d} pairs, each one based on some combination of dirty
     // locations (any combination is defined by a binary vector)
     // NOTE: The location of the robot is not considered while building the array
     double [][] lookupMST_heavy;
@@ -119,8 +120,8 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
-     * The function calculates mapHeight and d values for every possible combination of the dirty
-     * vectors which allows to quickly calculate the actual mapHeight and d values for heavy Vacuum
+     * The function calculates h and d values for every possible combination of the dirty
+     * vectors which allows to quickly calculate the actual h and d values for heavy Vacuum
      * Robot problems
      */
     private void _preComputeMSTHeavy() {
@@ -129,15 +130,15 @@ public class VacuumRobot implements SearchDomain {
         // just pre-compute the values for every possible binary vector of the specified length
         // e.g. Assume that we have 15 dirty locations - then, we have 2^15=32768 possible options
         // of dirty combinations
-        // For each of the combinations we can compute an MST and calculate mapHeight and d values
-        // Then, during the search we can just get the mapHeight and d values from the table
+        // For each of the combinations we can compute an MST and calculate h and d values
+        // Then, during the search we can just get the h and d values from the table
         int perm = (int)Math.pow(2, this.maximumDirtyLocationsCount);
-        // The data structure for saving all the mapHeight and d values is a 2-dimensional array of
-        // size perm * 2 (for mapHeight and d)
+        // The data structure for saving all the h and d values is a 2-dimensional array of
+        // size perm * 2 (for h and d)
         this.lookupMST_heavy = new double[perm][2];
         // The first value (all the locations are clean) is 0 and 0 => means we reached a goal!
         this.lookupMST_heavy[0] = new double[] {0, 0};
-        // Go over all the possible binary vectors of dirt and compute mapHeight and d values
+        // Go over all the possible binary vectors of dirt and compute h and d values
         for (int i = 1; i < perm; ++i) {
             double[] hd = computeHD_MST(i);
             this.lookupMST_heavy[i] = hd;
@@ -230,13 +231,13 @@ public class VacuumRobot implements SearchDomain {
         // Compute bit masks for bit twiddling states in pack/unpack
 
         // The number of bits required in order to store all the locations of the grid map
-        int locationBits = (int) Math.ceil(Utils.log2(map.mapSize));
+        this.robotLocationBits = (int) Math.ceil(Utils.log2(map.mapSize));
         // The bit-mask required in order to access the locations bit-vector
-        this.robotLocationBitMask = Utils.mask(locationBits);
+        this.robotLocationBitMask = Utils.mask(this.robotLocationBits);
         // The bit-mask required in order to access the dirty state of a single location
         this.singleBitMask = Utils.mask(1);
         // All the required bits : locations and the dirty locations (a single bit for each one)
-        int totalRequiredBits = locationBits + this.maximumDirtyLocationsCount;
+        int totalRequiredBits = this.robotLocationBits + this.maximumDirtyLocationsCount;
         // Assure there is no overflow : at most 64 bits can be used in order to store the state
         if (totalRequiredBits > 64) {
             System.err.println("Too many bits required: " + totalRequiredBits);
@@ -247,7 +248,7 @@ public class VacuumRobot implements SearchDomain {
         this._initializeReverseOperatorsArray();
         System.out.println("[Done] (Initializes reverse operators)");
         System.out.println("[Init] Initializes MST for heavy calculation");
-        // Pre-compute the {mapHeight, d} pairs for all the possible combinations of dirty vectors
+        // Pre-compute the {h, d} pairs for all the possible combinations of dirty vectors
         this._preComputeMSTHeavy();
         System.out.println("[Done] (Initializes MST for heavy calculation)");
     }
@@ -599,12 +600,12 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
-     * Computes the heuristic values (mapHeight and d) of the CURRENT state,
+     * Computes the heuristic values (h and d) of the CURRENT state,
      * based on an MST that are built from the ACTUALLY DIRTY locations
      *
      * @param dirt The binary vector which states for each location of the grid, whether it is dirty
      *
-     * @return An array of the form {mapHeight, d}
+     * @return An array of the form {h, d}
      */
     private double[] computeHD_MST(int dirt) {
         int remainingDirt = 0;
@@ -721,13 +722,13 @@ public class VacuumRobot implements SearchDomain {
     */
 
     /**
-     * The function calculates mapHeight and d values given a pre-computed MST of all the remaining
+     * The function calculates h and d values given a pre-computed MST of all the remaining
      * dirty locations
      *
      * @param mstEdgesDirty An MST of all the locations that are dirty
      * @param remainingDirt The number of remaining dirty locations
      *
-     * @return A pair of calculated mapHeight and d values {mapHeight, d}
+     * @return A pair of calculated h and d values {h, d}
      */
     private double[] _computeHDAccordingToDirtyLocationsMST(MSTEdge mstEdgesDirty[],
                                                             int remainingDirt) {
@@ -749,7 +750,7 @@ public class VacuumRobot implements SearchDomain {
         // number of required operations
         double robotOperationCost = (heavy) ? (this.heavy(robotHeavyAddend) + 1.0d) : 1.0d;
 
-        // Now, let's calculate the mapHeight and d values
+        // Now, let's calculate the h and d values
         for (MSTEdge edge : mstEdgesDirty) {
             // The cost of the operations to perform: MOVing and VACUUM
             h += (edge.weight * robotOperationCost + robotOperationCost);
@@ -760,7 +761,7 @@ public class VacuumRobot implements SearchDomain {
             ++robotHeavyAddend;
             robotOperationCost = (heavy) ? heavy(robotHeavyAddend) + 1.0d : 1.0d;
         }
-        // Finally, we got the mapHeight and d values, so, let's return them
+        // Finally, we got the h and d values, so, let's return them
         return new double[]{h, d};
     }
 
@@ -776,7 +777,7 @@ public class VacuumRobot implements SearchDomain {
      *       the possible dirty locations (dirtLocations.size())
      * @param closestLocationIndex [OUTPUT parameter] The index of the closest location (optional)
      *
-     * @return An pair of mapHeight and d addends (in a form of a double array) - {mapHeight, d}
+     * @return An pair of h and d addends (in a form of a double array) - {h, d}
      */
     private double[] __getHDAddendToClosestDirtyLocation(VacuumRobotState s,
                                                          boolean[] ignoreIndexes,
@@ -805,7 +806,7 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
-     * Calculates mapHeight and d addend values created by considering a single edge formed by
+     * Calculates h and d addend values created by considering a single edge formed by
      * moving the robot to closest dirty locations
      *
      * {@see __getHDAddendToClosestDirtyLocation}
@@ -813,7 +814,7 @@ public class VacuumRobot implements SearchDomain {
      * @param s The current VacuumRobot state (required in order to know the current number of
      *          dirty locations - for calculating the heavy value)
      *
-     * @return An pair of mapHeight and d addends (in a form of a double array) - {mapHeight, d}
+     * @return An pair of h and d addends (in a form of a double array) - {h, d}
      */
     private double[] _getHDAddendToClosestDirtyLocation(VacuumRobotState s) {
         // No locations to ignore and not output index of the closest distance to the robot location
@@ -906,7 +907,7 @@ public class VacuumRobot implements SearchDomain {
     */
 
     /**
-     * Calculate the mapHeight and d values for heavy vacuum problems:
+     * Calculate the h and d values for heavy vacuum problems:
      *  1. Compute the minimum spanning tree (MST) of the isDirty piles
      *  2. Order the edges by greatest length first
      *  3. Multiply the edge weights by the current weight of the robot plus the number of edges
@@ -916,12 +917,12 @@ public class VacuumRobot implements SearchDomain {
      *
      * @param s The state whose heuristic values should be calculated
      *
-     * @return An array of the form {mapHeight, d}
+     * @return An array of the form {h, d}
      */
     /*
     private double[] computeHD_chris(VacuumRobotState s) {
         // Initial values
-        double mapHeight;
+        double h;
         double d;
 
         // In case we are at goal - return 0 values
@@ -959,42 +960,42 @@ public class VacuumRobot implements SearchDomain {
         // verifyMST();
         double[] hd = this._computeHDAccordingToDirtyLocationsMST(mst,
                                                                   s.remainingDirtyLocationsCount);
-        // Extract the mapHeight and d values
-        mapHeight = hd[0];
+        // Extract the h and d values
+        h = hd[0];
         d = hd[1];
         // now include edge for shortest isDirty to the current location of the robot
         double[] hdAddend = _getHDAddendToClosestDirtyLocation(s);
-        // Finally, return the final mapHeight and d values
-        return new double[]{mapHeight + hdAddend[0], d + hdAddend[1]};
+        // Finally, return the final h and d values
+        return new double[]{h + hdAddend[0], d + hdAddend[1]};
     }
     */
 
     /**
      * This function is equivalent to the {@see computeHD_chris} function.
-     * However, it uses pre-computed values of mapHeight and d which are calculated based on the
+     * However, it uses pre-computed values of h and d which are calculated based on the
      * dirty locations binary vector - of the current state
      *
      * @param s The state whose heuristic values should be calculated
      *
-     * @return An array of the form {mapHeight, d}
+     * @return An array of the form {h, d}
      */
     private double[] computeHD_chris_fast(VacuumRobotState s) {
         // In case we are at goal - return 0 immediately
         if (s.remainingDirtyLocationsCount == 0) {
             return new double[]{0.0d, 0.0d};
         }
-        // Get the {mapHeight, d} pair for the current dirty locations binary vector
+        // Get the {h, d} pair for the current dirty locations binary vector
         double[] hd = this.lookupMST_heavy[s.dirt];
         double h = hd[0];
         double d = hd[1];
         // Now, include edge for shortest dirt to the current location of the robot
         double[] hdAddend = _getHDAddendToClosestDirtyLocation(s);
-        // Finally, return the final mapHeight and d values
+        // Finally, return the final h and d values
         return new double[]{h + hdAddend[0], d + hdAddend[1]};
     }
 
     /**
-     * The function computes the mapHeight and d values in a greedy manner, which means that the
+     * The function computes the h and d values in a greedy manner, which means that the
      * cost of moving the robot to the closest dirty location is calculated, then, moving it to the
      * next closest location etc.
      *
@@ -1003,7 +1004,7 @@ public class VacuumRobot implements SearchDomain {
      *
      * @param s The state whose heuristic values should be calculated
      *
-     * @return An array of the form {mapHeight, d}
+     * @return An array of the form {h, d}
      */
     private double[] computeHD_greedy(VacuumRobotState s) {
         double h = 0.0d;
@@ -1063,7 +1064,7 @@ public class VacuumRobot implements SearchDomain {
             ++numberOfCleanLocations;
         }
 
-        // For mapHeight on the heavy vacuum problems, multiply the edge weights by the current
+        // For h on the heavy vacuum problems, multiply the edge weights by the current
         // weight of the robot plus the number of edges already considered
         if (this.heavy) {
             return new double[]{h, d};
@@ -1076,22 +1077,22 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
-     * Compute the mapHeight and d values of a given state of the Vacuum Robot on the HEAVY Vacuum
+     * Compute the h and d values of a given state of the Vacuum Robot on the HEAVY Vacuum
      * Robot problems
      *
      * @param state The state whose heuristic values should be computed
      *
-     * @return The pair of the form {mapHeight, d}
+     * @return The pair of the form {h, d}
      */
     private double[] computeHD_jordan(VacuumRobotState state) {
         // In case we are at goal - return 0 immediately
         if (state.remainingDirtyLocationsCount == 0) {
             return new double[]{0.0d, 0.0d};
         }
-        // For mapHeight, use the function based on fast calculation because of PRE-COMPUTED MSTs
+        // For h, use the function based on fast calculation because of PRE-COMPUTED MSTs
         double h = computeHD_chris_fast(state)[0];
         // This is an alternative (no fast calculation)
-        // double mapHeight = computeHD_chris(s)[0];
+        // double h = computeHD_chris(s)[0];
         // For d, use the standard function for the unit cost domain (which estimates the cost of a
         // greedy traversal of the the dirt piles)
         double d = computeHD_greedy(state)[1];
@@ -1138,13 +1139,13 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
-     * The function calculates the pair {mapHeight, d} by summing the Manhattan distance between the
+     * The function calculates the pair {h, d} by summing the Manhattan distance between the
      * farthest points of the surrounding rectangle of all the dirty locations
      * (+ the number of locations that the robot should clean)
      *
      * @param s The state whose heuristic values should be computed
      *
-     * @return The pair of the form {mapHeight, d}
+     * @return The pair of the form {h, d}
      */
     /*
     private double[] computeHD_ethan(VacuumRobotState s) {
@@ -1213,11 +1214,11 @@ public class VacuumRobot implements SearchDomain {
         // Assure the move doesn't cause the state to exceed the grid and also that the move
         // doesn't cause the state to reach a blocked location
 
-        // Moving West/East && y changed => invalid!
+        // (Moving West/East && y changed) => invalid!
         if (move.dx != 0 &&
                 (next / this.map.mapWidth != location / this.map.mapWidth)) {
             return false;
-        // Moving South/North && x changed => invalid
+        // Moving (South/North && x changed) => invalid
         } else if (move.dy != 0 &&
                 (next % this.map.mapWidth != location % this.map.mapWidth)) {
             return false;
@@ -1234,7 +1235,7 @@ public class VacuumRobot implements SearchDomain {
         for (int i = 0; i < this.maximumDirtyLocationsCount; i++) {
             vrs.setDirty(i, true);
         }
-        // Compute the initial mapHeight and d values and fill the state with that values
+        // Compute the initial h and d values and fill the state with that values
         double hd[] = this.computeHD(vrs);
         // Initially, g value equals to -1
         vrs.h = hd[0];
@@ -1266,11 +1267,10 @@ public class VacuumRobot implements SearchDomain {
     public Operator getOperator(State state, int index) {
         VacuumRobotState vrs = (VacuumRobotState)state;
         if (vrs.ops == null) {
-            initOps(vrs);
+            this.initOps(vrs);
         }
         return vrs.ops[index];
     }
-
 
     @Override
     public State copy(State state) {
@@ -1291,7 +1291,7 @@ public class VacuumRobot implements SearchDomain {
 
         long packed = 0L;
         // pack the location of the robot
-        packed |= state.robotLocation & this.robotLocationBitMask;
+        packed |= (state.robotLocation & this.robotLocationBitMask);
         // pack 1 bit for each remaining dirt
         for (int i = 0; i < this.maximumDirtyLocationsCount; ++i) {
             packed <<= 1;
@@ -1299,12 +1299,22 @@ public class VacuumRobot implements SearchDomain {
                 packed |= 1 & this.singleBitMask;
             }
         }
-    
+
+        PackedElement toReturn = new PackedElement(packed);
+
+        /**
+         * Debug: perform unpack after packing and assure results are ok
+         */
+        if ((((VacuumRobotState)this.unpack(toReturn)).robotLocation != state.robotLocation) ||
+                (((VacuumRobotState)this.unpack(toReturn)).dirt != state.dirt)) {
+            assert false;
+        }
+
         /*
          * VacuumRobotState test = unpack(packed);
          * assert(test.equals(state));
          */
-        return new PackedElement(packed);
+        return toReturn;
     }
 
     /**
@@ -1356,7 +1366,7 @@ public class VacuumRobot implements SearchDomain {
      * Unpacks the Vacuum Robot state from a long number
      */
     @Override
-    public VacuumRobotState unpack(PackedElement packed) {
+    public State unpack(PackedElement packed) {
         assert packed.getLongsCount() == 1;
         VacuumRobotState dst = new VacuumRobotState();
         this.unpack(packed.getFirst(), dst);
@@ -1424,8 +1434,8 @@ public class VacuumRobot implements SearchDomain {
      * A VacuumRobot Cleaner World state
      */
     private final class VacuumRobotState implements State {
-        private double h = -1;
-        private double d = -1;
+        private double h;
+        private double d;
 
         //private double hHat;
         //private double dHat;
@@ -1442,14 +1452,21 @@ public class VacuumRobot implements SearchDomain {
         private int remainingDirtyLocationsCount;
 
         // All the possible operators
-        private VacuumRobotOperator[] ops = null;
+        private VacuumRobotOperator[] ops;
 
-        private VacuumRobotState parent = null;
+        private VacuumRobotState parent;
 
         /**
          * A default constructor of the class
          */
-        private VacuumRobotState() { }
+        private VacuumRobotState() {
+            this.h = -1;
+            this.d = -1;
+            this.ops = null;
+            this.parent = null;
+            this.remainingDirtyLocationsCount = -1;
+            this.dirt = -1;
+        }
 
         /**
          * A copy constructor
