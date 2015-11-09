@@ -30,7 +30,7 @@ public class OutputResult {
      * @param reopenPolicyStr A string representation of the reopening policy
      * @param reopenPolicyBln A boolean representation of the reopening policy
      *
-     * @throws IOException
+     * @throws IOException If something wrong occurred
      */
     public OutputResult(String pathPrefix, double wg, double wh,
                         String reopenPolicyStr, boolean reopenPolicyBln,
