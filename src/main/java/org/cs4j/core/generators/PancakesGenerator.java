@@ -1,8 +1,8 @@
 package org.cs4j.core.generators;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import org.cs4j.core.domains.Utils;
+
+import java.io.*;
 import java.util.*;
 
 /**
@@ -131,8 +131,27 @@ public class PancakesGenerator extends GeneralInstancesGenerator {
     public static void main(String args[]) throws IOException {
         int instancesCount;
         int size;
+        String previousInstancesDir = null;
+        int previousInstancesCount = 0;
 
-        if (args.length != 3) {
+        // In case no arguments were given - let's specify them here
+        if (args.length == 0) {
+            args = new String[4];
+            System.out.println("[WARNING] Using local arguments");
+            // Output directory
+            args[0] = "input\\pancakes\\generated-new";
+            // Count of pancakes
+            args[1] = "1";
+            // Size of problem
+            args[2] = "40";
+            args[3] = "input\\pancakes\\generated";
+        }
+
+        if (args.length == 4) {
+            previousInstancesDir = args[3];
+        }
+
+        if (args.length < 3) {
             System.out.println("Usage: <OutputPath> <Count> <Size>");
             System.exit(-1);
         }
@@ -159,6 +178,23 @@ public class PancakesGenerator extends GeneralInstancesGenerator {
 
         // This set is used in order to avoid duplicates
         Set<String> instances = new HashSet<>();
+
+        // Fill in previous instances (in order to avoid duplicates)
+        if (previousInstancesDir != null) {
+            File prev = new File(previousInstancesDir);
+            if (prev.exists()) {
+                for(File current : prev.listFiles(new FileFilter() {
+                    @Override
+                    public boolean accept(File pathname) {
+                        return pathname.getName().endsWith("in");
+                    }
+                })) {
+                    instances.add(Utils.fileToString(current));
+                    ++previousInstancesCount;
+                }
+            }
+        }
+
         // Now, create the problems
         PancakesGenerator generator = new PancakesGenerator();
         // Loop over the required number of instances
@@ -175,6 +211,6 @@ public class PancakesGenerator extends GeneralInstancesGenerator {
             fw.close();
             System.out.println(" Done.");
         }
-        assert instances.size() == instancesCount;
+        assert instances.size() == instancesCount + previousInstancesCount;
     }
 }
