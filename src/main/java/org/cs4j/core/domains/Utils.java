@@ -2,6 +2,7 @@ package org.cs4j.core.domains;
 
 import org.cs4j.core.collections.PairInt;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -112,5 +113,35 @@ public class Utils {
     public static void fatal(String msg) {
         System.err.println(msg);
         System.exit(1);
+    }
+
+    /**
+     * Reads the whole given file into a string
+     *
+     * @param file The file to read
+     * @return The read bytes of the file
+     *
+     * @throws IOException If something wrong occurred
+     */
+    public static String fileToString(File file) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Reads the whole given file into a string
+     *
+     * @param filename The file to read
+     * @return The read bytes of the file
+     *
+     * @throws IOException If something wrong occurred
+     */
+    public static String fileToString(String filename) throws IOException {
+        return Utils.fileToString(new File(filename));
     }
 }
