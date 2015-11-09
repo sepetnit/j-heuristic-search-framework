@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.cs4j.core.SearchDomain;
+import org.cs4j.core.collections.PackedElement;
 
 /**
  * The pancake problem is a famous search problem where the objective is to sort a sequence of
@@ -65,8 +66,8 @@ public class Pancakes implements SearchDomain {
         this.packedCakesInSingleLong = Math.min(this.numCakes, (int)Math.floor(64.0d / this.bitsForSinglePancake));
         this.packedLongsCount = (int)Math.ceil(this.numCakes * this.bitsForSinglePancake / 64.0d);
         // Current debugs ..
-        assert(this.bitsForSinglePancake == 5);
-        assert this.packedLongsCount == 2;
+        //assert(this.bitsForSinglePancake == 5);
+        //assert this.packedLongsCount == 2;
     }
 
     /**
@@ -244,7 +245,7 @@ public class Pancakes implements SearchDomain {
     }
 
     @Override
-    public long[] pack(State s) {
+    public PackedElement pack(State s) {
         PancakeState ps = (PancakeState)s;
         long[] packed = new long[this.packedLongsCount];
         int index = 0;
@@ -255,16 +256,25 @@ public class Pancakes implements SearchDomain {
             }
             packed[i] = word;
         }
-        return packed;
+        PackedElement toReturn = new PackedElement(packed);
+        /**
+         * Debug
+         */
+        //if  (!Arrays.equals(ps.cakes, ((PancakeState)this.unpack(toReturn)).cakes)) {
+        //    System.out.println(Arrays.toString(ps.cakes));
+        //    System.out.println(Arrays.toString(((PancakeState)this.unpack(toReturn)).cakes));
+        //    assert false;
+        //}
+        return toReturn;
     }
 
     @Override
-    public State unpack(long[] packed) {
+    public State unpack(PackedElement packed) {
         PancakeState state = new PancakeState(this.numCakes);
         int index = this.numCakes - 1;
-        for (int i = packed.length - 1; i >= 0; --i) {
-            long current = packed[i];
-            while (current != 0 && index >= 0) {
+        for (int i = packed.getLongsCount() - 1; i >= 0; --i) {
+            long current = packed.getLong(i);
+            for (int j = 0; j < this.packedCakesInSingleLong && index >= 0; ++j) {
                 int p = (int) (current & (int)this.maskForSinglePancake);
                 current >>= this.bitsForSinglePancake;
                 state.cakes[index--] = p;
