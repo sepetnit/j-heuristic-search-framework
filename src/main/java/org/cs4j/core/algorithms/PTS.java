@@ -60,7 +60,7 @@ public class PTS implements SearchAlgorithm {
     }
 
     private void _initDataStructures() {
-        this.open = new BinHeap<>(new PTS.NodeComparator(), 100);
+        this.open = new BinHeap<>(new PTS.NodeComparator(), 0);
         this.closed = new HashMap<>();
         this.path = new ArrayList<>();
         this.statesPath = new ArrayList<>();
@@ -128,8 +128,13 @@ public class PTS implements SearchAlgorithm {
                 // Create a search node for this state
                 Node childNode = new Node(childState, currentNode, currentState, op, op.reverse(currentState));
 
+                // Prune nodes over the bound
+                if (childNode.f > this.maxCost) {
+                    continue;
+                }
+
                 // If the generated node satisfies the goal condition - let' mark the goal and break
-                if (childNode.f < this.maxCost && domain.isGoal(childState)) {
+                if (domain.isGoal(childState)) {
                     goal = childNode;
                     break;
                 }
@@ -164,8 +169,9 @@ public class PTS implements SearchAlgorithm {
                                 // Return to OPEN list only if reopening is allowed
                                 if (this.reopen) {
                                     ++result.reopened;
-                                    open.add(dupChildNode);
+                                    this.open.add(dupChildNode);
                                 }
+                                // In any case, update the duplicate node in CLOSED
                                 this.closed.put(dupChildNode.packed, dupChildNode);
                             }
                         }

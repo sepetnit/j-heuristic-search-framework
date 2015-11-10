@@ -69,7 +69,7 @@ public class Main {
 
     public SearchDomain createFifteenPuzzleKorf(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/"+instance));
-        FifteenPuzzle puzzle = new FifteenPuzzle(is, FifteenPuzzle.COST_FUNCTION.HEAVY);
+        FifteenPuzzle puzzle = new FifteenPuzzle(is, FifteenPuzzle.COST_FUNCTION.UNIT);
         return puzzle;
     }
 
@@ -100,12 +100,12 @@ public class Main {
     public SearchDomain createVacuumRobot(String instance) throws FileNotFoundException {
         //InputStream is = new FileInputStream(new File("input/vacuumrobot/mine/" + instance));
         InputStream is = new FileInputStream(new File("input/vacuumrobot/generated/" + instance));
-        return new VacuumRobot(is);
+        return new VacuumRobot(is, VacuumRobot.COST_FUNCTION.HEAVY);
     }
 
     public static void mainFifteenPuzzleDomain(String[] args) throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createFifteenPuzzleKorf("2");
+        SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
         SearchAlgorithm alg = new AStar();
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
@@ -126,7 +126,7 @@ public class Main {
 
     public static void mainGridPathFindingDomain(String[] args) throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createGridPathFinding("8.in");
+        SearchDomain domain = mainTest.createGridPathFinding("1.in");
         //SearchAlgorithm alg = new EES(1, true);
         SearchAlgorithm alg = new AStar(1.0, true);
         SearchResult result = alg.search(domain);
@@ -209,6 +209,30 @@ public class Main {
         }
     }
 
+    public static void mainPTS(String[] args) throws IOException {
+        Main mainTest = new Main();
+        SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
+        SearchAlgorithm alg = new PTS();
+        alg.setAdditionalParameter("maxCost", "80");
+        SearchResult result = alg.search(domain);
+        if (result.getSolutions().size() > 0) {
+            double d[] = new double[]{
+                    1,
+                    1,
+                    result.getSolutions().get(0).getLength(),
+                    result.getSolutions().get(0).getCost(),
+                    result.getGenerated(),
+                    result.getExpanded(),
+                    result.getDuplicates(),
+                    result.getUpdatedInOpen(),
+                    result.getReopened()
+            };
+            System.out.println(Arrays.toString(d));
+        } else {
+            System.out.println("No solution :-(");
+        }
+    }
+
     public static void mainEES(String[] args) throws IOException {
         Main mainTest = new Main();
         Weights weights = new Weights();
@@ -224,7 +248,7 @@ public class Main {
                     output.writeln("InstanceID,Found,Depth,Generated, Expanded,Reopened");
                     for (int i = 1; i <= 100; ++i) {
                         SearchDomain domain = mainTest.createFifteenPuzzleKorf(i + "");
-                        SearchAlgorithm alg = new WAstar(totalWeight, reopen);
+                        SearchAlgorithm alg = new AStar(totalWeight, reopen);
                         System.out.println("Solving instance " + i + " For weight " + totalWeight + " reopen? " + reopen);
                         SearchResult result = alg.search(domain);
                         double d[];
@@ -253,68 +277,14 @@ public class Main {
         }
     }
 
-    //mainTest.testEES();
-    //System.out.println("--------");
-    //mainTest.testKBFSEES(2);
-    //mainTest.testAstar();
-        /*
-        int[] kArray = new int[]{1,50,100,1000,1500, 2000};
-        System.out.println("K,Generated,Expanded,Cost,Length");
-        for (int k : kArray) {
-            double[] meanArray = new double[]{0,0,0,0};
-//            System.out.println("K:"+k);
-            for (int i = 1; i <101 ; i++) {
-                double[] res = mainTest.testKBFSEESV2(k, Integer.toString(i));
-                meanArray[0]+=res[0];
-                meanArray[1]+=res[1];
-                meanArray[2]+=res[2];
-                meanArray[3]+=res[3];
-            }
-            meanArray[0]=meanArray[0]/100;
-            meanArray[1]=meanArray[1]/100;
-            meanArray[2]=meanArray[2]/100;
-            meanArray[3]=meanArray[3]/100;
-            System.out.println(k+","+meanArray[0]+","+meanArray[1]+","+meanArray[2]+","+meanArray[3]);
-
-        }
-        */
-
-//        mainTest.testKBFSEES(1);
-//        System.out.println("--------");
-//        mainTest.testEES();
-//        System.out.println("--------");
-//        mainTest.testEES();
-//        System.out.println("--------");
-//        mainTest.testEES();
-
-
-
-    public static void mainPTS(String[] args) throws IOException {
-        Main mainTest = new Main();
-        SearchDomain domain = mainTest.createFifteenPuzzleUnit(1 + "");
-        SearchAlgorithm alg = new PTS(50, true);
-        SearchResult result = alg.search(domain);
-        if (result.getSolutions().size() > 0) {
-            double d[] = new double[]{
-                    1,
-                    1,
-                    result.getSolutions().get(0).getLength(),
-                    //result.getSolutions().get(0).getLength(),
-                    result.getGenerated(),
-                    result.getExpanded(),
-                    ((SearchResultImpl) result).reopened};
-            System.out.println(Arrays.toString(d));
-        } else {
-            System.out.println("No solution :-(");
-        }
-    }
-
 
     public static void main(String[] args) throws IOException {
         //Main.mainFifteenPuzzle(args);
         //Main.mainGridPathFindingDomain(args);
         //Main.mainPancakesDomain(args);
         //Main.mainVacuumRobotDomain(args);
-        Main.mainDockyardRobotDomain();
+        //Main.mainDockyardRobotDomain();
+
+        Main.mainPTS(args);
     }
 }
