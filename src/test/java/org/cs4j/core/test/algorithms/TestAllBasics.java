@@ -32,7 +32,6 @@ import org.cs4j.core.algorithms.AStar.HeapType;
 import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.algorithms.IDAstar;
 import org.cs4j.core.algorithms.RBFS;
-import org.cs4j.core.algorithms.WAstar;
 import org.cs4j.core.algorithms.WRBFS;
 import org.cs4j.core.domains.FifteenPuzzle;
 import org.junit.Test;
@@ -66,14 +65,7 @@ public class TestAllBasics {
 		SearchAlgorithm algo = new IDAstar();
 		testSearchAlgorithm(domain, algo, 546343, 269708, 45);
 	}		
-	
-	@Test
-	public void testWAstar() throws FileNotFoundException {
-		SearchDomain domain = createFifteenPuzzle("82");
-		SearchAlgorithm algo = new WAstar(2);
-		testSearchAlgorithm(domain, algo, 63063, 30631, 74);
-	}
-	
+
 	@Test
 	public void testEES() throws FileNotFoundException {
 		SearchDomain domain = createFifteenPuzzle("12");
