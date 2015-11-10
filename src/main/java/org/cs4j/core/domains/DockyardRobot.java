@@ -346,7 +346,7 @@ public class DockyardRobot implements SearchDomain {
         // Initialize the first state: The robot is currently on location 0 and no box is loaded
         DRobotState drs = new DRobotState(this, this.initialLocation, -1, 0);
         drs.calcHD();
-        System.out.println(drs.dumpState());
+        // System.out.println(drs.dumpState());
         return drs;
     }
 

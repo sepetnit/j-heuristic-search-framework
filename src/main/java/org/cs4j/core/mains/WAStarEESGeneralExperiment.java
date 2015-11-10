@@ -36,41 +36,6 @@ public class WAStarEESGeneralExperiment {
     private boolean reopenPossibilities[] = new boolean[]{true, false};
 
     /*******************************************************************************************************************
-     * Private  static methods : Domains creation
-     ******************************************************************************************************************/
-
-    public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/ost003d.map/" + instance));
-        return new GridPathFinding(is);
-    }
-
-    public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        String filename = "input/pancakes/generated/" + instance;
-        try {
-            InputStream is = new FileInputStream(new File(filename));
-            return new Pancakes(is);
-        } catch (FileNotFoundException e) {
-            System.out.println("[WARNING] File " + filename + " not found");
-            return null;
-        }
-    }
-
-    public static SearchDomain createVacuumRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/vacuumrobot/generated/" + instance));
-        return new VacuumRobot(is);
-    }
-
-    public static SearchDomain create15PuzzleInstanceFromKorfInstances(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
-        return new FifteenPuzzle(is);
-    }
-
-    public static SearchDomain createDockyardRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/dockyardrobot/generated/" + instance));
-        return new DockyardRobot(is);
-    }
-
-    /*******************************************************************************************************************
      * Private methods
      ******************************************************************************************************************/
 
@@ -187,26 +152,41 @@ public class WAStarEESGeneralExperiment {
         private List<String> resultFiles;
         private SearchAlgorithm algorithm;
         private SearchDomain domain;
+        private String problemDescription;
         private OutputResult output;
 
+        /**
+         * The constructor of the worker thread
+         *
+         * @param threadID ID of the thread (for debugging reasons)
+         * @param domain The domain to run on
+         * @param algorithm The algorithm to run
+         * @param description The description of the problem (can be null)
+         * @param resultFiles The result files list - to add the result later
+         *
+         * @throws IOException If something wrong occurred
+         */
         public WorkerThread(int threadID,
                             SearchDomain domain,
                             SearchAlgorithm algorithm,
+                            String description,
                             List<String> resultFiles) throws IOException {
 
             this.threadID = threadID;
             this.resultFiles = resultFiles;
             this.algorithm = algorithm;
             this.domain = domain;
+            this.problemDescription = (description != null)? " (" +description+ ") " : "";
             //System.out.println("Created Thread with ID " + threadID);
         }
 
         @Override
         public void run() {
-            System.out.println("Thread " + this.threadID + " is now running :)");
+            System.out.println("[INFO] Thread " + this.threadID + " is now running " + this.problemDescription);
             // Setup the output
             try {
                 this.output = WAStarEESGeneralExperiment.this.getOutputResult(null, false);
+                System.out.println("[INFO] Thread " + this.threadID + " will be written to " + this.output.getFname());
             } catch (IOException e) {
                 this.resultFiles.add("Failed (Alg: " + this.algorithm.toString() +
                         ", Domain: " + domain.toString() + ")");
@@ -215,24 +195,23 @@ public class WAStarEESGeneralExperiment {
             // Otherwise, run
             try {
                 SearchResult result = this.algorithm.search(this.domain);
-                List<Solution> solutions = result.getSolutions();
+                System.out.println("[INFO] Thread " + this.threadID + " is Done");
                 // No solution
                 if (!result.hasSolution()) {
                     this.output.appendNewResult(WAStarEESGeneralExperiment.this._getNoSolutionResult());
+                    System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": NoSolution");
                 } else {
                     double[] resultData = WAStarEESGeneralExperiment.this._getSolutionResult(result);
-                    System.out.println("Done: " + Arrays.toString(resultData));
-                    //System.out.println(solutions.get(0).dumpSolution());
                     this.output.appendNewResult(resultData);
+                    System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": " + Arrays.toString(resultData));
                 }
             } catch (OutOfMemoryError e) {
-                System.out.println("Got out of memory :(");
-                // The first -1 is for marking out-of-memory
                 this.output.appendNewResult(WAStarEESGeneralExperiment.this._getOutOfMemoryResult());
+                System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": OutOfMemory");
             }
             this.output.close();
             this.resultFiles.add(this.output.getFname());
-            System.out.println("Thread " + this.threadID + " is done :)");
+            System.out.println("[INFO] Thread " + this.threadID + " is destructed");
         }
     }
 
@@ -260,7 +239,7 @@ public class WAStarEESGeneralExperiment {
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             SearchDomain domain =
-                    WAStarEESGeneralExperiment.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                    DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -307,7 +286,8 @@ public class WAStarEESGeneralExperiment {
     public void runExperimentMultiThreaded(int firstInstance, int instancesCount, String outputPath)
             throws IOException {
         // -1 is because the main thread should also receive CPU
-        int actualThreadCount = WAStarEESGeneralExperiment.THREAD_COUNT - 1;
+        // Another -1 : for the system ...
+        int actualThreadCount = WAStarEESGeneralExperiment.THREAD_COUNT - 2;
         ExecutorService executor = Executors.newFixedThreadPool(actualThreadCount);
         List<String> resultFiles = new ArrayList<>();
         System.out.println("[INFO] Created thread pool with " + actualThreadCount + " threads");
@@ -319,17 +299,21 @@ public class WAStarEESGeneralExperiment {
             // Go over all the possible combinations and solve!
             for (int i = firstInstance; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
-                SearchDomain domain =
-                        WAStarEESGeneralExperiment.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
-                // Bypass not found files
-                if (domain == null) {
-                    continue;
-                }
                 for (Weights.SingleWeight w : this.weights.EXTENDED_WEIGHTS) {
                     double weight = w.getWeight();
                     for (boolean reopen : this.reopenPossibilities) {
+                        SearchDomain domain =
+                                DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                        // Bypass not found files
+                        if (domain == null) {
+                            continue;
+                        }
                         SearchAlgorithm alg = new WAStar(weight, reopen);
-                        Runnable worker = new WorkerThread(threadID++, domain, alg, syncResultFiles);
+                        Runnable worker = new WorkerThread(
+                                threadID++,
+                                domain, alg,
+                                "Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen,
+                                syncResultFiles);
                         executor.execute(worker);
                     }
                 }
@@ -338,7 +322,7 @@ public class WAStarEESGeneralExperiment {
             executor.shutdown();
             while (!executor.isTerminated()) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     // Do nothing
                 }

@@ -4,13 +4,17 @@ import org.cs4j.core.OutputResult;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
+import org.cs4j.core.SearchResult.Solution;
 import org.cs4j.core.algorithms.PTS;
-import org.cs4j.core.domains.GridPathFinding;
-import org.cs4j.core.domains.Utils;
+import org.cs4j.core.algorithms.WAStar;
+import org.cs4j.core.data.Weights;
+import org.cs4j.core.domains.*;
 
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by sepetnit on 11/5/2015.
@@ -18,13 +22,133 @@ import java.util.*;
  */
 public class PTSGeneralExperiment {
 
+    /*******************************************************************************************************************
+     * Private static fields
+     ******************************************************************************************************************/
 
-    public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/ost003d.map/" + instance));
-        return new GridPathFinding(is);
+    private static final String TEMP_DIR = "C:\\Windows\\Temp\\";
+    private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
+
+    /*******************************************************************************************************************
+     * Private  fields
+     ******************************************************************************************************************/
+
+    private boolean reopenPossibilities[] = new boolean[]{true, false};
+
+    /*******************************************************************************************************************
+     * Private methods
+     ******************************************************************************************************************/
+
+    /***
+     * Write a header line into the output
+     * @param outputResult The output result which points to a file
+     * @throws IOException
+     */
+    private void _writeHeaderLineToOutput(OutputResult outputResult) throws IOException {
+        // Write the header line
+        outputResult.writeln(
+                "InstanceID,MaxCost," +
+                        "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
+                        "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,"
+        );
     }
 
-    private static class MaxCostsCreationElement {
+    /**
+     * Returns an array for NoSolution
+     *
+     * @return A double array which contains default values to write in case no solution was found
+     */
+    private double[] _getNoSolutionResult() {
+        // Append-  Sol- 0:solution-not-found
+        //          Dep- -1,
+        //          Ggl- -1,
+        //          Gen- 0,
+        //          Exp- 0,
+        //          Dup- 0,
+        //          Oup- 0 (updated in open),
+        //          Rep- 0
+        return new double[]{0, -1, -1, 0, 0, 0, 0, 0};
+    }
+
+    /**
+     * Returns an array for a found solution
+     *
+     * @param result The search result data structure
+     *
+     * @return A new double array which contains all the fields for the solution
+     */
+    private double[] _getSolutionResult(SearchResult result) {
+        Solution solution = result.getSolutions().get(0);
+        return new double[]{
+                1,
+                solution.getLength(),
+                solution.getCost(),
+                result.getGenerated(),
+                result.getExpanded(),
+                result.getDuplicates(),
+                result.getUpdatedInOpen(),
+                result.getReopened(),
+        };
+    }
+
+    /**
+     * Returns an array for OutOfMemory
+     *
+     * @return A double array which contains default values to write in case there is no memory for solution
+     */
+    private double[] _getOutOfMemoryResult() {
+        // Append-  Sol- -1:out of memory
+        //          Dep- -1,
+        //          Ggl- -1,
+        //          Gen-  0,
+        //          Exp-  0,
+        //          Dup-  0,
+        //          Oup-  0 (updated in open),
+        //          Rep-  0
+        return new double[]{-1, -1, -1, 0, 0, 0, 0, 0};
+    }
+
+    /**
+     * Returns an initialized outputResult object
+     *
+     * @param outputPath The output path (can be null and in this case a random file is created)
+     * @param writeHeader Whether to add a header line immediately
+     *
+     * @return The created output result
+     */
+    private OutputResult getOutputResult(String outputPath, boolean writeHeader) throws IOException {
+        OutputResult output = null;
+        // Temporary
+        if (outputPath == null) {
+            while (true) {
+                try {
+                    String tempFileName = UUID.randomUUID().toString().replace("-", "") + ".search";
+                    output = new OutputResult(PTSGeneralExperiment.TEMP_DIR + tempFileName);
+                    break;
+                } catch (FileAlreadyExistsException e) {
+                    System.out.println("[WARNING] Output path found - trying again");
+                }
+            }
+        } else {
+            try {
+                output = new OutputResult(outputPath, true);
+            } catch (FileAlreadyExistsException e) {
+                System.err.println("Output file " + outputPath + " already exists");
+                System.exit(-1);
+            }
+        }
+        // Add the header immediately if needed
+        if (writeHeader) {
+            this._writeHeaderLineToOutput(output);
+        }
+        return output;
+    }
+
+    /*******************************************************************************************************************
+     * Max costs handling
+     ******************************************************************************************************************/
+
+    private class MaxCostsCreationElement {
         private int min;
         private int jump;
         private int max;
@@ -48,104 +172,302 @@ public class PTSGeneralExperiment {
         return Utils.integerListToArray(maxCostsAsList);
     }
 
-    /**
-     * Runs an experiment using the PTS algorithm
-     *
-     * @param instancesCount The number of instances to solve
-     *
-     * @throws java.io.IOException
-     */
-    public static void mainPTSExperiment(int instancesCount) throws IOException {
-        boolean reopenPossibilities[] = new boolean[]{true, false};
-        int[] maxCosts = PTSGeneralExperiment.createMaxCosts(
-                new MaxCostsCreationElement[] {
-                        new MaxCostsCreationElement(100, 10, 400)
-                }
-        );
-        OutputResult output;
+    /*******************************************************************************************************************
+     * Private class for MultiThreaded run
+     ******************************************************************************************************************/
 
-        try {
-            output = new OutputResult("results/gridpathfinding/generated/ost003d.map/generated+pts", true);
+    private class WorkerThread implements Runnable {
+        private int threadID;
+        // The names of all the result files are stored in this (synchronized) list
+        private List<String> resultFiles;
+        private SearchAlgorithm algorithm;
+        private SearchDomain domain;
+        private String problemDescription;
+        private OutputResult output;
 
-            // Write the header line
-            output.writeln(
-                    "InstanceID,MaxCost," +
-                            "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
-                            "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,"
-            );
+        /**
+         * The constructor of the worker thread
+         *
+         * @param threadID ID of the thread (for debugging reasons)
+         * @param domain The domain to run on
+         * @param algorithm The algorithm to run
+         * @param description The description of the problem (can be null)
+         * @param resultFiles The result files list - to add the result later
+         *
+         * @throws IOException If something wrong occurred
+         */
+        public WorkerThread(int threadID,
+                            SearchDomain domain,
+                            SearchAlgorithm algorithm,
+                            String description,
+                            List<String> resultFiles) throws IOException {
 
-            SearchAlgorithm alg = new PTS();
+            this.threadID = threadID;
+            this.resultFiles = resultFiles;
+            this.algorithm = algorithm;
+            this.domain = domain;
+            this.problemDescription = (description != null)? " (" +description+ ") " : "";
+            //System.out.println("Created Thread with ID " + threadID);
+        }
 
-            // Go over all the possible combinations and solve!
-            for (int i = 1; i <= instancesCount; ++i) {
-                // Create the domain by reading the relevant instance file
-                SearchDomain domain = PTSGeneralExperiment.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
-                // Bypass not found files
-                if (domain == null) {
-                    continue;
-                }
-                for (int maxCost : maxCosts) {
-                    output.write(i + "," + maxCost + ",");
-                    for (boolean reopen : reopenPossibilities) {
-                        System.out.println("[INFO] Instance: " + i + ", maxCost: " + maxCost + ", Reopen: " + reopen);
-                        // Set parameters
-                        alg.setAdditionalParameter("maxCost", maxCost + "");
-                        alg.setAdditionalParameter("reopen", reopen + "");
-                        // Run
-                        try {
-                            SearchResult result = alg.search(domain);
-                            List<SearchResult.Solution> solutions = result.getSolutions();
-                            // No solution
-                            if (solutions.size() == 0) {
-                                // Append-  Sol- 0:solution-not-found
-                                //          Dep- -1,
-                                //          Ggl- -1,
-                                //          Gen- 0,
-                                //          Exp- 0,
-                                //          Dup- 0,
-                                //          Oup- 0 (updated in open),
-                                //          Rep- 0
-                                output.appendNewResult(new double[]{0, -1, -1, 0, 0, 0, 0, 0});
-                            } else {
-                                int solutionLength = solutions.get(0).getLength();
-                                double[] resultData = new double[]{
-                                        1,
-                                        solutionLength,
-                                        // Put here the G value of the goal
-                                        solutions.get(0).getCost(),
-                                        result.getGenerated(),
-                                        result.getExpanded(),
-                                        result.getDuplicates(),
-                                        result.getUpdatedInOpen(),
-                                        result.getReopened(),
-                                };
-                                System.out.println(Arrays.toString(resultData));
-                                //System.out.println(solutions.get(0).dumpSolution());
-                                output.appendNewResult(resultData);
-                            }
-                        } catch (OutOfMemoryError e) {
-                            System.out.println("Got out of memory :(");
-                            // The first -1 is for marking out-of-memory
-                            output.appendNewResult(new double[]{-1, -1, -1, 0, 0, 0, 0, 0});
-                        }
-                    }
-                    output.newline();
-                }
+        @Override
+        public void run() {
+            System.out.println("[INFO] Thread " + this.threadID + " is now running " + this.problemDescription);
+            // Setup the output
+            try {
+                this.output = PTSGeneralExperiment.this.getOutputResult(null, false);
+                System.out.println("[INFO] Thread " + this.threadID + " will be written to " + this.output.getFname());
+            } catch (IOException e) {
+                this.resultFiles.add("Failed (Alg: " + this.algorithm.toString() +
+                        ", Domain: " + domain.toString() + ")");
+                return;
             }
-            output.close();
-        } catch (FileAlreadyExistsException e) {
-            System.err.println("File already found for PTS result!");
-            System.exit(-1);
+            // Otherwise, run
+            try {
+                SearchResult result = this.algorithm.search(this.domain);
+                System.out.println("[INFO] Thread " + this.threadID + " is Done");
+                // No solution
+                if (!result.hasSolution()) {
+                    this.output.appendNewResult(PTSGeneralExperiment.this._getNoSolutionResult());
+                    System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": NoSolution");
+                } else {
+                    double[] resultData = PTSGeneralExperiment.this._getSolutionResult(result);
+                    this.output.appendNewResult(resultData);
+                    System.out.println("[INFO] Thread" + this.threadID + this.problemDescription + ": " + Arrays.toString(resultData));
+                }
+            } catch (OutOfMemoryError e) {
+                this.output.appendNewResult(PTSGeneralExperiment.this._getOutOfMemoryResult());
+                System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": OutOfMemory");
+            }
+            this.output.close();
+            this.resultFiles.add(this.output.getFname());
+            System.out.println("Thread " + this.threadID + " is done :)");
         }
     }
 
-    public static void main(String[] args) {
+    /*******************************************************************************************************************
+     * Public member definitions
+     ******************************************************************************************************************/
+
+    /**
+     * Runs an experiment using the WAStar and EES algorithms in a SINGLE THREAD!
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param maxCosts The max costs array
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @return The name of the output file where all the data recedes
+     *
+     * @throws java.io.IOException
+     */
+    public String runExperimentSingleThreaded(int firstInstance, int instancesCount, int[] maxCosts,
+                                              String outputPath, boolean needHeader) throws IOException {
+
+        OutputResult output = this.getOutputResult(outputPath, needHeader);
+
+        int[] realMaxCosts = maxCosts;
+
+        // in case the maxCosts were not given - let's create some default costs array
+        if (maxCosts == null) {
+            realMaxCosts = PTSGeneralExperiment.createMaxCosts(
+                    new MaxCostsCreationElement[]{
+                            new MaxCostsCreationElement(100, 10, 400)
+                    }
+            );
+            System.out.println("[WARNING] Created default costs array");
+        }
+
+        SearchAlgorithm alg = new PTS();
+
+        // Go over all the possible combinations and solve!
+        for (int i = firstInstance; i <= instancesCount; ++i) {
+            // Create the domain by reading the relevant instance file
+            SearchDomain domain =
+                    DomainsCreation.create15PuzzleInstanceFromKorfInstances(i + ".in");
+            // Bypass not found files
+            if (domain == null) {
+                continue;
+            }
+            for (int maxCost : realMaxCosts) {
+                output.write(i + "," + maxCost + ",");
+                for (boolean reopen : this.reopenPossibilities) {
+                    alg.setAdditionalParameter("maxCost", maxCost + "");
+                    alg.setAdditionalParameter("reopen", reopen + "");
+                    System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost + ", Reopen: " + reopen);
+                    try {
+                        SearchResult result = alg.search(domain);
+                        // No solution
+                        if (!result.hasSolution()) {
+                            output.appendNewResult(this._getNoSolutionResult());
+                            System.out.println("[INFO] Done: NoSolution");
+                        } else {
+                            double[] resultData = this._getSolutionResult(result);
+                            System.out.println("[INFO] Done: " + Arrays.toString(resultData));
+                            output.appendNewResult(resultData);
+                        }
+                    } catch (OutOfMemoryError e) {
+                        System.out.println("[INFO] Done: OutOfMemory :-(");
+                        output.appendNewResult(this._getOutOfMemoryResult());
+                    }
+                }
+                output.newline();
+            }
+        }
+        output.close();
+        return output.getFname();
+    }
+
+    /**
+     * Runs an experiment using the WAStar and EES algorithms using MULTIPLE THREADS!
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param maxCosts The max costs array
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @throws java.io.IOException
+     */
+    public void runExperimentMultiThreaded(int firstInstance, int instancesCount, int[] maxCosts, String outputPath)
+            throws IOException {
+        // -1 is because the main thread should also receive CPU
+        // Another -1 : for the system ...
+        int actualThreadCount = PTSGeneralExperiment.THREAD_COUNT - 2;
+        ExecutorService executor = Executors.newFixedThreadPool(actualThreadCount);
+        List<String> resultFiles = new ArrayList<>();
+        System.out.println("[INFO] Created thread pool with " + actualThreadCount + " threads");
+        List<String> syncResultFiles = Collections.synchronizedList(resultFiles);
+
+        int[] realMaxCosts = maxCosts;
+
+        // in case the maxCosts were not given - let's create some default costs array
+        if (maxCosts == null) {
+            realMaxCosts = PTSGeneralExperiment.createMaxCosts(
+                    new MaxCostsCreationElement[]{
+                            new MaxCostsCreationElement(100, 10, 400)
+                    }
+            );
+        }
+
+        try {
+            int threadID = 0;
+            System.out.println("[INFO] Creating threads ... ");
+            // Go over all the possible combinations and solve!
+            for (int i = firstInstance; i <= instancesCount; ++i) {
+                for (int maxCost : realMaxCosts) {
+                    for (boolean reopen : this.reopenPossibilities) {
+                        // Create the domain by reading the relevant instance file
+                        SearchDomain domain =
+                                DomainsCreation.create15PuzzleInstanceFromKorfInstances(i + ".in");
+                        // Bypass not found files
+                        if (domain == null) {
+                            continue;
+                        }
+                        SearchAlgorithm alg = new PTS();
+                        alg.setAdditionalParameter("maxCost", maxCost + "");
+                        alg.setAdditionalParameter("reopen", reopen + "");
+                        Runnable worker = new WorkerThread(
+                                threadID++,
+                                domain, alg,
+                                "Instance: " + i + ", MaxCost: " + maxCost + ", Reopen: " + reopen,
+                                syncResultFiles);
+                        executor.execute(worker);
+                    }
+                }
+            }
+            System.out.println("[INFO] Done creating " + threadID + " threads. Now waits them for finishing");
+            executor.shutdown();
+            while (!executor.isTerminated()) {
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    // Do nothing
+                }
+            }
+        } finally {
+            for (String filename : syncResultFiles) {
+                System.out.println(Utils.fileToString(filename).trim());
+                System.out.println("[WARNING] Deleting " + filename + "(result: " + new File(filename).delete() + ")");
+            }
+        }
+        System.out.println("Finished all threads");
+    }
+
+    /*******************************************************************************************************************
+     * Different Main definitions
+     ******************************************************************************************************************/
+
+    /**
+     * For single thread
+     */
+    public static void mainGeneralExperimentSingleThreaded() {
         // Solve with 100 instances
         try {
-            PTSGeneralExperiment.mainPTSExperiment(100);
+            PTSGeneralExperiment experiment = new PTSGeneralExperiment();
+            experiment.runExperimentSingleThreaded(
+                    // First instance ID
+                    1,
+                    // Instances Count
+                    100,
+                    // Max costs
+                    new int[] {55, 60, 65, 70, 75, 80, 85, 90},
+                    // Output Path
+                    "results/fifteenpuzzle/korf100-new/pts-55-60-65-70-75-80-85-90",
+                    // Add header
+                    true);
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
         }
+    }
+
+    /**
+     * For multiple threads
+     */
+    public static void mainGeneralExperimentMultiThreaded() {
+        // Solve with 100 instances
+        try {
+            PTSGeneralExperiment experiment = new PTSGeneralExperiment();
+            experiment.runExperimentMultiThreaded(
+                    // First instance ID
+                    1,
+                    // Instances Count
+                    100,
+                    // Max costs
+                    new int[] {55, 60, 65, 70, 75, 80, 85, 90},
+                    // Output Path
+                    "results/fifteenpuzzle/korf100-new/pts-55-60-65-70-75-80-85-90");
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            System.exit(-1);
+        }
+    }
+
+    public static void cleanAllSearchFiles() {
+        int cleaned = 0;
+        File outDir = new File(PTSGeneralExperiment.TEMP_DIR);
+        for (File f: outDir.listFiles(
+                new FileFilter() {
+                    @Override
+                    public boolean accept(File pathname) {
+                        return pathname.toString().endsWith(".search.csv");
+                    }
+                }
+        )) {
+            if (f.delete()) {
+                ++cleaned;
+            }
+        }
+        System.out.println("[INFO] Deleted " + cleaned + " files in total.");
+    }
+
+    /*******************************************************************************************************************
+     * Main :)
+     ******************************************************************************************************************/
+
+    public static void main(String[] args) {
+        PTSGeneralExperiment.cleanAllSearchFiles();
+        //PTSGeneralExperiment.mainGeneralExperimentSingleThreaded();
+        PTSGeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
