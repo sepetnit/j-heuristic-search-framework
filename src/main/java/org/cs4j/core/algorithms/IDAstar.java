@@ -22,6 +22,9 @@ import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
+import java.util.Map;
 
 /**
  * Iterative Deepening A* Search
@@ -50,7 +53,17 @@ public class IDAstar implements SearchAlgorithm {
         this.solution = new SolutionImpl();
         this.weight = weight;
     }
-  
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
+    }
+
     @Override
     public SearchResult search(SearchDomain domain) {
         this.result = new SearchResultImpl();

@@ -4,13 +4,9 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.collections.PackedElement;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 /**
  * Created by sepetnit on 11/7/2015.
@@ -34,6 +30,16 @@ public class DFS implements SearchAlgorithm {
     private void _initDataStructures() {
         this.stack = new Stack<>();
         this.visited = new HashMap<>();
+    }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
     }
 
     @Override

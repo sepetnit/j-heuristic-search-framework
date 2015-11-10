@@ -19,6 +19,7 @@ package org.cs4j.core.algorithms;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
@@ -26,6 +27,7 @@ import org.cs4j.core.SearchDomain.Operator;
 import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
 import org.cs4j.core.SearchResult;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Recursive Best-First Search
@@ -48,7 +50,17 @@ public class RBFS implements SearchAlgorithm {
   public RBFS(double w) {
     this.weight = w;
   }
-  
+
+  @Override
+  public Map<String, Class> getPossibleParameters() {
+    return null;
+  }
+
+  @Override
+  public void setAdditionalParameter(String parameterName, String value) {
+    throw new NotImplementedException();
+  }
+
   @Override
   public SearchResult search(SearchDomain domain) {
   	this.domain = domain;

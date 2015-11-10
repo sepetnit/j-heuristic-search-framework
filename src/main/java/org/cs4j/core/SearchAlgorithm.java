@@ -16,19 +16,36 @@
  */
 package org.cs4j.core;
 
+import java.util.Map;
+
 /**
  * The search algorithm interface.
  *
  * @author Matthew Hatem
  */
 public interface SearchAlgorithm {
-  
-  /**
-   * Performs a search beginning at the specified state.
-   *
-   * @param domain The domain to apply the search on
-   * @return search results
-   */
-  SearchResult search(SearchDomain domain);
-    
+
+    /**
+     * Performs a search beginning at the specified state.
+     *
+     * @param domain The domain to apply the search on
+     * @return search results
+     */
+    SearchResult search(SearchDomain domain);
+
+    /**
+     * Retrieves and returns the possible paramters that can be set for this algorithm
+     *
+     * @return A mapping of parameters (name=>type) or null if there are no such parameters
+     */
+    Map<String, Class> getPossibleParameters();
+
+    /**
+     * The function allows setting of different parameters of the search, according to the algorithm
+     *
+     * e.g. Whether to allow reopening in WAstar or the maximum cost in PTS
+     *  @param parameterName The name of the parameter
+     * @param value The value of the parameter
+     */
+    void setAdditionalParameter(String parameterName, String value);
 }

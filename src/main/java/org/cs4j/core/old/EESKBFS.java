@@ -8,8 +8,10 @@ import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.SearchQueueElementImpl;
 import org.cs4j.core.collections.*;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.Comparator;
+import java.util.Map;
 
 public class EESKBFS implements SearchAlgorithm {
 
@@ -40,6 +42,16 @@ public class EESKBFS implements SearchAlgorithm {
     public EESKBFS(double weight, int k) {
         this.weight = weight;
         this.k = k;
+    }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
     }
 
     /* (non-Javadoc)

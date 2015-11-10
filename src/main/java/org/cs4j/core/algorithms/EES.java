@@ -1,6 +1,5 @@
 package org.cs4j.core.algorithms;
 
-import com.carrotsearch.hppc.LongObjectOpenHashMap;
 import com.sun.istack.internal.NotNull;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
@@ -9,6 +8,7 @@ import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
 import org.cs4j.core.collections.*;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -146,6 +146,16 @@ public class EES implements SearchAlgorithm {
         // Add the child node to be a child of its parent
         newParentNode.children.put(newChildNode.packed, newChildNode);
 
+    }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
     }
 
     /**

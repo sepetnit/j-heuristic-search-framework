@@ -34,6 +34,7 @@ import org.cs4j.core.collections.BucketHeap;
 import org.cs4j.core.collections.BucketHeap.BucketHeapElement;
 import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.SearchQueue;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * A* Search and Weighted A* Search
@@ -62,8 +63,8 @@ public class AStar implements SearchAlgorithm {
     // TODO ...
     protected double maxCost;
 
-    private List<Operator> path = new ArrayList<>(3);
-    private List<State> statesPath = new ArrayList<>(3);
+    private List<Operator> path;
+    private List<State> statesPath;
 
     public enum HeapType {BIN, BUCKET}
 
@@ -128,6 +129,18 @@ public class AStar implements SearchAlgorithm {
     private void _initDataStructures() {
         this.open = buildHeap(heapType, 100);
         this.closed = new HashMap<>();
+        this.path = new ArrayList<>();
+        this.statesPath = new ArrayList<>();
+    }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
     }
 
     @Override
@@ -179,7 +192,7 @@ public class AStar implements SearchAlgorithm {
 
                     // Treat duplicates
                 if (this.closed.containsKey(childNode.packed)) {
-                    // Count them
+                    // Count the duplicates
                     ++result.duplicates;
                     // Get the previous copy of this node (and extract it)
                     Node dupChildNode = this.closed.get(childNode.packed);
