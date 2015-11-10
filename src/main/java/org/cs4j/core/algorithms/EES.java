@@ -169,7 +169,7 @@ public class EES implements SearchAlgorithm {
         try {
             // Create the initial state and node
             State initState = domain.initialState();
-            Node initNode = new Node(initState, null, null, null);
+            Node initNode = new Node(initState, null, null, null, null);
             // Insert the initial node into all the lists
             this._insertNode(initNode, initNode);
             // Update FOCAL with the inserted node (no change in f^) - required since oldBest is null in this case
@@ -209,7 +209,7 @@ public class EES implements SearchAlgorithm {
                     // Apply the operator and extract the child state
                     State childState = domain.applyOperator(state, op);
                     // Create the child node
-                    Node childNode = new Node(childState, bestNode, op, op.reverse(state));
+                    Node childNode = new Node(childState, bestNode, state, op, op.reverse(state));
 
                     // merge duplicates
 
@@ -290,12 +290,19 @@ public class EES implements SearchAlgorithm {
             List<State> statesPath = new ArrayList<>();
             System.out.println("[INFO] Solved - Generating output path.");
             long cost = 0;
-            for (Node p = goal; p != null; p = p.parent) {
-                if (p.op != null) {
-                    path.add(p.op);
-                    cost += p.op.getCost(domain.unpack(p.parent.packed));
+
+            State currentPacked = domain.unpack(goal.packed);
+            State currentParentPacked = null;
+            for (Node currentNode = goal;
+                 currentNode != null;
+                 currentNode = currentNode.parent, currentPacked = currentParentPacked) {
+                // If op of current node is not null that means that p has a parent
+                if (currentNode.op != null) {
+                    path.add(currentNode.op);
+                    currentParentPacked = domain.unpack(currentNode.parent.packed);
+                    cost += currentNode.op.getCost(currentPacked, currentParentPacked);
                 }
-                statesPath.add(domain.unpack(p.packed));
+                statesPath.add(domain.unpack(currentNode.packed));
             }
             // The actual size of the found path can be only lower the G value of the found goal
             assert statesPath.size() <= goal.g + 1;
@@ -529,7 +536,7 @@ public class EES implements SearchAlgorithm {
          * @param op The operator which generated this node
          * @param pop The reverse operator (which will cause to generation of the parent node)
          */
-        private Node(State state, Node parent, Operator op, final Operator pop) {
+        private Node(State state, Node parent, State parentState, Operator op, final Operator pop) {
             // The size of the key is 2
             super(2);
             this.packed = domain.pack(state);
@@ -539,7 +546,7 @@ public class EES implements SearchAlgorithm {
             this.children = new HashMap<>();
 
             // Calculate the cost of the node:
-            double cost = (op != null) ? op.getCost(state) : 0;
+            double cost = (op != null) ? op.getCost(state, parentState) : 0;
             this.g = cost;
             this.depth = 1;
             // Our g equals to the cost + g value of the parent

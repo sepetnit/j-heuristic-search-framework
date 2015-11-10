@@ -74,8 +74,9 @@ public class DockyardRobot implements SearchDomain {
 
         // Push cranes onto piles
         int lastPile = location.piles.size();
+
         // In case the number of piles is greater than available number of piles for the location
-        // the robot is on update it to be the maximum available value
+        // the robot is on, update it to be the maximum available value
         if (lastPile >= this.maximumPilesCountAtPosition[state.robotLocation]) {
             lastPile = this.maximumPilesCountAtPosition[state.robotLocation] - 1;
         }
@@ -145,19 +146,28 @@ public class DockyardRobot implements SearchDomain {
             this.maximumCranesCountAtPosition = new int[locationsCount];
             this.maximumPilesCountAtPosition = new int[locationsCount];
 
+            // Initialize the array (initially, no piles at any location)
+            for (int i = 0; i < this.maximumPilesCountAtPosition.length; ++i) {
+                this.maximumCranesCountAtPosition[i] = 0;
+                this.maximumPilesCountAtPosition[i] = 0;
+            }
+
             // The initial locations (each is represented by a class)
             this.initialLocation = new Location[locationsCount];
             for (int i = 0; i < this.initialLocation.length; ++i) {
                 this.initialLocation[i] = new Location();
             }
+
             // The goals array
             this.goals = new int[boxesCount];
             // Initially, the goals array is empty ...
-            for (int i = 0; i < goals.length; i++) {
-                goals[i] = -1;
+            for (int i = 0; i < this.goals.length; i++) {
+                this.goals[i] = -1;
             }
+
             // Locations of piles, initially are empty
-            int[] pilesLocations = new int[pilesCount];
+            int[] pilesLocations = new int[this.pilesCount];
+
             // Now, read the locations
             int loc = -1;
             String line;
@@ -178,7 +188,7 @@ public class DockyardRobot implements SearchDomain {
                             Utils.fatal("Invalid location " + loc);
                         }
                         break;
-                        // Adjacency list of the last read location
+                    // Adjacency list of the last read location
                     }
                     case "adjacent:": {
                         // In this case, the rest of the read tokens are the distances to the
@@ -212,7 +222,7 @@ public class DockyardRobot implements SearchDomain {
                             this.maximumPilesCountAtPosition[loc]++;
                         }
                         break;
-                        // A specific pile
+                    // A specific pile
                     }
                     case "pile": {
                         if (tokens.length != 2) {
@@ -241,7 +251,7 @@ public class DockyardRobot implements SearchDomain {
                         // In case that pile has some boxes inside - add it to the initial locations
                         // array
                         if (p.stack.size() > 0) {
-                            initialLocation[pilesLocations[pnum]].piles.add(p);
+                            this.initialLocation[pilesLocations[pnum]].piles.add(p);
                         }
                         break;
                         // Container should contain boxes ...
@@ -336,8 +346,7 @@ public class DockyardRobot implements SearchDomain {
         // Initialize the first state: The robot is currently on location 0 and no box is loaded
         DRobotState drs = new DRobotState(this, this.initialLocation, -1, 0);
         drs.calcHD();
-        System.out.println("initial:");
-        System.out.println(dumpState(drs));
+        System.out.println(drs.dumpState());
         return drs;
     }
 
@@ -676,9 +685,9 @@ public class DockyardRobot implements SearchDomain {
         for (int l = 0; l < state.locations.length; l++) {
             Location loc = state.locations[l];
             // Each out-of-place box on a crane must be loaded onto the robot.
-            for (int c = 0; c < loc.cranes.size(); c++)  {
+            for (int c = 0; c < loc.cranes.size(); ++c)  {
                 int box = loc.cranes.get(c);
-                // No goals or box at place
+                // No goals or boxes at place
                 if (this.goals[box] < 0 || this.goals[box] == l) {
                     continue;
                 }
@@ -686,18 +695,22 @@ public class DockyardRobot implements SearchDomain {
                 d += 1;
             }
 
-            // Each out-of-place box on a stack must be popped onto a crane, then moved to the
-            // robot.
+            // Each out-of-place box on a stack must be popped onto a crane, then moved to the robot.
+
+            // Go over all the piles at the location
             for (int p = 0; p < loc.piles.size(); p++) {
+                // Get current pile
                 Pile pile = loc.piles.get(p);
+                // Go over all the boxes on the pile
                 for (int ht = 0; ht < pile.stack.size(); ht++) {
+                    // Get current box
                     int box = pile.stack.get(ht);
-                    // No goals or box at place
+                    // No goals or box at place - bypass the box
                     if (this.goals[box] < 0 || this.goals[box] == l) {
                         continue;
                     }
                     //FIXME: bug? h += PopCostFact*(ht + 2) + LoadCost;
-                    h += DockyardRobot.PopCostFact * (ht + 2) + DockyardRobot.LoadCost;
+                    h += DockyardRobot.PopCostFact * (ht + 1) + DockyardRobot.LoadCost;
                     //h += ((PopCostFact*((double)(ht+1.0))) + LoadCost);
                     d += 2;
                 }
@@ -781,6 +794,7 @@ public class DockyardRobot implements SearchDomain {
     private double cost(int operatorType, int operatorInputXValue, int operatorInputYValue,
                         DRobotState state) {
         double cost = 0.0d;
+
         switch (operatorType) {
             // Push the container in the crane onto the top of a pile
             case DRobotOperator.PUSH: {
@@ -804,7 +818,7 @@ public class DockyardRobot implements SearchDomain {
             // Take the top container from the pile using a crane
             case DRobotOperator.POP: {
                 // Extract the pile on which the required box will be pushed
-                int pileNumber = operatorInputYValue;
+                int pileNumber = operatorInputXValue;
                 // Get the current location of the robot
                 Location l = state.locations[state.robotLocation];
                 // Size of the pile
@@ -888,7 +902,7 @@ public class DockyardRobot implements SearchDomain {
                 assert (p < l.piles.size());
                 // Get the size of the pile
                 int sz = l.piles.get(p).stack.size();
-                // Take the bottom container of the pile
+                // Store the bottom container of the pile
                 int bottom = l.piles.get(p).stack.get(0);
                 // Take the top box from the pile
                 int box = l.pop(p);
@@ -980,18 +994,17 @@ public class DockyardRobot implements SearchDomain {
         //dumpState(s);
         //dumpState(drs);
 
-        double cost = op.getCost(s);
-        drs.g += cost;
-        double p[] = this.hd(s);
+        double p[] = this.hd(drs);
         drs.h = p[0];
         drs.d = p[1];
 
         // PathMax
+        /*
         double costsDiff = drs.g - s.g;
         drs.h = Math.max(s.h, (s.h - costsDiff));
-
+        */
         // In order to reach drs, 'cost' should be payed
-        o.costs.put(drs, cost);
+        //o.costs.put(drs, cost);
 
         drs.parent = s;
 
@@ -1239,7 +1252,6 @@ public class DockyardRobot implements SearchDomain {
 
 
     private final class DRobotState implements State {
-        private double g;
         private double h;
         private double d;
 
@@ -1423,21 +1435,21 @@ public class DockyardRobot implements SearchDomain {
         private int x = 0;
         private int y = 0;
 
-        private Map<State, Double> costs;
+        private Map<PackedElement, Double> costs;
 
         private DRobotOperator(int type) {
-            this.costs = new HashMap<>();
+            //this.costs = new HashMap<>();
             this.type = type;
         }
 
         private DRobotOperator(int type, int x) {
-            this.costs = new HashMap<>();
+            //this.costs = new HashMap<>();
             this.type = type;
             this.x = x;
         }
 
         private DRobotOperator(int type, int x, int y) {
-            this.costs = new HashMap<>();
+            //this.costs = new HashMap<>();
             this.type = type;
             this.x = x;
             this.y = y;
@@ -1457,11 +1469,17 @@ public class DockyardRobot implements SearchDomain {
         }
 
         @Override
-        public double getCost(State s) {
+        public double getCost(State s, State parent) {
+            assert parent != null;
+            DRobotState drs = (DRobotState)parent;
+            /*
             DRobotState drs = (DRobotState)s;
-            if (this.costs.containsKey(s)) {
-                return this.costs.get(s);
-            }
+            PackedElement packed = DockyardRobot.this.pack(s);
+            // In case the cost was calculated once - we can't calculate it again, since the
+            //if (this.costs.containsKey(packed)) {
+            //    return this.costs.get(packed);
+            //}
+            */
             return DockyardRobot.this.cost(this.type, this.x, this.y, drs);
         }
 
@@ -1473,6 +1491,10 @@ public class DockyardRobot implements SearchDomain {
         public Operator reverse(State state) {
             return null;
             //throw new NotImplementedException();
+        }
+
+        public String toString() {
+            return "Operator(Type: " + this.type + ", X: " + this.x + ", Y: " + this.y + ")";
         }
     }
 

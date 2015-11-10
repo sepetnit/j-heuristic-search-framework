@@ -901,7 +901,7 @@ public class GridPathFinding implements SearchDomain {
         }
 
         @Override
-        public double getCost(State s) {
+        public double getCost(State s, State parent) {
             GridPathFindingState grs = (GridPathFindingState) s;
             double cost = 1.0d;
             // TODO: Heavy???

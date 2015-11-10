@@ -1600,7 +1600,7 @@ public class VacuumRobot implements SearchDomain {
         }
 
         @Override
-        public double getCost(State s) {
+        public double getCost(State s, State parent) {
             VacuumRobotState vrs = (VacuumRobotState) s;
             double cost = 1.0d;
             if (VacuumRobot.this.heavy) {

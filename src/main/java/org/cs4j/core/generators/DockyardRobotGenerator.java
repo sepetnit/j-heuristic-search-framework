@@ -15,7 +15,7 @@ import java.util.*;
  *
  */
 public class DockyardRobotGenerator extends GeneralInstancesGenerator {
-    private static final int MAX_DISTANCE = 1000;
+    private static final int MAX_DISTANCE = 5;
     private static final int AVERAGE_DISTANCE = DockyardRobotGenerator.MAX_DISTANCE / 2;
 
     /**

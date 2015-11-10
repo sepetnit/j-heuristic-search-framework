@@ -4,11 +4,8 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.AStar;
-import org.cs4j.core.algorithms.IDAstar;
-import org.cs4j.core.algorithms.SearchResultImpl;
 import org.cs4j.core.collections.PairInt;
 import org.cs4j.core.domains.GridPathFinding;
-import org.cs4j.core.domains.Utils;
 
 import java.io.*;
 import java.util.Arrays;

@@ -171,7 +171,7 @@ public class Main {
     public static void mainDockyardRobotDomain() throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createDockyardRobot("1.in");
-        SearchAlgorithm alg = new EES(500000);
+        SearchAlgorithm alg = new AStar(1.0, true);
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
@@ -183,7 +183,7 @@ public class Main {
                     result.getExpanded(),
                     ((SearchResultImpl) result).reopened};
             System.out.println(Arrays.toString(d));
-            System.out.printf(result.getSolutions().get(0).dumpSolution());
+            //System.out.printf(result.getSolutions().get(0).dumpSolution());
         } else {
             System.out.println("No solution :-(");
         }
@@ -314,7 +314,7 @@ public class Main {
         //Main.mainFifteenPuzzle(args);
         //Main.mainGridPathFindingDomain(args);
         //Main.mainPancakesDomain(args);
-        Main.mainVacuumRobotDomain(args);
-        //Main.mainDockyardRobotDomain();
+        //Main.mainVacuumRobotDomain(args);
+        Main.mainDockyardRobotDomain();
     }
 }

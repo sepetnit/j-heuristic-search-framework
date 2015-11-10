@@ -100,7 +100,7 @@ public class RBFS implements SearchAlgorithm {
       }
       result.generated++;
       State childState = domain.applyOperator(n.state, op);
-      succ.add(new Node(childState, n, op, op.reverse(n.state)));
+      succ.add(new Node(childState, n, n.state, op, op.reverse(n.state)));
     }
     
     // no successors
@@ -144,11 +144,11 @@ public class RBFS implements SearchAlgorithm {
     double fPrime;
     
     private Node(State state) {
-    	this(state, null, null, null);
+    	this(state, null, null, null, null);
     }
     
-    private Node(State state, Node parent, Operator op, Operator pop) {
-    	double cost = (op != null) ? op.getCost(state) : 0;
+    private Node(State state, Node parent, State parentState, Operator op, Operator pop) {
+    	double cost = (op != null) ? op.getCost(state, parentState) : 0;
     	this.g = (parent != null) ? parent.g+cost : cost;
       this.f = g + (weight*state.getH());
       this.state = domain.copy(state);

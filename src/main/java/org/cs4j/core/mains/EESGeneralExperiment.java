@@ -5,12 +5,8 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.AStar;
-import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.data.Weights;
-import org.cs4j.core.domains.FifteenPuzzle;
-import org.cs4j.core.domains.GridPathFinding;
-import org.cs4j.core.domains.Pancakes;
-import org.cs4j.core.domains.VacuumRobot;
+import org.cs4j.core.domains.*;
 
 import java.io.*;
 import java.nio.file.FileAlreadyExistsException;
@@ -50,6 +46,11 @@ public class EESGeneralExperiment {
         return new FifteenPuzzle(is);
     }
 
+    public static SearchDomain createDockyardRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/dockyardrobot/generated/" + instance));
+        return new DockyardRobot(is);
+    }
+
     /**
      * Runs an experiment using the EES algorithm, the generated VacuumRobot domains, and Weights.BASIC_WEIGHTS
      *
@@ -64,7 +65,7 @@ public class EESGeneralExperiment {
         OutputResult output;
         try {
             // Create the result file + overwrite if exists!
-            output = new OutputResult("results/gridpathfinding/generated/ost003d.map/generated+wastar+extended", true);
+            output = new OutputResult("results/dockyardrobot/generated/generated+wastar+optimal", true);
 
             //output = new OutputResult("results/vacuumrobot/generated+ees+extended-test", true);
 
@@ -82,12 +83,12 @@ public class EESGeneralExperiment {
             // Go over all the possible combinations and solve!
             for (int i = 1; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
-                SearchDomain domain = EESGeneralExperiment.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+                SearchDomain domain = EESGeneralExperiment.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
                 // Bypass not found files
                 if (domain == null) {
                     continue;
                 }
-                for (Weights.SingleWeight w : weights.EXTENDED_WEIGHTS) {
+                for (Weights.SingleWeight w : weights.OPTIMAL_WEIGHTS) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : reopenPossibilities) {
@@ -122,7 +123,7 @@ public class EESGeneralExperiment {
                                         result.getUpdatedInOpen(),
                                         result.getReopened(),
                                 };
-                                // System.out.println(Arrays.toString(resultData));
+                                System.out.println(Arrays.toString(resultData));
                                 //System.out.println(solutions.get(0).dumpSolution());
                                 output.appendNewResult(resultData);
                             }

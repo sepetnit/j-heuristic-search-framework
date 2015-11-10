@@ -175,9 +175,9 @@ public class AStar implements SearchAlgorithm {
                 // Here we actually generate a new state
                 ++result.generated;
                 State childState = domain.applyOperator(currentState, op);
-                Node childNode = new Node(childState, currentNode, op, op.reverse(currentState));
+                Node childNode = new Node(childState, currentNode, currentState, op, op.reverse(currentState));
 
-                // Treat duplicates
+                    // Treat duplicates
                 if (this.closed.containsKey(childNode.packed)) {
                     // Count them
                     ++result.duplicates;
@@ -186,12 +186,19 @@ public class AStar implements SearchAlgorithm {
                     // All this is relevant only if we reached the node via a cheaper path
                     if (dupChildNode.f > childNode.f) {
                         // If false - let's check it!
-                        assert dupChildNode.g > childNode.g;
+                        //assert dupChildNode.g > childNode.g;
                         if (dupChildNode.g > childNode.g) {
 
+                            // Node in closed but we get duplicate
                             if (weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1) {
                                 System.out.println(dupChildNode.f + " " + childNode.f);
                                 System.out.println(dupChildNode.g + " " + childNode.g);
+                                System.out.println(dupChildNode.h + " " + childNode.h);
+                                System.out.println(dupChildNode.parent.packed.getFirst());
+                                System.out.println(dupChildNode.packed.getFirst());
+                                System.out.println(domain.unpack(dupChildNode.parent.packed).dumpState());
+                                System.out.println(domain.unpack(childNode.parent.packed).dumpState());
+                                assert false;
                             }
 
                                 // In any case update the duplicate with the new values - we reached it via a shorter path
@@ -237,19 +244,26 @@ public class AStar implements SearchAlgorithm {
             List<Operator> path = new ArrayList<>();
             List<State> statesPath = new ArrayList<>();
             System.out.println("[INFO] Solved - Generating output path.");
-            long cost = 0;
-            for (Node p = goal; p != null; p = p.parent) {
-                if (p.op != null) {
-                    path.add(p.op);
-                    cost += p.op.getCost(domain.unpack(p.parent.packed));
+            double cost = 0;
+
+            State currentPacked = domain.unpack(goal.packed);
+            State currentParentPacked = null;
+            for (Node currentNode = goal;
+                 currentNode != null;
+                 currentNode = currentNode.parent, currentPacked = currentParentPacked) {
+                // If op of current node is not null that means that p has a parent
+                if (currentNode.op != null) {
+                    path.add(currentNode.op);
+                    currentParentPacked = domain.unpack(currentNode.parent.packed);
+                    cost += currentNode.op.getCost(currentPacked, currentParentPacked);
                 }
-                statesPath.add(domain.unpack(p.packed));
+                statesPath.add(domain.unpack(currentNode.packed));
             }
             // The actual size of the found path can be only lower the G value of the found goal
-            assert statesPath.size() <= goal.g + 1;
-            if (statesPath.size() - goal.g < 1) {
-                System.out.println("[INFO] Goal G is higher that the actual path " +
-                        "(G: " + goal.g +  ", Actual: " + statesPath.size() + ")");
+            assert cost <= goal.g;
+            if (cost - goal.g < 0) {
+                System.out.println("[INFO] Goal G is higher that the actual cost " +
+                        "(G: " + goal.g +  ", Actual: " + cost + ")");
             }
 
             Collections.reverse(path);
@@ -280,24 +294,24 @@ public class AStar implements SearchAlgorithm {
         private PackedElement packed;
         private int[] secondaryIndex;
 
-        private Node(State state, Node parent, Operator op, Operator pop) {
+        private Node(State state, Node parent, State parentState, Operator op, Operator pop) {
             // Size of key
             super(1);
             // TODO: Why?
             this.secondaryIndex = new int[(heapType == HeapType.BUCKET) ? 2 : 1];
-            double cost = (op != null) ? op.getCost(state) : 0;
+            double cost = (op != null) ? op.getCost(state, parentState) : 0;
             this.h = state.getH();
 
             // If each operation costs something, we should add the cost to the g value of the parent
             this.g = (parent != null) ? parent.g + cost : cost;
 
             // Start of PathMax
-            /*
+
             if (parent != null) {
                 double costsDiff = this.g - parent.g;
                 this.h = Math.max(this.h, (parent.h - costsDiff));
             }
-            */
+
             // End of PathMax
             this.f = this.g + (AStar.this.weight * this.h);
 
@@ -314,7 +328,7 @@ public class AStar implements SearchAlgorithm {
          * @param state The state which this node represents
          */
         private Node(State state) {
-            this(state, null, null, null);
+            this(state, null, null, null, null);
         }
 
 

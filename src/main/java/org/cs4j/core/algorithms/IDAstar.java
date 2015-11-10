@@ -111,7 +111,7 @@ public class IDAstar implements SearchAlgorithm {
             }
             ++result.generated;
             State child = domain.applyOperator(parent, op);
-            boolean goal = this.dfs(domain, child, op.getCost(parent) + cost, op.reverse(parent));
+            boolean goal = this.dfs(domain, child, op.getCost(child, parent) + cost, op.reverse(parent));
             if (goal) {
                 this.solution.addOperator(op);
                 return true;

@@ -79,7 +79,7 @@ public class PTS implements SearchAlgorithm {
                 // Get it by applying the operator on the parent state
                 SearchDomain.State childState = domain.applyOperator(state, op);
                 // Create a search node for this state
-                Node node = new Node(childState, n, op, op.reverse(state));
+                Node node = new Node(childState, n, state, op, op.reverse(state));
 
                 // Now, merge duplicates - let's check if the state already exists in CLOSE/OPEN:
                 // In the node is not in the CLOSED list, then it is also not in the OPEN list
@@ -165,7 +165,7 @@ public class PTS implements SearchAlgorithm {
          * @param state The state from which the node should be created
          */
         private Node(SearchDomain.State state) {
-            this(state, null, null, null);
+            this(state, null, null, null, null);
         }
 
         /**
@@ -173,13 +173,14 @@ public class PTS implements SearchAlgorithm {
          * and operators (last and previous)
          *
          * @param state The state from which the node should be created
-         * @param parent The parent state
+         * @param parent The parent node
+         * @param parentState The state of the parent
          * @param op The operator which was applied to the parent state in order to get the current
          *           one
          * @param pop The operator which will reverse the last applied operation which revealed the
          *            current state
          */
-        private Node(SearchDomain.State state, Node parent, SearchDomain.Operator op, SearchDomain.Operator pop) {
+        private Node(SearchDomain.State state, Node parent, SearchDomain.State parentState, SearchDomain.Operator op, SearchDomain.Operator pop) {
             // The size of the key (for SearchQueueElementImpl) is 1
             super(1);
             this.secondaryIndex = new int[1];
@@ -187,7 +188,7 @@ public class PTS implements SearchAlgorithm {
             // SHOULDN'T IT BE ON THE PARENT???
             // OR EVEN MAYBE WE WANT EITHER PARENT **AND** THE CHILD STATES TO PASS TO THE getCost
             // FUNCTION IN ORDER TO GET THE OPERATOR VALUE ...
-            double cost = (op != null) ? op.getCost(state) : 0;
+            double cost = (op != null) ? op.getCost(state, parentState) : 0;
             this.h = state.getH();
             this.g = (parent != null)? parent.g + cost : cost;
             this.f = this.g + this.h;

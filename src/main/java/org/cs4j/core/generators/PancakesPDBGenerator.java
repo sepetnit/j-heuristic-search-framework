@@ -1,8 +1,6 @@
 package org.cs4j.core.generators;
 
 import org.cs4j.core.SearchResult;
-import org.cs4j.core.algorithms.AStar;
-import org.cs4j.core.algorithms.DFS;
 import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.collections.Pair;
 import org.cs4j.core.domains.Pancakes;

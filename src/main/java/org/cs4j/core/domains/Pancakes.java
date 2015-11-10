@@ -436,7 +436,7 @@ public class Pancakes implements SearchDomain {
         }
 
         @Override
-        public double getCost(State state) {
+        public double getCost(State state, State parent) {
             PancakeState ps = (PancakeState)state;
             return Pancakes.this.computeCost(ps.cakes[value]);
         }

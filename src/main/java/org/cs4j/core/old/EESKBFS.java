@@ -195,14 +195,14 @@ public class EESKBFS implements SearchAlgorithm {
         PackedElement packed;
         RBTreeNode<Node, Node> rbnode = null;
 
-        private Node(State state, Node parent, Operator op, final Operator pop) {
+        private Node(State state, Node parent, State parentState, Operator op, final Operator pop) {
             super(2);
             this.packed = domain.pack(state);
             this.parent = parent;
             this.op = op;
             this.pop = pop;
 
-            double cost = (op != null) ? op.getCost(state) : 0;
+            double cost = (op != null) ? op.getCost(state, parentState) : 0;
             this.g = cost;
             if (parent != null) {
                 this.g += parent.g;

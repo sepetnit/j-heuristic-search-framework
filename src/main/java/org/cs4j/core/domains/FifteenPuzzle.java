@@ -554,7 +554,7 @@ public final class FifteenPuzzle implements SearchDomain {
         }
 
         @Override
-        public double getCost(State s) {
+        public double getCost(State s, State parent) {
             // All the operators have the same cost
             TileState ts = (TileState) s;
             int tile = ts.tiles[value];
