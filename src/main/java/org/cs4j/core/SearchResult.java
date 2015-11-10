@@ -28,128 +28,135 @@ import java.util.List;
  */
 public interface SearchResult {
 
-	/**
-	 * Returns the solution path.
-	 *
-	 * @return the solution path
-	 */
-	public List<Solution> getSolutions();
+    /**
+     * Returns whether a solution to the problem exists
+     *
+     * @return true if a solution exists and false otherwise
+     */
+    public boolean hasSolution();
 
-	/**
-	 * Returns expanded count.
-	 *
-	 * @return expanded count
-	 */
-	public long getExpanded();
+    /**
+     * Returns the solution path.
+     *
+     * @return the solution path
+     */
+    public List<Solution> getSolutions();
 
-	/**
-	 * Returns generated count.
-	 *
-	 * @return generated count
-	 */
-	public long getGenerated();
+    /**
+     * Returns expanded count.
+     *
+     * @return expanded count
+     */
+    public long getExpanded();
 
-	/**
-	 * Returns duplicates count.
-	 *
-	 * @return Count of the duplicate states
-	 */
-	public long getDuplicates();
+    /**
+     * Returns generated count.
+     *
+     * @return generated count
+     */
+    public long getGenerated();
 
-	/**
-	 * Returns the number of duplicate states that were updated in the open list
-	 *
-	 * @return duplicates count in the open list
-	 */
-	public long getUpdatedInOpen();
+    /**
+     * Returns duplicates count.
+     *
+     * @return Count of the duplicate states
+     */
+    public long getDuplicates();
 
-	/**
-	 * Returns reopened count.
-	 *
-	 * @return reopened count
-	 */
-	public long getReopened();
+    /**
+     * Returns the number of duplicate states that were updated in the open list
+     *
+     * @return duplicates count in the open list
+     */
+    public long getUpdatedInOpen();
 
-	/**
-	 * Returns the wall time in milliseconds.
-	 *
-	 * @return the wall time in milliseconds
-	 */
-	public long getWallTimeMillis();
+    /**
+     * Returns reopened count.
+     *
+     * @return reopened count
+     */
+    public long getReopened();
 
-	/**
-	 * Returns the CPU time in milliseconds.
-	 *
-	 * @return the CPU time in milliseconds
-	 */
-	public long getCpuTimeMillis();
+    /**
+     * Returns the wall time in milliseconds.
+     *
+     * @return the wall time in milliseconds
+     */
+    public long getWallTimeMillis();
 
-	/**
-	 * Interface for search iterations.
-	 */
-	public interface Iteration {
+    /**
+     * Returns the CPU time in milliseconds.
+     *
+     * @return the CPU time in milliseconds
+     */
+    public long getCpuTimeMillis();
 
-		/**
-		 * Returns the bound for this iteration.
-		 *
-		 * @return the bound
-		 */
-		public double getBound();
+    /**
+     * Interface for search iterations.
+     */
+    public interface Iteration {
 
-		/**
-		 * Returns the number of nodes expanded.
-		 *
-		 * @return the number of nodes expanded
-		 */
-		public long getExpanded();
+        /**
+         * Returns the bound for this iteration.
+         *
+         * @return the bound
+         */
+        public double getBound();
 
-		/**
-		 * Returns the number of nodes generated.
-		 *
-		 * @return the number of nodes generated
-		 */
-		public long getGenerated();
+        /**
+         * Returns the number of nodes expanded.
+         *
+         * @return the number of nodes expanded
+         */
+        public long getExpanded();
 
-	}
+        /**
+         * Returns the number of nodes generated.
+         *
+         * @return the number of nodes generated
+         */
+        public long getGenerated();
 
-	/**
-	 * The Solution interface.
-	 */
-	public interface Solution {
+    }
 
-		/**
-		 * Returns a list of operators used to construct this solution.
-		 *
-		 * @return list of operators
-		 */
-		public List<Operator> getOperators();
+    /**
+     * The Solution interface.
+     */
+    public interface Solution {
 
-		/**
-		 * Returns a list of states used to construct this solution
-		 *
-		 * @return list of states
-		 */
-		public List<State> getStates();
+        /**
+         * Returns a list of operators used to construct this solution.
+         *
+         * @return list of operators
+         */
+        public List<Operator> getOperators();
 
-		/**
-		 * Returns a string representation of the solution
-		 *
-		 * @return A string that represents the solution
-		 */
-		public String dumpSolution();
+        /**
+         * Returns a list of states used to construct this solution
+         *
+         * @return list of states
+         */
+        public List<State> getStates();
 
-		/**
-		 * Returns the cost of the solution.
-		 *
-		 * @return the cost of the solution
-		 */
-		public double getCost();
+        /**
+         * Returns a string representation of the solution
+         *
+         * @return A string that represents the solution
+         */
+        public String dumpSolution();
 
-		/**
-		 * Returns the length of the solution.
-		 */
-		public int getLength();
+        /**
+         * Returns the cost of the solution.
+         *
+         * @return the cost of the solution
+         */
+        public double getCost();
 
-	}
+        /**
+         * Returns the length of the solution.
+         */
+        public int getLength();
+
+    }
 
 }

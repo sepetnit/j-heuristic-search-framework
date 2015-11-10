@@ -78,6 +78,11 @@ public class SearchResultImpl implements SearchResult {
     }
 
     @Override
+    public boolean hasSolution() {
+        return this.solutions != null && this.solutions.size() > 0;
+    }
+
+    @Override
     public List<Solution> getSolutions() {
         return this.solutions;
     }
