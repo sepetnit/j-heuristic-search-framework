@@ -263,7 +263,7 @@ public class VacuumRobot implements SearchDomain {
     }
 
     /**
-     * A node in a Maximum-Spanning-Tree (MST)
+     * A node in a Minimum-Spanning-Tree (MST)
      */
     private class MSTNode {
         // The parent node
@@ -572,7 +572,7 @@ public class VacuumRobot implements SearchDomain {
     // }
 
     /**
-     * Given a state, computes a maximum spanning tree whose nodes are formed all the dirty
+     * Given a state, computes a minimum spanning tree whose nodes are formed all the dirty
      * locations WHICH ARE ACTUALLY MARKED AS DIRTY
      *
      * @return The computed MST (set of edges)
@@ -844,7 +844,7 @@ public class VacuumRobot implements SearchDomain {
     */
 
     /**
-     * Given a state, computes a maximum spanning tree whose nodes are formed all the dirty
+     * Given a state, computes a minimum spanning tree whose nodes are formed all the dirty
      * locations
      *
      * NOTE: The locations from which the MST is formed ARE NOT CHECKED OF BEING DIRTY
@@ -874,12 +874,12 @@ public class VacuumRobot implements SearchDomain {
     */
 
     /**
-     * Given a state, computes a maximum spanning tree whose nodes are formed all the dirty
+     * Given a state, computes a minimum spanning tree whose nodes are formed all the dirty
      * locations AND THE LOCATION OF THE ROBOT OF THAT STATE
      *
      * NOTE: The locations from which the MST is formed ARE NOT CHECKED OF BEING DIRTY
      *
-     * @param state The state from which the maximum spanning tree should be computed
+     * @param state The state from which the minimum spanning tree should be computed
      *
      * @return The computed MST (set of edges)
      */
