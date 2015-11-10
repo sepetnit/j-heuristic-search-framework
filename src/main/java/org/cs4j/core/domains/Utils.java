@@ -126,10 +126,11 @@ public class Utils {
     public static String fileToString(File file) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
         StringBuilder sb = new StringBuilder();
-        String line = null;
+        String line;
         while ((line = reader.readLine()) != null) {
             sb.append(line).append("\n");
         }
+        reader.close();
         return sb.toString();
     }
 

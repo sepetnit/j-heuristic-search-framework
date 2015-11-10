@@ -7,6 +7,7 @@ import org.cs4j.core.SearchResult;
 import org.cs4j.core.SearchResult.Solution;
 import org.cs4j.core.algorithms.WAStar;
 import org.cs4j.core.data.Weights;
+import org.cs4j.core.data.Weights.SingleWeight;
 import org.cs4j.core.domains.*;
 
 import java.io.*;
@@ -39,6 +40,17 @@ public class WAStarEESGeneralExperiment {
      * Private methods
      ******************************************************************************************************************/
 
+    /**
+     * Creates a header line for writing into output
+     *
+     * @return The created header line
+     */
+    private String _getHeader() {
+        return "InstanceID,Wh,Wg,Weight," +
+                "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
+                "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,";
+    }
+
     /***
      * Write a header line into the output
      * @param outputResult The output result which points to a file
@@ -46,11 +58,7 @@ public class WAStarEESGeneralExperiment {
      */
     private void _writeHeaderLineToOutput(OutputResult outputResult) throws IOException {
         // Write the header line
-        outputResult.writeln(
-                "InstanceID,Wh,Wg,Weight," +
-                        "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
-                        "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,"
-        );
+        outputResult.writeln(this._getHeader());
     }
 
     /**
@@ -104,17 +112,21 @@ public class WAStarEESGeneralExperiment {
      * Returns an initialized outputResult object
      *
      * @param outputPath The output path (can be null and in this case a random file is created)
+     * @param prefix A prefix to add to the created random file
      * @param writeHeader Whether to add a header line immediately
      *
      * @return The created output result
      */
-    private OutputResult getOutputResult(String outputPath, boolean writeHeader) throws IOException {
+    private OutputResult getOutputResult(String outputPath, String prefix, boolean writeHeader) throws IOException {
         OutputResult output = null;
+        if (prefix == null) {
+            prefix = "";
+        }
         // Temporary
         if (outputPath == null) {
             while (true) {
                 try {
-                    String tempFileName = UUID.randomUUID().toString().replace("-", "") + ".search";
+                    String tempFileName = prefix + UUID.randomUUID().toString().replace("-", "") + ".search";
                     output = new OutputResult(WAStarEESGeneralExperiment.TEMP_DIR + tempFileName);
                     break;
                 } catch (FileAlreadyExistsException e) {
@@ -123,7 +135,7 @@ public class WAStarEESGeneralExperiment {
             }
         } else {
             try {
-                output = new OutputResult(outputPath, true);
+                output = new OutputResult(outputPath, prefix, true);
                 // Create the result file + overwrite if exists!
                 // output = new OutputResult("results/vacuumrobot/generated/generated+wastar+extended", true);
                 //output = new OutputResult("results/dockyardrobot/generated/generated+wastar+optimal", true);
@@ -153,6 +165,7 @@ public class WAStarEESGeneralExperiment {
         private SearchAlgorithm algorithm;
         private SearchDomain domain;
         private String problemDescription;
+        private String outputFilePrefix;
         private OutputResult output;
 
         /**
@@ -162,6 +175,7 @@ public class WAStarEESGeneralExperiment {
          * @param domain The domain to run on
          * @param algorithm The algorithm to run
          * @param description The description of the problem (can be null)
+         * @parem outputFilePrefix The prefix that should be added to the created output file
          * @param resultFiles The result files list - to add the result later
          *
          * @throws IOException If something wrong occurred
@@ -170,6 +184,7 @@ public class WAStarEESGeneralExperiment {
                             SearchDomain domain,
                             SearchAlgorithm algorithm,
                             String description,
+                            String outputFilePrefix,
                             List<String> resultFiles) throws IOException {
 
             this.threadID = threadID;
@@ -177,6 +192,7 @@ public class WAStarEESGeneralExperiment {
             this.algorithm = algorithm;
             this.domain = domain;
             this.problemDescription = (description != null)? " (" +description+ ") " : "";
+            this.outputFilePrefix = (outputFilePrefix != null)? outputFilePrefix : "";
             //System.out.println("Created Thread with ID " + threadID);
         }
 
@@ -185,7 +201,7 @@ public class WAStarEESGeneralExperiment {
             System.out.println("[INFO] Thread " + this.threadID + " is now running " + this.problemDescription);
             // Setup the output
             try {
-                this.output = WAStarEESGeneralExperiment.this.getOutputResult(null, false);
+                this.output = WAStarEESGeneralExperiment.this.getOutputResult(null, this.outputFilePrefix, false);
                 System.out.println("[INFO] Thread " + this.threadID + " will be written to " + this.output.getFname());
             } catch (IOException e) {
                 this.resultFiles.add("Failed (Alg: " + this.algorithm.toString() +
@@ -233,7 +249,7 @@ public class WAStarEESGeneralExperiment {
     public String runExperimentSingleThreaded(int firstInstance, int instancesCount,
                                               String outputPath, boolean needHeader) throws IOException {
 
-        OutputResult output = this.getOutputResult(outputPath, needHeader);
+        OutputResult output = this.getOutputResult(outputPath, null, needHeader);
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
@@ -259,7 +275,6 @@ public class WAStarEESGeneralExperiment {
                         } else {
                             double[] resultData = this._getSolutionResult(result);
                             System.out.println(Arrays.toString(resultData));
-                            //System.out.println(solutions.get(0).dumpSolution());
                             output.appendNewResult(resultData);
                         }
                     } catch (OutOfMemoryError e) {
@@ -293,15 +308,20 @@ public class WAStarEESGeneralExperiment {
         System.out.println("[INFO] Created thread pool with " + actualThreadCount + " threads");
         List<String> syncResultFiles = Collections.synchronizedList(resultFiles);
 
+        // Weights
+        SingleWeight[] weights = this.weights.OPTIMAL_WEIGHTS;
+        //boolean[] reopenPossibilities = this.reopenPossibilities;
+        boolean[] reopenPossibilities = this.reopenPossibilities;
+
         try {
             int threadID = 0;
             System.out.println("[INFO] Creating threads ... ");
             // Go over all the possible combinations and solve!
             for (int i = firstInstance; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
-                for (Weights.SingleWeight w : this.weights.EXTENDED_WEIGHTS) {
+                for (SingleWeight w : weights) {
                     double weight = w.getWeight();
-                    for (boolean reopen : this.reopenPossibilities) {
+                    for (boolean reopen : reopenPossibilities) {
                         SearchDomain domain =
                                 DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
                         // Bypass not found files
@@ -313,6 +333,7 @@ public class WAStarEESGeneralExperiment {
                                 threadID++,
                                 domain, alg,
                                 "Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen,
+                                i + "-" + weight + "-" + reopen + "-",
                                 syncResultFiles);
                         executor.execute(worker);
                     }
@@ -328,12 +349,96 @@ public class WAStarEESGeneralExperiment {
                 }
             }
         } finally {
+            System.out.println("[INFO] All threads finished, unifying the data ...");
+            outputPath = this.writeAllToFile(weights, resultFiles, outputPath);
+            System.out.println("[INFO] Done - see " + outputPath);
+            int deleted = 0;
             for (String filename : syncResultFiles) {
-                System.out.println(Utils.fileToString(filename).trim());
-                System.out.println("[WARNING] Deleting " + filename + "(result: " + new File(filename).delete() + ")");
+                if (new File(filename).delete()) {
+                    ++deleted;
+                }
+            }
+            System.out.println("[WARNING] Deleted " + deleted + "/" + syncResultFiles.size() + " temp files");
+        }
+    }
+
+    /**
+     * Takes all the single files written by multi-threaded run, and unifies them to a single file
+     * @param weights The weights used in the run
+     * @param resultFiles A collection of the result files
+     * @param outputPath The name of the output file to write the output
+     *
+     * @return The name of the final output file
+     *
+     * @throws IOException If something wrong occurred
+     */
+    private String writeAllToFile(SingleWeight[] weights,
+                                  List<String> resultFiles,
+                                  String outputPath) throws IOException {
+        OutputResult output = null;
+        try {
+            // Get new output result (and write the header)
+            output = this.getOutputResult(outputPath, null, true);
+        } catch (IOException e) {
+            System.err.println("[ERROR] Got exception creating output: " + e.getMessage());
+            System.out.println("[WARNING] Writing result to screen");
+            System.exit(-1);
+        }
+
+        // Mapping from real weight to weight object
+
+        Map<Double, SingleWeight> rawWeightToWeight = new HashMap<>();
+        for (SingleWeight current : weights) {
+            rawWeightToWeight.put(current.getWeight(), current);
+        }
+
+        Map<String, String> outputMap = new HashMap<>();
+
+        // Go over all the result files and take their output
+        for (String filename : resultFiles) {
+            // System.out.println("[INFO] Working with file " + filename);
+            // Get the basename from the file
+            String baseName = new File(filename).getName();
+            String[] split = baseName.split("-");
+            assert split.length == 4;
+            int instanceID = Integer.parseInt(split[0]);
+            double weight = Double.parseDouble(split[1]);
+            boolean reopen = Boolean.parseBoolean(split[2]);
+            SingleWeight currentWeight = rawWeightToWeight.get(weight);
+            assert currentWeight != null;
+            String currentKey = instanceID + "," + currentWeight.wh + "," + currentWeight.wg + "," + weight;
+            String currentResult = Utils.fileToString(filename).trim();
+            // If already has some data - just append, otherwise, put the new data
+            if (outputMap.containsKey(currentKey)) {
+                String previousResult = outputMap.get(currentKey);
+                // First AR, then NR
+                if (reopen) {
+                    outputMap.put(currentKey, currentResult + previousResult);
+                } else {
+                    outputMap.put(currentKey, previousResult + currentResult);
+                }
+            } else {
+                outputMap.put(currentKey, currentResult);
             }
         }
-        System.out.println("Finished all threads");
+
+        // Write the string to output or to screen
+        StringBuilder sb = new StringBuilder();
+        for (String key : outputMap.keySet()) {
+            sb.append(key);
+            sb.append(",");
+            sb.append(outputMap.get(key));
+            sb.append("\n");
+        }
+        if (output != null) {
+            output.write(sb.toString());
+            output.close();
+            System.out.println("[INFO] Done writing to file " + output.getFname());
+            return output.getFname();
+        } else {
+            System.out.println(sb.toString());
+            return null;
+        }
     }
 
     /*******************************************************************************************************************
@@ -371,11 +476,11 @@ public class WAStarEESGeneralExperiment {
             WAStarEESGeneralExperiment experiment = new WAStarEESGeneralExperiment();
             experiment.runExperimentMultiThreaded(
                     // First instance ID
-                    1,
+                    28,
                     // Instances Count
                     100,
                     // Output Path
-                    "results/dockyardrobot/generated/test");
+                    "results/dockyardrobot/generated/generated+wastar+optimal-28.csv");
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);

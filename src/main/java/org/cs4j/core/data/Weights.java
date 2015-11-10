@@ -12,7 +12,7 @@ import java.util.List;
 public class Weights {
 
     public final SingleWeight[] DEBUG_WEIGHTS = {
-            new SingleWeight(1.2),
+            new SingleWeight(1000),
     };
 
     public final SingleWeight[] OPTIMAL_WEIGHTS = {
