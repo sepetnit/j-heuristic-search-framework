@@ -801,7 +801,7 @@ public class VacuumRobot implements SearchDomain {
         // Cost of operations: MOVE * FUEL + SUCK
         double hAddend = (shortestDistance * robotOperationCost + robotOperationCost);
         // Number of operations: MOVE + SUCK
-        double dAddend = (shortestDistance + 1);
+        double dAddend = (shortestDistance + 1.0d);
         return new double[]{hAddend, dAddend};
     }
 
@@ -1106,11 +1106,13 @@ public class VacuumRobot implements SearchDomain {
      * @return The computed value
      */
     private double[] computeHD(VacuumRobotState s) {
+        /*
         if (this.heavy) {
             return computeHD_jordan(s);
         } else {
             return computeHD_greedy(s);
-        }
+        }*/
+        return computeHD_jordan(s);
     }
 
     /**
@@ -1465,7 +1467,7 @@ public class VacuumRobot implements SearchDomain {
             this.ops = null;
             this.parent = null;
             this.remainingDirtyLocationsCount = -1;
-            this.dirt = -1;
+            this.dirt = 0;
         }
 
         /**

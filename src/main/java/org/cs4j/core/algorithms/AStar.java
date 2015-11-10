@@ -194,10 +194,10 @@ public class AStar implements SearchAlgorithm {
                                 System.out.println(dupChildNode.f + " " + childNode.f);
                                 System.out.println(dupChildNode.g + " " + childNode.g);
                                 System.out.println(dupChildNode.h + " " + childNode.h);
-                                System.out.println(dupChildNode.parent.packed.getFirst());
-                                System.out.println(dupChildNode.packed.getFirst());
-                                System.out.println(domain.unpack(dupChildNode.parent.packed).dumpState());
-                                System.out.println(domain.unpack(childNode.parent.packed).dumpState());
+                                //System.out.println(dupChildNode.parent.packed.getFirst());
+                                //System.out.println(dupChildNode.packed.getFirst());
+                                //System.out.println(domain.unpack(dupChildNode.parent.packed).dumpState());
+                                //System.out.println(domain.unpack(childNode.parent.packed).dumpState());
                                 assert false;
                             }
 
