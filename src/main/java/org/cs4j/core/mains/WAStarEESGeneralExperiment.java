@@ -5,7 +5,7 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.SearchResult.Solution;
-import org.cs4j.core.algorithms.AStar;
+import org.cs4j.core.algorithms.WAStar;
 import org.cs4j.core.data.Weights;
 import org.cs4j.core.domains.*;
 
@@ -19,14 +19,25 @@ import java.util.concurrent.Executors;
  * Created by sepetnit on 11/5/2015.
  *
  */
-public class EESGeneralExperiment {
+public class WAStarEESGeneralExperiment {
 
+    /*******************************************************************************************************************
+     * Private static fields
+     ******************************************************************************************************************/
 
-    private static final String TEMPDIR = "C:\\Windows\\Temp\\";
-    private static final int THREAD_COUNT = 7;
+    private static final String TEMP_DIR = "C:\\Windows\\Temp\\";
+    private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
 
-    Weights weights = new Weights();
-    boolean reopenPossibilities[] = new boolean[]{true, false};
+    /*******************************************************************************************************************
+     * Private  fields
+     ******************************************************************************************************************/
+
+    private Weights weights = new Weights();
+    private boolean reopenPossibilities[] = new boolean[]{true, false};
+
+    /*******************************************************************************************************************
+     * Private  static methods : Domains creation
+     ******************************************************************************************************************/
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/ost003d.map/" + instance));
@@ -60,15 +71,15 @@ public class EESGeneralExperiment {
     }
 
     /*******************************************************************************************************************
-     * Private member definitions
+     * Private methods
      ******************************************************************************************************************/
 
     /***
      * Write a header line into the output
-     * @param outputResult
+     * @param outputResult The output result which points to a file
      * @throws IOException
      */
-    private void writeHeaderLineToOutput(OutputResult outputResult) throws IOException {
+    private void _writeHeaderLineToOutput(OutputResult outputResult) throws IOException {
         // Write the header line
         outputResult.writeln(
                 "InstanceID,Wh,Wg,Weight," +
@@ -78,9 +89,56 @@ public class EESGeneralExperiment {
     }
 
     /**
-     * Returns an initializes outputResult
+     * Returns an array for NoSolution
      *
-     * @param outputPath The output path (can be null)
+     * @return A double array which contains default values to write in case no solution was found
+     */
+    private double[] _getNoSolutionResult() {
+        // Append-  Sol- 0:solution-not-found
+        //          Dep- -1,
+        //          Ggl- -1,
+        //          Gen- 0,
+        //          Exp- 0,
+        //          Dup- 0,
+        //          Oup- 0 (updated in open),
+        //          Rep- 0
+        return new double[]{0, -1, -1, 0, 0, 0, 0, 0};
+    }
+
+    /**
+     * Returns an array for a found solution
+     *
+     * @param result The search result data structure
+     *
+     * @return A new double array which contains all the fields for the solution
+     */
+    private double[] _getSolutionResult(SearchResult result) {
+        Solution solution = result.getSolutions().get(0);
+        return new double[]{
+                1,
+                solution.getLength(),
+                solution.getCost(),
+                result.getGenerated(),
+                result.getExpanded(),
+                result.getDuplicates(),
+                result.getUpdatedInOpen(),
+                result.getReopened(),
+        };
+    }
+
+    /**
+     * Returns an array for OutOfMemory
+     *
+     * @return A double array which contains default values to write in case there is no memory for solution
+     */
+    private double[] _getOutOfMemoryResult() {
+        return new double[]{-1, -1, -1, 0, 0, 0, 0, 0};
+    }
+
+    /**
+     * Returns an initialized outputResult object
+     *
+     * @param outputPath The output path (can be null and in this case a random file is created)
      * @param writeHeader Whether to add a header line immediately
      *
      * @return The created output result
@@ -92,7 +150,7 @@ public class EESGeneralExperiment {
             while (true) {
                 try {
                     String tempFileName = UUID.randomUUID().toString().replace("-", "") + ".search";
-                    output = new OutputResult(EESGeneralExperiment.TEMPDIR + tempFileName);
+                    output = new OutputResult(WAStarEESGeneralExperiment.TEMP_DIR + tempFileName);
                     break;
                 } catch (FileAlreadyExistsException e) {
                     System.out.println("[WARNING] Output path found - trying again");
@@ -112,125 +170,21 @@ public class EESGeneralExperiment {
                 System.exit(-1);
             }
         }
+        // Add the header immediately if needed
         if (writeHeader) {
-            this.writeHeaderLineToOutput(output);
+            this._writeHeaderLineToOutput(output);
         }
         return output;
     }
 
     /*******************************************************************************************************************
-     * Public member definitions
+     * Private class for MultiThreaded run
      ******************************************************************************************************************/
 
-    /**
-     * Runs an experiment using the WAStar and EES algorithms
-     *
-     * @param firstInstance The id of the first instance to solve
-     * @param instancesCount The number of instances to solve
-     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
-     *
-     * @return The name of the output file where all the data recedes
-     *
-     * @throws java.io.IOException
-     */
-    public String runExperiment(int firstInstance, int instancesCount,
-                                String outputPath, boolean needHeader) throws IOException {
-
-        OutputResult output = this.getOutputResult(outputPath, needHeader);
-
-        // Go over all the possible combinations and solve!
-        for (int i = firstInstance; i <= instancesCount; ++i) {
-            // Create the domain by reading the relevant instance file
-            SearchDomain domain = EESGeneralExperiment.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
-            // Bypass not found files
-            if (domain == null) {
-                continue;
-            }
-            for (Weights.SingleWeight w : weights.EXTENDED_WEIGHTS) {
-                double weight = w.getWeight();
-                output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
-                for (boolean reopen : reopenPossibilities) {
-                    SearchAlgorithm alg = new AStar(weight, reopen);
-                    //SearchAlgorithm alg = new EES(weight, reopen);
-                    System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
-                    try {
-                        SearchResult result = alg.search(domain);
-                        // No solution
-                        if (result.hasSolution()) {
-                            // Append-  Sol- 0:solution-not-found
-                            //          Dep- -1,
-                            //          Ggl- -1,
-                            //          Gen- 0,
-                            //          Exp- 0,
-                            //          Dup- 0,
-                            //          Oup- 0 (updated in open),
-                            //          Rep- 0
-                            output.appendNewResult(new double[]{0, -1, -1, 0, 0, 0, 0, 0});
-                        } else {
-                            List<Solution> solutions = result.getSolutions();
-                            int solutionLength = solutions.get(0).getLength();
-                            double[] resultData = new double[]{
-                                    1,
-                                    solutionLength,
-                                    // Put here the G value of the goal
-                                    solutions.get(0).getCost(),
-                                    result.getGenerated(),
-                                    result.getExpanded(),
-                                    result.getDuplicates(),
-                                    result.getUpdatedInOpen(),
-                                    result.getReopened(),
-                            };
-                            System.out.println(Arrays.toString(resultData));
-                            //System.out.println(solutions.get(0).dumpSolution());
-                            output.appendNewResult(resultData);
-                        }
-                    } catch (OutOfMemoryError e) {
-                        System.out.println("Got out of memory :(");
-                        // The first -1 is for marking out-of-memory
-                        output.appendNewResult(new double[]{-1, -1, -1, 0, 0, 0, 0, 0});
-                    }
-                }
-                output.newline();
-            }
-        }
-
-        output.close();
-        return output.getFname();
-    }
-
-    private double[] _getNoSolutionResult() {
-        // Append-  Sol- 0:solution-not-found
-        //          Dep- -1,
-        //          Ggl- -1,
-        //          Gen- 0,
-        //          Exp- 0,
-        //          Dup- 0,
-        //          Oup- 0 (updated in open),
-        //          Rep- 0
-        return new double[]{0, -1, -1, 0, 0, 0, 0, 0};
-    }
-
-    private double[] _getSolutionResult(SearchResult result) {
-        Solution solution = result.getSolutions().get(0);
-        return new double[]{
-                1,
-                solution.getLength(),
-                solution.getCost(),
-                result.getGenerated(),
-                result.getExpanded(),
-                result.getDuplicates(),
-                result.getUpdatedInOpen(),
-                result.getReopened(),
-        };
-    }
-
-    private double[] _getOutOfMemoryResult() {
-        return new double[]{-1, -1, -1, 0, 0, 0, 0, 0};
-    }
-
     private class WorkerThread implements Runnable {
-        int threadID;
-        List<String> resultFiles;
+        private int threadID;
+        // The names of all the result files are stored in this (synchronized) list
+        private List<String> resultFiles;
         private SearchAlgorithm algorithm;
         private SearchDomain domain;
         private OutputResult output;
@@ -252,7 +206,7 @@ public class EESGeneralExperiment {
             System.out.println("Thread " + this.threadID + " is now running :)");
             // Setup the output
             try {
-                this.output = EESGeneralExperiment.this.getOutputResult(null, false);
+                this.output = WAStarEESGeneralExperiment.this.getOutputResult(null, false);
             } catch (IOException e) {
                 this.resultFiles.add("Failed (Alg: " + this.algorithm.toString() +
                         ", Domain: " + domain.toString() + ")");
@@ -264,9 +218,9 @@ public class EESGeneralExperiment {
                 List<Solution> solutions = result.getSolutions();
                 // No solution
                 if (!result.hasSolution()) {
-                    this.output.appendNewResult(EESGeneralExperiment.this._getNoSolutionResult());
+                    this.output.appendNewResult(WAStarEESGeneralExperiment.this._getNoSolutionResult());
                 } else {
-                    double[] resultData = EESGeneralExperiment.this._getSolutionResult(result);
+                    double[] resultData = WAStarEESGeneralExperiment.this._getSolutionResult(result);
                     System.out.println("Done: " + Arrays.toString(resultData));
                     //System.out.println(solutions.get(0).dumpSolution());
                     this.output.appendNewResult(resultData);
@@ -274,7 +228,7 @@ public class EESGeneralExperiment {
             } catch (OutOfMemoryError e) {
                 System.out.println("Got out of memory :(");
                 // The first -1 is for marking out-of-memory
-                this.output.appendNewResult(EESGeneralExperiment.this._getOutOfMemoryResult());
+                this.output.appendNewResult(WAStarEESGeneralExperiment.this._getOutOfMemoryResult());
             }
             this.output.close();
             this.resultFiles.add(this.output.getFname());
@@ -282,10 +236,81 @@ public class EESGeneralExperiment {
         }
     }
 
+    /*******************************************************************************************************************
+     * Public member definitions
+     ******************************************************************************************************************/
+
+    /**
+     * Runs an experiment using the WAStar and EES algorithms in a SINGLE THREAD!
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @return The name of the output file where all the data recedes
+     *
+     * @throws java.io.IOException
+     */
+    public String runExperimentSingleThreaded(int firstInstance, int instancesCount,
+                                              String outputPath, boolean needHeader) throws IOException {
+
+        OutputResult output = this.getOutputResult(outputPath, needHeader);
+
+        // Go over all the possible combinations and solve!
+        for (int i = firstInstance; i <= instancesCount; ++i) {
+            // Create the domain by reading the relevant instance file
+            SearchDomain domain =
+                    WAStarEESGeneralExperiment.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
+            // Bypass not found files
+            if (domain == null) {
+                continue;
+            }
+            for (Weights.SingleWeight w : this.weights.EXTENDED_WEIGHTS) {
+                double weight = w.getWeight();
+                output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
+                for (boolean reopen : this.reopenPossibilities) {
+                    SearchAlgorithm alg = new WAStar(weight, reopen);
+                    //SearchAlgorithm alg = new EES(weight, reopen);
+                    System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
+                    try {
+                        SearchResult result = alg.search(domain);
+                        // No solution
+                        if (!result.hasSolution()) {
+                            output.appendNewResult(this._getNoSolutionResult());
+                        } else {
+                            double[] resultData = this._getSolutionResult(result);
+                            System.out.println(Arrays.toString(resultData));
+                            //System.out.println(solutions.get(0).dumpSolution());
+                            output.appendNewResult(resultData);
+                        }
+                    } catch (OutOfMemoryError e) {
+                        System.out.println("Got out of memory :(");
+                        output.appendNewResult(this._getOutOfMemoryResult());
+                    }
+                }
+                output.newline();
+            }
+        }
+        output.close();
+        return output.getFname();
+    }
+
+    /**
+     * Runs an experiment using the WAStar and EES algorithms using MULTIPLE THREADS!
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @throws java.io.IOException
+     */
     public void runExperimentMultiThreaded(int firstInstance, int instancesCount, String outputPath)
             throws IOException {
-        ExecutorService executor = Executors.newFixedThreadPool(EESGeneralExperiment.THREAD_COUNT);
+        // -1 is because the main thread should also receive CPU
+        int actualThreadCount = WAStarEESGeneralExperiment.THREAD_COUNT - 1;
+        ExecutorService executor = Executors.newFixedThreadPool(actualThreadCount);
         List<String> resultFiles = new ArrayList<>();
+        System.out.println("[INFO] Created thread pool with " + actualThreadCount + " threads");
         List<String> syncResultFiles = Collections.synchronizedList(resultFiles);
 
         try {
@@ -295,15 +320,15 @@ public class EESGeneralExperiment {
             for (int i = firstInstance; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
                 SearchDomain domain =
-                        EESGeneralExperiment.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                        WAStarEESGeneralExperiment.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
                 // Bypass not found files
                 if (domain == null) {
                     continue;
                 }
-                for (Weights.SingleWeight w : weights.EXTENDED_WEIGHTS) {
+                for (Weights.SingleWeight w : this.weights.EXTENDED_WEIGHTS) {
                     double weight = w.getWeight();
-                    for (boolean reopen : reopenPossibilities) {
-                        SearchAlgorithm alg = new AStar(weight, reopen);
+                    for (boolean reopen : this.reopenPossibilities) {
+                        SearchAlgorithm alg = new WAStar(weight, reopen);
                         Runnable worker = new WorkerThread(threadID++, domain, alg, syncResultFiles);
                         executor.execute(worker);
                     }
@@ -319,9 +344,9 @@ public class EESGeneralExperiment {
                 }
             }
         } finally {
-            for (String fname : syncResultFiles) {
-                System.out.println(Utils.fileToString(fname).trim());
-                System.out.println("[WARNING] Deleting " + fname + "(result: " + new File(fname).delete() + ")");
+            for (String filename : syncResultFiles) {
+                System.out.println(Utils.fileToString(filename).trim());
+                System.out.println("[WARNING] Deleting " + filename + "(result: " + new File(filename).delete() + ")");
             }
         }
         System.out.println("Finished all threads");
@@ -331,11 +356,14 @@ public class EESGeneralExperiment {
      * Different Main definitions
      ******************************************************************************************************************/
 
-    public static void mainGeneralExperiment() {
+    /**
+     * For single thread
+     */
+    public static void mainGeneralExperimentSingleThreaded() {
         // Solve with 100 instances
         try {
-            EESGeneralExperiment experiment = new EESGeneralExperiment();
-            experiment.runExperiment(
+            WAStarEESGeneralExperiment experiment = new WAStarEESGeneralExperiment();
+            experiment.runExperimentSingleThreaded(
                     // First instance ID
                     1,
                     // Instances Count
@@ -350,10 +378,13 @@ public class EESGeneralExperiment {
         }
     }
 
+    /**
+     * For multiple threads
+     */
     public static void mainGeneralExperimentMultiThreaded() {
         // Solve with 100 instances
         try {
-            EESGeneralExperiment experiment = new EESGeneralExperiment();
+            WAStarEESGeneralExperiment experiment = new WAStarEESGeneralExperiment();
             experiment.runExperimentMultiThreaded(
                     // First instance ID
                     1,
@@ -367,14 +398,31 @@ public class EESGeneralExperiment {
         }
     }
 
+    public static void cleanAllSearchFiles() {
+        int cleaned = 0;
+        File outDir = new File(WAStarEESGeneralExperiment.TEMP_DIR);
+        for (File f: outDir.listFiles(
+                new FileFilter() {
+                    @Override
+                    public boolean accept(File pathname) {
+                        return pathname.toString().endsWith(".search.csv");
+                    }
+                }
+        )) {
+            if (f.delete()) {
+                ++cleaned;
+            }
+        }
+        System.out.println("[INFO] Deleted " + cleaned + " files in total.");
+    }
 
     /*******************************************************************************************************************
      * Main :)
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        //EESGeneralExperiment.mainGeneralExperiment();
-        EESGeneralExperiment.mainGeneralExperimentMultiThreaded();
+        WAStarEESGeneralExperiment.cleanAllSearchFiles();
+        //EESGeneralExperiment.mainGeneralExperimentSingleThreaded();
+        WAStarEESGeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
-
 }

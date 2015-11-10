@@ -43,7 +43,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  *
  * (Edited by Vitali Sepetnitsky)
  */
-public class AStar implements SearchAlgorithm {
+public class WAStar implements SearchAlgorithm {
 
     private static final int QID = 0;
 
@@ -71,14 +71,14 @@ public class AStar implements SearchAlgorithm {
     // Whether to perform reopening of states
     private boolean reopen;
 
-    protected AStar(double weight, double maxCost, HeapType heapType, boolean reopen) {
+    protected WAStar(double weight, double maxCost, HeapType heapType, boolean reopen) {
         this.weight = weight;
         this.maxCost = maxCost;
         this.heapType = heapType;
         this.reopen = reopen;
     }
 
-    public AStar(double weight, boolean reopen) {
+    public WAStar(double weight, boolean reopen) {
         this.weight = weight;
         this.maxCost = Double.MAX_VALUE;
         this.heapType = HeapType.BIN;
@@ -92,14 +92,14 @@ public class AStar implements SearchAlgorithm {
      *
      * NOTE: Use weight of 1.0 by default and perform reopening of states (AR)
      */
-    public AStar(HeapType heapType) {
+    public WAStar(HeapType heapType) {
         this(1.0, Double.MAX_VALUE, heapType, true);
     }
 
     /**
      * The default Constructor of the class (weight of 1.0, binary heap and AR)
      */
-    public AStar() {
+    public WAStar() {
         this(1.0, Double.MAX_VALUE, HeapType.BIN, true);
     }
 
@@ -324,11 +324,11 @@ public class AStar implements SearchAlgorithm {
                 this.h = Math.max(this.h, (parent.h - costsDiff));
             }
             // End of PathMax
-            this.f = this.g + (AStar.this.weight * this.h);
+            this.f = this.g + (WAStar.this.weight * this.h);
 
             // Parent node
             this.parent = parent;
-            this.packed = AStar.this.domain.pack(state);
+            this.packed = WAStar.this.domain.pack(state);
             this.pop = pop;
             this.op = op;
         }
