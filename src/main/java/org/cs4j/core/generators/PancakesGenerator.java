@@ -9,7 +9,7 @@ import java.util.*;
  * This class generated instances of the Pancakes domain
  */
 public class PancakesGenerator extends GeneralInstancesGenerator {
-    private static final int RANDOM_FLIP_COUNT_FOR_PROBLEM = 10000;
+    private static final int RANDOM_FLIP_COUNT_FOR_PROBLEM = 20;
 
 
     /**
@@ -136,15 +136,16 @@ public class PancakesGenerator extends GeneralInstancesGenerator {
 
         // In case no arguments were given - let's specify them here
         if (args.length == 0) {
-            args = new String[4];
+            args = new String[3];
             System.out.println("[WARNING] Using local arguments");
             // Output directory
-            args[0] = "input\\pancakes\\generated-new";
+            args[0] = "input\\pancakes\\generated-16";
             // Count of pancakes
-            args[1] = "1";
+            args[1] = "100";
             // Size of problem
-            args[2] = "40";
-            args[3] = "input\\pancakes\\generated";
+            args[2] = "16";
+            // Previous instance ID
+            //args[3] = "input\\pancakes\\generated";
         }
 
         if (args.length == 4) {
