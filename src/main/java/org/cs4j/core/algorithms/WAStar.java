@@ -224,6 +224,7 @@ public class WAStar implements SearchAlgorithm {
                             // In case the duplicate is also in the open list - let's just update it there
                             // (since we updated g and f)
                             if (dupChildNode.getIndex(this.open.getKey()) != -1) {
+                                ++result.opupdated;
                                 this.open.update(dupChildNode);
                                 this.closed.put(dupChildNode.packed, dupChildNode);
                                 // Otherwise, consider to reopen the node
