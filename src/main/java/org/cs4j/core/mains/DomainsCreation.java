@@ -19,8 +19,23 @@ public class DomainsCreation {
      ******************************************************************************************************************/
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/ost003d.map/" + instance));
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/" + instance));
         return new GridPathFinding(is);
+    }
+
+    // The k is for GAP-k heuristic setting
+    public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(int size, String instance, int k) throws FileNotFoundException {
+        Pancakes toReturn = null;
+        String filename = "input/pancakes/generated-" + size + "/" + instance;
+        try {
+            InputStream is = new FileInputStream(new File(filename));
+            toReturn = new Pancakes(is);
+            toReturn.setAdditionalParameter("GAP-k", k + "");
+
+        } catch (FileNotFoundException e) {
+            System.out.println("[WARNING] File " + filename + " not found");
+        }
+        return toReturn;
     }
 
     public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
