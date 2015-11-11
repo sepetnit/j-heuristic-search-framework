@@ -5,6 +5,7 @@ import org.cs4j.core.collections.PairInt;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * This class contains general util functions that are required in more than a single domain
@@ -26,6 +27,25 @@ public class Utils {
             return 1;
         }
         return n * fact(n -1);
+    }
+
+    /**
+     * Returns an array of the given size which contains a number 0..max-1 (randomly shuffled) in each cell
+     *
+     * @param size The size of the required array
+     *
+     * @return The created array
+     */
+    public static int[] getRandomIntegerListArray(int size, int max, Random rand) {
+        if (rand == null) {
+            rand = new Random();
+        }
+        // For each box, determine the initial pile
+        int[] toReturn = new int[size];
+        for (int i = 0; i < toReturn.length; ++i) {
+            toReturn[i] = rand.nextInt(max);
+        }
+        return toReturn;
     }
 
     /**
