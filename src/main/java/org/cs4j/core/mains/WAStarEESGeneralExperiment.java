@@ -255,12 +255,12 @@ public class WAStarEESGeneralExperiment {
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             SearchDomain domain =
-                    DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                    DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
             }
-            for (Weights.SingleWeight w : this.weights.EXTENDED_WEIGHTS) {
+            for (Weights.SingleWeight w : this.weights.OPTIMAL_WEIGHTS) {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                 for (boolean reopen : this.reopenPossibilities) {
@@ -458,7 +458,7 @@ public class WAStarEESGeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/vacuumrobot/generated/generated+wastar+extended",
+                    "results/dockyardrobot/generated/generated+wastar+optimal",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -510,8 +510,8 @@ public class WAStarEESGeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        WAStarEESGeneralExperiment.cleanAllSearchFiles();
-        //EESGeneralExperiment.mainGeneralExperimentSingleThreaded();
-        WAStarEESGeneralExperiment.mainGeneralExperimentMultiThreaded();
+        //WAStarEESGeneralExperiment.cleanAllSearchFiles();
+        WAStarEESGeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //WAStarEESGeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }

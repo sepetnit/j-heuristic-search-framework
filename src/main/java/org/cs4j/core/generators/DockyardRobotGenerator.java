@@ -1,10 +1,7 @@
 package org.cs4j.core.generators;
 
-import org.cs4j.core.domains.DockyardRobot;
-import org.cs4j.core.domains.Pancakes;
 import org.cs4j.core.domains.Utils;
 
-import javax.print.Doc;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -15,7 +12,8 @@ import java.util.*;
  *
  */
 public class DockyardRobotGenerator extends GeneralInstancesGenerator {
-    private static final int MAX_DISTANCE = 5;
+    private static final int BOXES_OUT_OF_PLACE_PERCENTAGE = 30  ;
+    private static final int MAX_DISTANCE = 2;
     private static final int AVERAGE_DISTANCE = DockyardRobotGenerator.MAX_DISTANCE / 2;
 
     /**
@@ -27,7 +25,7 @@ public class DockyardRobotGenerator extends GeneralInstancesGenerator {
      * @param pilesCount The total number of piles that can be created in the dockyard
      * @param robotsCount The total number of robots that are working
      *
-     * @return An string representation of the instance, which can be written to file
+     * @return An string representation of the instance, which can be written to file - or null if failed
      */
     public String generateInstance(int locationsCount, int cranesCount, int boxesCount, int pilesCount, int robotsCount) {
         int[][] adjacencyMatrix = new int[locationsCount][];
@@ -45,22 +43,22 @@ public class DockyardRobotGenerator extends GeneralInstancesGenerator {
                 }
             }
         }
-        List<Integer> pilesOnLocationsList = new ArrayList<>();
-        for (int i = 0; i < locationsCount; ++i) {
-            pilesOnLocationsList.add(i);
-        }
 
-        Collections.shuffle(pilesOnLocationsList, this.rand);
-        int[] pilesOnLocations = Utils.integerListToArray(pilesOnLocationsList);
+        // A list that defines a pile for each location
+        List<Integer> pilesToLocationsList = new ArrayList<>();
+        for (int i = 0; i < locationsCount; ++i) {
+            pilesToLocationsList.add(i);
+        }
+        Collections.shuffle(pilesToLocationsList, this.rand);
+        // The final pile->location array
+        int[] pilesToLocations = Utils.integerListToArray(pilesToLocationsList);
 
         // For each box, determine the initial pile
-        int[] boxesInPiles = new int[boxesCount];
-        for (int i = 0; i < boxesInPiles.length; ++i) {
-            boxesInPiles[i] = this.rand.nextInt(pilesCount);
-        }
+        int[] boxesToPiles = Utils.getRandomIntegerListArray(boxesCount, pilesCount, this.rand);
+        // The map is the reverse  of boxesToPiles
         Map<Integer, List<Integer>> pilesToBoxes = new HashMap<>();
-        for (int i = 0; i < boxesInPiles.length; ++i) {
-            int pile = boxesInPiles[i];
+        for (int i = 0; i < boxesToPiles.length; ++i) {
+            int pile = boxesToPiles[i];
             List<Integer> currentBoxes = pilesToBoxes.get(pile);
             if (currentBoxes == null) {
                 currentBoxes = new ArrayList<>(boxesCount);
@@ -69,11 +67,50 @@ public class DockyardRobotGenerator extends GeneralInstancesGenerator {
             currentBoxes.add(i);
         }
 
-        int[] goalsOfBoxes = new int[boxesCount];
+        int[] boxesToLocations = new int[boxesCount];
+        // Now, let's determine the initial location of each box -
         for (int i = 0; i < boxesCount; ++i) {
-            goalsOfBoxes[i] = this.rand.nextInt(locationsCount);
+            // The id of the pile
+            int pileNumber = boxesToPiles[i];
+            // Now, let's determine the location of the pile
+            boxesToLocations[i] = -1;
+            for (int j = 0; j < pilesToLocations.length; ++j) {
+                if (pilesToLocations[j] == pileNumber) {
+                    boxesToLocations[i] = j;
+                    break;
+                }
+            }
+            assert boxesToLocations[i] != -1;
         }
 
+        // Here we know the initial location of each box
+        int requiredOutOfPlaceLocationsCount = (int)Math.ceil((boxesCount *
+                DockyardRobotGenerator.BOXES_OUT_OF_PLACE_PERCENTAGE) / 100.0);
+        assert requiredOutOfPlaceLocationsCount <= boxesCount;
+
+
+        int[] boxesToGoals = new int[boxesCount];
+        for (int i = 0; i < boxesCount; ++i) {
+            boxesToGoals[i] = this.rand.nextInt(locationsCount);
+        }
+
+        // Now, go over the goals and correct some of the locations
+        List<Integer> outOfPlaceLocations = new ArrayList<>();
+        for (int i = 0; i < boxesCount; ++i) {
+            if (boxesToGoals[i] != boxesToLocations[i]) {
+                outOfPlaceLocations.add(i);
+            }
+        }
+
+        // Correct some locations if required
+        if (outOfPlaceLocations.size() > requiredOutOfPlaceLocationsCount) {
+            Collections.shuffle(outOfPlaceLocations);
+            for (int i = 0; i < outOfPlaceLocations.size() - requiredOutOfPlaceLocationsCount; ++i) {
+                int locationToCorrect = outOfPlaceLocations.get(i);
+                // Make the goal be the initial location of the box
+                boxesToGoals[locationToCorrect] = boxesToLocations[locationToCorrect];
+            }
+        }
 
         StringBuilder sb = new StringBuilder();
         // locations count
@@ -105,7 +142,7 @@ public class DockyardRobotGenerator extends GeneralInstancesGenerator {
             }
             this._appendNewLine(sb);
             this._appendIntFieldToStringBuilder("cranes", 1, sb);
-            this._appendIntFieldToStringBuilder("piles", pilesOnLocations[i], sb);
+            this._appendIntFieldToStringBuilder("piles", pilesToLocations[i], sb);
             this._appendNewLine(sb);
         }
 
@@ -125,11 +162,11 @@ public class DockyardRobotGenerator extends GeneralInstancesGenerator {
         }
 
         // Finally, append goals
-        for (int i = 0; i < goalsOfBoxes.length; ++i) {
+        for (int i = 0; i < boxesToGoals.length; ++i) {
             sb.append("container ");
             sb.append(i);
             sb.append(' ');
-            sb.append(goalsOfBoxes[i]);
+            sb.append(boxesToGoals[i]);
             this._appendNewLine(sb);
         }
 
@@ -144,6 +181,23 @@ public class DockyardRobotGenerator extends GeneralInstancesGenerator {
         int pilesCount;
         // A single robot is enforced!
         int robotsCount;
+
+        if (args.length == 0) {
+            args = new String[7];
+            args[0] = "input\\dockyardrobot\\generated";
+            // Count of Problems
+            args[1] = 100 + "";
+            // Count of Locations
+            args[2] = 5 + "";
+            // Count of Cranes
+            args[3] = 5 + "";
+            // Count of Containers (Boxes)
+            args[4] = 8 + "";
+            // Count of Piles
+            args[5] = 5 + "";
+            // Count of Robots
+            args[6] = 1 + "";
+        }
 
         if (args.length != 7) {
             System.out.println("Usage: <OutputPath> <Count> <Locations> <Cranes> <Boxes> <Piles> <Robots>");
