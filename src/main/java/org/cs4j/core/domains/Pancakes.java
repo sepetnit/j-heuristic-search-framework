@@ -1,15 +1,15 @@
 package org.cs4j.core.domains;
 
+import org.cs4j.core.SearchDomain;
+import org.cs4j.core.collections.PackedElement;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.cs4j.core.SearchDomain;
-import org.cs4j.core.collections.PackedElement;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The pancake problem is a famous search problem where the objective is to sort a sequence of
@@ -18,6 +18,18 @@ import org.cs4j.core.collections.PackedElement;
 public class Pancakes implements SearchDomain {
 
     private COST_FUNCTION costFunction;
+    // The parameter k for GAP-k heuristic (means that k pancakes are ignored during heuristic calculation
+    // [starting from 0])
+    private int k;
+
+    private static final Map<String, Class> PancakesPossibleParameters;
+
+    // Declare the parameters that can be tunes before running the search
+    static
+    {
+        PancakesPossibleParameters = new HashMap<String, Class>();
+        PancakesPossibleParameters.put("GAP-k", Integer.class);
+    }
 
     // The possible cost functions
     public enum COST_FUNCTION {
@@ -107,6 +119,8 @@ public class Pancakes implements SearchDomain {
      */
     public Pancakes(InputStream stream) {
         this(stream, COST_FUNCTION.UNIT);
+        // Default value for k
+        this.k = 0;
     }
 
     /**
@@ -143,10 +157,15 @@ public class Pancakes implements SearchDomain {
      *
      * @return Whether there is a gap between the pancakes at positions n and n+1
      */
-    private boolean _hasGap(int cakes[], int n) {
+    private boolean _hasGap(int cakes[], int n, boolean useK) {
         // A special case for the last cake: simply check if its position is true
         if (n == (this.numCakes - 1)) {
-            return cakes[this.numCakes - 1] != (this.numCakes - 1);
+            // The first inequality supports GAP-k heuristic
+            return (!useK || cakes[n] >= (this.k - 1)) && cakes[n] != n;
+        }
+        // Support GAP-k heuristic
+        if (useK && (cakes[n] < this.k || cakes[n+1] < this.k)) {
+            return false;
         }
 
         // Whether the difference is different than 1
@@ -160,13 +179,14 @@ public class Pancakes implements SearchDomain {
      *
      * @param cakes The pancakes array
      * @param costFunction The cost function to apply
+     * @param useK Whether to refer to the value of k during the calculation of gaps count
      *
      * @return The calculated gaps number, which allows to form the heuristic function
      */
-    private int _countGaps(int cakes[], COST_FUNCTION costFunction) {
+    private int _countGaps(int cakes[], COST_FUNCTION costFunction, boolean useK) {
         int gapsCount = 0;
         for (int i = Pancakes.MIN_PANCAKE_FOR_PDB; i <= this.maxPancakeForPDB; ++i) {
-            if (this._hasGap(cakes, i)) {
+            if (this._hasGap(cakes, i, useK)) {
                 switch (costFunction) {
                     case UNIT:
                         ++gapsCount;
@@ -183,19 +203,37 @@ public class Pancakes implements SearchDomain {
         return gapsCount;
     }
 
+    /**
+     * Same as the above _countGaps function, but the value of k is used
+     *
+     * @param cakes The pancakes array
+     * @param costFunction The cost function to apply
+     *
+     * @return The calculated gaps number, which allows to form the heuristic function
+     */
+    private int _countGaps(int cakes[], COST_FUNCTION costFunction) {
+        return this._countGaps(cakes, costFunction, true);
+    }
+
     @Override
     public PancakeState initialState() {
         PancakeState s = new PancakeState(this.numCakes);
         System.arraycopy(this.init, 0, s.cakes, 0, numCakes);
         s.h = this._countGaps(s.cakes, this.costFunction);
         s.d = this._countGaps(s.cakes, COST_FUNCTION.UNIT);
+        if (this.k == 0) {
+            s.dNoGaps = s.d;
+        } else {
+            // Calc d without k
+            s.dNoGaps = this._countGaps(s.cakes, COST_FUNCTION.UNIT, false);
+        }
         return s;
     }
 
     @Override
     public boolean isGoal(State s) {
         PancakeState state = (PancakeState) s;
-        return state.d == 0;
+        return state.dNoGaps == 0;
     }
 
     @Override
@@ -217,6 +255,12 @@ public class Pancakes implements SearchDomain {
         pancakeState.flipTopStackPortion(pancakeOperator);
         pancakeState.h = this._countGaps(pancakeState.cakes, this.costFunction);
         pancakeState.d = this._countGaps(pancakeState.cakes, COST_FUNCTION.UNIT);
+        if (this.k == 0) {
+            pancakeState.dNoGaps = pancakeState.d;
+        } else {
+            // Calc d without k
+            pancakeState.dNoGaps = this._countGaps(pancakeState.cakes, COST_FUNCTION.UNIT, false);
+        }
         return pancakeState;
     }
 
@@ -282,6 +326,7 @@ public class Pancakes implements SearchDomain {
         }
         state.h = this._countGaps(state.cakes, this.costFunction);
         state.d = this._countGaps(state.cakes, COST_FUNCTION.UNIT);
+        state.dNoGaps = this._countGaps(state.cakes, COST_FUNCTION.UNIT, false);
         return state;
     }
 
@@ -293,6 +338,8 @@ public class Pancakes implements SearchDomain {
         public int[] cakes;
         public double h;
         public double d;
+        // The value of d ignoring k (required for isGoal)
+        public double dNoGaps;
         private PancakeState parent = null;
 
         /**
@@ -331,6 +378,7 @@ public class Pancakes implements SearchDomain {
             this.cakes = new int[numCakes];
             this.h = pancake.h;
             this.d = pancake.d;
+            this.dNoGaps = pancake.dNoGaps;
             System.arraycopy(pancake.cakes, 0, this.cakes, 0, pancake.cakes.length);
         }
 
@@ -453,4 +501,23 @@ public class Pancakes implements SearchDomain {
     public String dumpStatesCollection(State[] states) {
         return null;
     }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return Pancakes.PancakesPossibleParameters;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        switch (parameterName) {
+            case "GAP-k": {
+                this.k = Integer.parseInt(value);
+                assert this.k >= 1 && this.k < this.numCakes;
+                break;
+            } default: {
+              throw new IllegalArgumentException("Invalid parameter: " + parameterName);
+            }
+        }
+    }
+
 }
