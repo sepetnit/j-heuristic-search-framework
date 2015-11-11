@@ -272,7 +272,7 @@ public class PTSGeneralExperiment {
         if (maxCosts == null) {
             realMaxCosts = PTSGeneralExperiment.createMaxCosts(
                     new MaxCostsCreationElement[]{
-                            new MaxCostsCreationElement(100, 10, 400)
+                            new MaxCostsCreationElement(300, 20, 2000)
                     }
             );
             System.out.println("[WARNING] Created default costs array");
@@ -284,7 +284,7 @@ public class PTSGeneralExperiment {
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             SearchDomain domain =
-                    DomainsCreation.create15PuzzleInstanceFromKorfInstances(i + ".in");
+                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -398,6 +398,16 @@ public class PTSGeneralExperiment {
      ******************************************************************************************************************/
 
     /**
+     * Documentation for maxCosts+Output
+     *
+     * Fifteen Puzzle: new int[] {55, 60, 65, 70, 75, 80, 85, 90} =>
+     *                 "results/fifteenpuzzle/korf100-new/pts-55-60-65-70-75-80-85-90",
+     * Grids-brc202d:  new MaxCostsCreationElement(300, 20, 2000)
+     *                 "results/gridpathfinding/generated/brc202d.map/pts-300-20-2000",
+     *
+     */
+
+    /**
      * For single thread
      */
     public static void mainGeneralExperimentSingleThreaded() {
@@ -410,9 +420,9 @@ public class PTSGeneralExperiment {
                     // Instances Count
                     100,
                     // Max costs
-                    new int[] {55, 60, 65, 70, 75, 80, 85, 90},
+                    null,
                     // Output Path
-                    "results/fifteenpuzzle/korf100-new/pts-55-60-65-70-75-80-85-90",
+                    "results/gridpathfinding/generated/brc202d.map/pts-300-20-2000",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -466,8 +476,8 @@ public class PTSGeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        PTSGeneralExperiment.cleanAllSearchFiles();
-        //PTSGeneralExperiment.mainGeneralExperimentSingleThreaded();
-        PTSGeneralExperiment.mainGeneralExperimentMultiThreaded();
+        //PTSGeneralExperiment.cleanAllSearchFiles();
+        PTSGeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //PTSGeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
