@@ -19,6 +19,7 @@ package org.cs4j.core.domains;
 import com.sun.istack.internal.NotNull;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.collections.PackedElement;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -1559,6 +1560,16 @@ public class DockyardRobot implements SearchDomain {
     @Override
     public String dumpStatesCollection(State[] states) {
         return null;
+    }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
     }
 
     /**

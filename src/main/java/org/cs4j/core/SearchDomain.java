@@ -23,7 +23,7 @@ import org.cs4j.core.collections.PackedElement;
  *
  * @author Matthew Hatem
  */
-public interface SearchDomain {
+public interface SearchDomain extends SearchConfigurable {
 
     /**
      * Returns the initial state for an instance of Domain.

@@ -73,13 +73,17 @@ public class PTS implements SearchAlgorithm {
 
     @Override
     public void setAdditionalParameter(String parameterName, String value) {
-        if (parameterName.equals("reopen")) {
-            this.reopen = Boolean.parseBoolean(value);
-        } else if (parameterName.equals("maxCost")) {
-            this.maxCost = Double.parseDouble(value);
-        } else {
-            System.err.println("No such parameter: " + parameterName + " (value: " + value + ")");
-            throw new NotImplementedException();
+        switch (parameterName) {
+            case "reopen": {
+                this.reopen = Boolean.parseBoolean(value);
+                break;
+            } case "maxCost": {
+                this.maxCost = Double.parseDouble(value);
+                break;
+            } default: {
+                System.err.println("No such parameter: " + parameterName + " (value: " + value + ")");
+                throw new NotImplementedException();
+            }
         }
     }
 
@@ -150,7 +154,7 @@ public class PTS implements SearchAlgorithm {
                     ++result.duplicates;
                     // Take the duplicate node
                     Node dupChildNode = this.closed.get(childNode.packed);
-                    if (dupChildNode.f > dupChildNode.f) {
+                    if (dupChildNode.f > childNode.f) {
                         // Consider only duplicates with higher G value
                         if (dupChildNode.g > childNode.g) {
 
@@ -162,7 +166,7 @@ public class PTS implements SearchAlgorithm {
                             dupChildNode.parent = childNode.parent;
 
                             // In case the node is in the OPEN list - update its key using the new G
-                            if (dupChildNode.getIndex(open.getKey()) != -1) {
+                            if (dupChildNode.getIndex(this.open.getKey()) != -1) {
                                 this.open.update(dupChildNode);
                                 this.closed.put(dupChildNode.packed, dupChildNode);
                             } else {

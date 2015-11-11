@@ -21,9 +21,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.Map;
 
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.collections.PackedElement;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * The 4x4 sliding-tiles domain class.
@@ -535,6 +537,16 @@ public final class FifteenPuzzle implements SearchDomain {
     @Override
     public String dumpStatesCollection(State[] states) {
         return null;
+    }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
     }
 
     /**

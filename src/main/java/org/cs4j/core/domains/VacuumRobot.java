@@ -4,15 +4,13 @@ import com.sun.istack.internal.NotNull;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.PairInt;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
 
 public class VacuumRobot implements SearchDomain {
 
@@ -1769,4 +1767,15 @@ public class VacuumRobot implements SearchDomain {
         sb.append("\n");
         return sb.toString();
     }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
+    }
+
 }

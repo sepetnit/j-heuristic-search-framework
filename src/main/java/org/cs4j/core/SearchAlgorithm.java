@@ -23,7 +23,7 @@ import java.util.Map;
  *
  * @author Matthew Hatem
  */
-public interface SearchAlgorithm {
+public interface SearchAlgorithm extends SearchConfigurable {
 
     /**
      * Performs a search beginning at the specified state.
@@ -32,20 +32,4 @@ public interface SearchAlgorithm {
      * @return search results
      */
     SearchResult search(SearchDomain domain);
-
-    /**
-     * Retrieves and returns the possible paramters that can be set for this algorithm
-     *
-     * @return A mapping of parameters (name=>type) or null if there are no such parameters
-     */
-    Map<String, Class> getPossibleParameters();
-
-    /**
-     * The function allows setting of different parameters of the search, according to the algorithm
-     *
-     * e.g. Whether to allow reopening in WAstar or the maximum cost in PTS
-     *  @param parameterName The name of the parameter
-     * @param value The value of the parameter
-     */
-    void setAdditionalParameter(String parameterName, String value);
 }

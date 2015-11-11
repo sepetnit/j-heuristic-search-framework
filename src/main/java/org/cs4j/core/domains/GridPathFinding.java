@@ -6,6 +6,7 @@ import java.util.*;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.PairInt;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Represents some grid (not a full problem!!!, only the grid!!!
@@ -678,6 +679,15 @@ public class GridPathFinding implements SearchDomain {
         return sb.toString();
     }
 
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return null;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        throw new NotImplementedException();
+    }
 
     /**
      * An auxiliaryu function for dumping a single state of the GridPathFinding domain instance
