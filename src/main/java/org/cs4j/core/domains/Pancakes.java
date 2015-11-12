@@ -512,7 +512,7 @@ public class Pancakes implements SearchDomain {
         switch (parameterName) {
             case "GAP-k": {
                 this.k = Integer.parseInt(value);
-                assert this.k >= 1 && this.k < this.numCakes;
+                assert this.k >= 0 && this.k < this.numCakes;
                 break;
             } default: {
               throw new IllegalArgumentException("Invalid parameter: " + parameterName);
