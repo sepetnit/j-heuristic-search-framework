@@ -92,6 +92,11 @@ public interface SearchResult {
     public long getCpuTimeMillis();
 
     /**
+     * Increases the statistics by the values of the previous search
+     */
+    public void increase(SearchResult previous);
+
+    /**
      * Interface for search iterations.
      */
     public interface Iteration {
@@ -116,7 +121,6 @@ public interface SearchResult {
          * @return the number of nodes generated
          */
         public long getGenerated();
-
     }
 
     /**

@@ -113,6 +113,13 @@ public class SearchResultImpl implements SearchResult {
         this.generated = generated;
     }
 
+    public void increase(SearchResult previous) {
+        this.expanded += previous.getExpanded();
+        this.generated += previous.getGenerated();
+        this.reopened += previous.getReopened();
+        this.opupdated += previous.getUpdatedInOpen();
+    }
+
     public void startTimer() {
         this.startWallTimeMillis = System.currentTimeMillis();
         this.startCpuTimeMillis = getCpuTime();
