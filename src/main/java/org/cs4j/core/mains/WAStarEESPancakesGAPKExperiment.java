@@ -127,7 +127,7 @@ public class WAStarEESPancakesGAPKExperiment {
                 if (domain == null) {
                     continue;
                 }
-                for (Weights.SingleWeight w : this.weights.BASIC_WEIGHTS_STARTS_AT_3) {
+                for (Weights.SingleWeight w : this.weights.EXTENDED_WEIGHTS) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : this.reopenPossibilities) {
@@ -168,13 +168,13 @@ public class WAStarEESPancakesGAPKExperiment {
         try {
             WAStarEESPancakesGAPKExperiment experiment = new WAStarEESPancakesGAPKExperiment();
             experiment.runExperiment(
-                    16,
+                    10,
                     // First instance ID
-                    1,
+                    74,
                     // Instances Count
                     100,
                     // The gaps
-                    new int[]{1, 2, 3, 4, 5, 6, 7});
+                    new int[]{6, 7, 8, 9}); // 1, 2, 3, 4, 5 - already done
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
