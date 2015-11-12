@@ -39,7 +39,7 @@ public class DomainsCreation {
     }
 
     public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        String filename = "input/pancakes/generated/" + instance;
+        String filename = "input/pancakes/generated-10/" + instance;
         try {
             InputStream is = new FileInputStream(new File(filename));
             return new Pancakes(is);
