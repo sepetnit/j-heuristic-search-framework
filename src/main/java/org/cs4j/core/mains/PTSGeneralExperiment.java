@@ -272,7 +272,7 @@ public class PTSGeneralExperiment {
         if (maxCosts == null) {
             realMaxCosts = PTSGeneralExperiment.createMaxCosts(
                     new MaxCostsCreationElement[]{
-                            new MaxCostsCreationElement(300, 20, 2000)
+                            new MaxCostsCreationElement(300, 5, 2000)
                     }
             );
             System.out.println("[WARNING] Created default costs array");
@@ -292,7 +292,7 @@ public class PTSGeneralExperiment {
             for (int maxCost : realMaxCosts) {
                 output.write(i + "," + maxCost + ",");
                 for (boolean reopen : this.reopenPossibilities) {
-                    alg.setAdditionalParameter("maxCost", maxCost + "");
+                    alg.setAdditionalParameter("max-cost", maxCost + "");
                     alg.setAdditionalParameter("reopen", reopen + "");
                     System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost + ", Reopen: " + reopen);
                     try {
@@ -317,6 +317,81 @@ public class PTSGeneralExperiment {
         output.close();
         return output.getFname();
     }
+
+    /**
+     * Runs a PTS experiment, but now uses NR and only if failed runs again with AR
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param maxCosts The max costs array
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @return The name of the output file where all the data recedes
+     *
+     * @throws java.io.IOException
+     */
+    public String runExperimentSingleThreadedWithReRun(int firstInstance, int instancesCount, int[] maxCosts,
+                                                       String outputPath) throws IOException {
+
+        OutputResult output = this.getOutputResult(outputPath, false);
+        // Write the header line
+        output.writeln(
+                "InstanceID,MaxCost," +
+                        "NAR-Slv,NAR-Dep,NAR-Ggl,NAR-Gen,NAR-Exp,NAR-Dup,NAR-Oup,NAR-Rep,"
+        );
+
+        int[] realMaxCosts = maxCosts;
+
+        // in case the maxCosts were not given - let's create some default costs array
+        if (maxCosts == null) {
+            realMaxCosts = PTSGeneralExperiment.createMaxCosts(
+                    new MaxCostsCreationElement[]{
+                            new MaxCostsCreationElement(300, 5, 2000)
+                    }
+            );
+            System.out.println("[WARNING] Created default costs array");
+        }
+
+        SearchAlgorithm alg = new PTS();
+
+        // Go over all the possible combinations and solve!
+        for (int i = firstInstance; i <= instancesCount; ++i) {
+            // Create the domain by reading the relevant instance file
+            SearchDomain domain =
+                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+            // Bypass not found files
+            if (domain == null) {
+                continue;
+            }
+            for (int maxCost : realMaxCosts) {
+                output.write(i + "," + maxCost + ",");
+                alg.setAdditionalParameter("max-cost", maxCost + "");
+                alg.setAdditionalParameter("reopen", false + "");
+                alg.setAdditionalParameter("rerun-if-not-found-and-nr", true + "");
+                System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost);
+                try {
+                    SearchResult result = alg.search(domain);
+                    // No solution
+                    if (!result.hasSolution()) {
+                        output.appendNewResult(this._getNoSolutionResult());
+                        System.out.println("[INFO] Done: NoSolution");
+                    } else {
+                        double[] resultData = this._getSolutionResult(result);
+                        System.out.println("[INFO] Done: " + Arrays.toString(resultData));
+                        output.appendNewResult(resultData);
+                    }
+                } catch (OutOfMemoryError e) {
+                    System.out.println("[INFO] Done: OutOfMemory :-(");
+                    output.appendNewResult(this._getOutOfMemoryResult());
+                }
+                output.newline();
+            }
+        }
+        output.close();
+        return output.getFname();
+    }
+
+
 
     /**
      * Runs an experiment using the WAStar and EES algorithms using MULTIPLE THREADS!
@@ -422,9 +497,28 @@ public class PTSGeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/pts-300-20-2000",
+                    "results/gridpathfinding/generated/brc202d.map/pts-300-5-2000",
                     // Add header
                     true);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            System.exit(-1);
+        }
+    }
+
+    public static void mainGeneralExperimentSingleThreadedWithReRun() {
+        // Solve with 100 instances
+        try {
+            PTSGeneralExperiment experiment = new PTSGeneralExperiment();
+            experiment.runExperimentSingleThreadedWithReRun(
+                    // First instance ID
+                    1,
+                    // Instances Count
+                    100,
+                    // Max costs
+                    null,
+                    // Output Path
+                    "results/gridpathfinding/generated/brc202d.map/pts-300-5-2000-rerun");
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
@@ -477,7 +571,8 @@ public class PTSGeneralExperiment {
 
     public static void main(String[] args) {
         //PTSGeneralExperiment.cleanAllSearchFiles();
-        PTSGeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //PTSGeneralExperiment.mainGeneralExperimentSingleThreaded();
+        PTSGeneralExperiment.mainGeneralExperimentSingleThreadedWithReRun();
         //PTSGeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
