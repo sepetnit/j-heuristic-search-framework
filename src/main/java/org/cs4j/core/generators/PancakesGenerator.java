@@ -139,11 +139,11 @@ public class PancakesGenerator extends GeneralInstancesGenerator {
             args = new String[3];
             System.out.println("[WARNING] Using local arguments");
             // Output directory
-            args[0] = "input\\pancakes\\generated-16";
+            args[0] = "input\\pancakes\\generated-10";
             // Count of pancakes
             args[1] = "100";
             // Size of problem
-            args[2] = "16";
+            args[2] = "10";
             // Previous instance ID
             //args[3] = "input\\pancakes\\generated";
         }
