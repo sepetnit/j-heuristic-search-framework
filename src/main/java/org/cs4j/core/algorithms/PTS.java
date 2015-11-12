@@ -32,38 +32,34 @@ public class PTS implements SearchAlgorithm {
     private SearchQueue<Node> open;
     private Map<PackedElement, Node> closed;
 
-    // The result path
-    private List<Operator> path;
-    private List<State> statesPath;
-
     // The maximum cost of the search C
     protected double maxCost;
     // Whether reopening is allowed
     private boolean reopen;
+    // Whether to re-run the algorithm with AR if solution not found and currently NR
+    private boolean rerun;
 
     private static final Map<String, Class> PTSPossibleParameters;
 
     // Declare the parameters that can be tunes before running the search
     static
     {
-        PTSPossibleParameters = new HashMap<String, Class>();
-        PTSPossibleParameters.put("MaxCost", Double.class);
-        PTSPossibleParameters.put("Reopen", Boolean.class);
+        PTSPossibleParameters = new HashMap<>();
+        PTS.PTSPossibleParameters.put("max-cost", Double.class);
+        PTS.PTSPossibleParameters.put("reopen", Boolean.class);
+        PTS.PTSPossibleParameters.put("rerun-if-not-found-and-nr", Boolean.class);
     }
 
     public PTS() {
-        this.path = null;
-        this.statesPath = null;
         // Initial values (afterwards they can be set independently)
         this.maxCost = Double.MAX_VALUE;
         this.reopen = true;
+        this.rerun = false;
     }
 
     private void _initDataStructures() {
         this.open = new BinHeap<>(new PTS.NodeComparator(), 0);
         this.closed = new HashMap<>();
-        this.path = new ArrayList<>();
-        this.statesPath = new ArrayList<>();
     }
 
     @Override
@@ -77,17 +73,21 @@ public class PTS implements SearchAlgorithm {
             case "reopen": {
                 this.reopen = Boolean.parseBoolean(value);
                 break;
-            } case "maxCost": {
+            } case "max-cost": {
                 this.maxCost = Double.parseDouble(value);
                 break;
-            } default: {
+            } case "rerun-if-not-found-and-nr": {
+                this.rerun = Boolean.parseBoolean(value);
+                break;
+            }
+            default: {
                 System.err.println("No such parameter: " + parameterName + " (value: " + value + ")");
                 throw new NotImplementedException();
             }
         }
     }
 
-    public SearchResult search(SearchDomain domain) {
+    public SearchResult _search(SearchDomain domain) {
         this.domain = domain;
         // The result will be stored here
         Node goal = null;
@@ -180,7 +180,7 @@ public class PTS implements SearchAlgorithm {
                             }
                         }
                     }
-                // Consider the new node only if its cost is lower than the maximum cost
+                    // Consider the new node only if its cost is lower than the maximum cost
                 } else {
                     // Otherwise, add the node to the search lists
                     this.open.add(childNode);
@@ -230,6 +230,21 @@ public class PTS implements SearchAlgorithm {
         }
 
         return result;
+    }
+
+    public SearchResult search(SearchDomain domain) {
+        SearchResult toReturn = this._search(domain);
+        if (!toReturn.hasSolution() && (!this.reopen && this.rerun)) {
+            System.out.println("[INFO] Failed with NR, tries again with AR");
+            this.reopen = true;
+            SearchResult toReturnAR = this._search(domain);
+            toReturnAR.increase(toReturn);
+            // Revert to base state
+            this.reopen = false;
+            System.out.println("[INFO] PTS with NR failed but PTS with AR succeeded.");
+            return  toReturnAR;
+        }
+        return toReturn;
     }
 
     /**
