@@ -45,6 +45,17 @@ public class GridPathFinding implements SearchDomain {
     private List<Integer> goals;
     private List<PairInt> goalsPairs;
 
+    private enum HeuristicType {
+        // Manhattan distance
+        MD,
+        // TDH with furthest k pivots
+        TDH_FURTHEST
+    }
+
+    private HeuristicType heuristicType;
+    // The number of pivots in case TDH_FURTHEST is used
+    private int pivotsCount;
+
     // 8 is the maximum count of Vacuum Robot operators
     // (4 for regular moves and more 4 for diagonals)
     private GridPathFindingOperator[] reverseOperators = new GridPathFindingOperator[8];
@@ -288,6 +299,11 @@ public class GridPathFinding implements SearchDomain {
      * @param goal The SINGLE goal on the grid
      */
     public GridPathFinding(int width, int height, char[] map, PairInt start, PairInt goal) {
+        // MD is used by default
+        this.heuristicType = HeuristicType.MD;
+        // No need for this
+        this.pivotsCount = -1;
+
         this.heavy = false;
         this.map = new GridMap(width, height);
         // Set the map explicitly
@@ -681,16 +697,41 @@ public class GridPathFinding implements SearchDomain {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
+        // TODO
         return null;
     }
 
     @Override
     public void setAdditionalParameter(String parameterName, String value) {
-        throw new NotImplementedException();
+        switch (parameterName) {
+            case "heuristic": {
+                switch (value) {
+                    case "tdh-furthest": {
+                        this.heuristicType = HeuristicType.TDH_FURTHEST;
+                        break;
+                    }
+                    case "md": {
+                        this.heuristicType = HeuristicType.MD;
+                        break;
+                    }
+                    default: {
+                        throw new IllegalArgumentException("Illegal heuristic type for GridPathfinding domain: " + value);
+
+                    }
+                }
+                break;
+            } case "pivots-count": {
+                this.pivotsCount = Integer.parseInt(value);
+                break;
+            } default: {
+                System.err.println("No such parameter: " + parameterName + " (value: " + value + ")");
+                throw new NotImplementedException();
+            }
+        }
     }
 
     /**
-     * An auxiliaryu function for dumping a single state of the GridPathFinding domain instance
+     * An auxiliary function for dumping a single state of the GridPathFinding domain instance
      *
      * @param state The state to dump
      *
@@ -721,7 +762,7 @@ public class GridPathFinding implements SearchDomain {
         if (move.dx != 0 &&
                 (next / this.map.mapWidth != location / this.map.mapWidth)) {
             return false;
-        // Moving South/North && x changed => invalid
+            // Moving South/North && x changed => invalid
         } else if (move.dy != 0 &&
                 (next % this.map.mapWidth != location % this.map.mapWidth)) {
             return false;
@@ -730,8 +771,19 @@ public class GridPathFinding implements SearchDomain {
         return (next > 0 && next < this.map.mapSize && !this.map.isBlocked(next));
     }
 
+    /**
+     * Checks settings of the domain and returns true if all is Ok and false otherwise
+     *
+     * @return Whether the domain settings are Ok
+     */
+    private boolean _checkSettings() {
+        return this.heuristicType != HeuristicType.TDH_FURTHEST || this.pivotsCount >= 1;
+    }
+
     @Override
     public GridPathFindingState initialState() {
+        // Assert settings are ok
+        assert this._checkSettings();
         GridPathFindingState state = new GridPathFindingState();
         state.agentLocation = this.map.getLocationIndex(this.startX, this.startY);
         // Compute the initial mapHeight and d values and fill the state with that values
