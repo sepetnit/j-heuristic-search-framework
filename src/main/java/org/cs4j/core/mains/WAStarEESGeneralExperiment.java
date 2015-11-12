@@ -41,6 +41,21 @@ public class WAStarEESGeneralExperiment {
      ******************************************************************************************************************/
 
     /**
+     * No need for {true, false} reopen in case of only optimal weight
+     *
+     * @param weights The weights to run with
+     * @param currentReopenPossibilities Current reopen policies array
+     *
+     * @return The updated array
+     */
+    private boolean[] _avoidUnnecessaryReopens(SingleWeight[] weights, boolean[] currentReopenPossibilities) {
+        if (Arrays.equals(weights, this.weights.OPTIMAL_WEIGHTS)) {
+            return new boolean[]{true};
+        }
+        return currentReopenPossibilities;
+    }
+
+    /**
      * Creates a header line for writing into output
      *
      * @return The created header line
@@ -250,20 +265,21 @@ public class WAStarEESGeneralExperiment {
                                               String outputPath, boolean needHeader) throws IOException {
 
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
+        SingleWeight[] weights = this.weights.OPTIMAL_WEIGHTS;
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             SearchDomain domain =
-                    DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                    DomainsCreation.createPancakesInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
             }
-            for (Weights.SingleWeight w : this.weights.OPTIMAL_WEIGHTS) {
+            for (Weights.SingleWeight w : weights) {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
-                for (boolean reopen : this.reopenPossibilities) {
+                for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
                     SearchAlgorithm alg = new WAStar(weight, reopen);
                     //SearchAlgorithm alg = new EES(weight, reopen);
                     System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
@@ -458,7 +474,7 @@ public class WAStarEESGeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/dockyardrobot/generated/generated+wastar+optimal",
+                    "results/pancakes/generated-10-gaps/generated+wastar+optimal",
                     // Add header
                     true);
         } catch (IOException e) {
