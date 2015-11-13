@@ -258,10 +258,15 @@ public class EES implements SearchAlgorithm {
 
                                 // Otherwise, just update the value of the node in CLOSED (without re-inserting it)
                                 } else {
+
                                     dupChildNode.f = childNode.f;
                                     dupChildNode.g = childNode.g;
                                     dupChildNode.op = childNode.op;
                                     dupChildNode.pop = childNode.pop;
+                                    dupChildNode._computePathHats(
+                                            childNode.parent,
+                                            op.getCost(childState, state)
+                                    );
 
                                     // Got to the parent of the duplicate node and remove this node from its children
                                     if (dupChildNode.parent != null) {
@@ -522,7 +527,7 @@ public class EES implements SearchAlgorithm {
          * @param parent The parent node
          * @param edgeCost The cost of the operation which generated this node
          */
-        private void _computePathHats(Node parent, double edgeCost) {
+        public void _computePathHats(Node parent, double edgeCost) {
             if (parent != null) {
                 // Calculate the single step error caused when calculating h and d
                 this.sseH = parent.sseH + ((edgeCost + this.h) - parent.h);
@@ -583,6 +588,19 @@ public class EES implements SearchAlgorithm {
 
             // Compute the actual values of sseH and sseD
             this._computePathHats(parent, cost);
+        }
+
+        private void updateFromDuplicate(Node duplicateNode,
+                                         State thisUnpackedState,
+                                         State parentUnpackedState) {
+            this.g = duplicateNode.g;
+            this.f = duplicateNode.f;
+            this.op = duplicateNode.op;
+            this.pop = duplicateNode.pop;
+            this.parent = duplicateNode.parent;
+            // Calculate the cost of the node:
+            double cost = (op != null) ? op.getCost(thisUnpackedState, parentUnpackedState) : 0;
+            this._computePathHats(this.parent, cost);
         }
 
         @Override
