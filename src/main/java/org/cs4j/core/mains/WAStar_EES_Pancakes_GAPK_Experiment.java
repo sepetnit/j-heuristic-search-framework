@@ -14,7 +14,7 @@ import java.util.Arrays;
  * Created by user on 11/11/2015.
  *
  */
-public class WAStarEESPancakesGAPKExperiment {
+public class WAStar_EES_Pancakes_GAPK_Experiment {
 
     /*******************************************************************************************************************
      * Private  fields
@@ -166,7 +166,7 @@ public class WAStarEESPancakesGAPKExperiment {
     public static void main(String[] args) {
         // Solve with 100 instances
         try {
-            WAStarEESPancakesGAPKExperiment experiment = new WAStarEESPancakesGAPKExperiment();
+            WAStar_EES_Pancakes_GAPK_Experiment experiment = new WAStar_EES_Pancakes_GAPK_Experiment();
             experiment.runExperiment(
                     10,
                     // First instance ID

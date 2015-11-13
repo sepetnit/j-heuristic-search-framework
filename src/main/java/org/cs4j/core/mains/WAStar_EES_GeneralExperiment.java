@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
  * Created by sepetnit on 11/5/2015.
  *
  */
-public class WAStarEESGeneralExperiment {
+public class WAStar_EES_GeneralExperiment {
 
     /*******************************************************************************************************************
      * Private static fields
@@ -142,7 +142,7 @@ public class WAStarEESGeneralExperiment {
             while (true) {
                 try {
                     String tempFileName = prefix + UUID.randomUUID().toString().replace("-", "") + ".search";
-                    output = new OutputResult(WAStarEESGeneralExperiment.TEMP_DIR + tempFileName);
+                    output = new OutputResult(WAStar_EES_GeneralExperiment.TEMP_DIR + tempFileName);
                     break;
                 } catch (FileAlreadyExistsException e) {
                     System.out.println("[WARNING] Output path found - trying again");
@@ -216,7 +216,7 @@ public class WAStarEESGeneralExperiment {
             System.out.println("[INFO] Thread " + this.threadID + " is now running " + this.problemDescription);
             // Setup the output
             try {
-                this.output = WAStarEESGeneralExperiment.this.getOutputResult(null, this.outputFilePrefix, false);
+                this.output = WAStar_EES_GeneralExperiment.this.getOutputResult(null, this.outputFilePrefix, false);
                 System.out.println("[INFO] Thread " + this.threadID + " will be written to " + this.output.getFname());
             } catch (IOException e) {
                 this.resultFiles.add("Failed (Alg: " + this.algorithm.toString() +
@@ -229,15 +229,15 @@ public class WAStarEESGeneralExperiment {
                 System.out.println("[INFO] Thread " + this.threadID + " is Done");
                 // No solution
                 if (!result.hasSolution()) {
-                    this.output.appendNewResult(WAStarEESGeneralExperiment.this._getNoSolutionResult());
+                    this.output.appendNewResult(WAStar_EES_GeneralExperiment.this._getNoSolutionResult());
                     System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": NoSolution");
                 } else {
-                    double[] resultData = WAStarEESGeneralExperiment.this._getSolutionResult(result);
+                    double[] resultData = WAStar_EES_GeneralExperiment.this._getSolutionResult(result);
                     this.output.appendNewResult(resultData);
                     System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": " + Arrays.toString(resultData));
                 }
             } catch (OutOfMemoryError e) {
-                this.output.appendNewResult(WAStarEESGeneralExperiment.this._getOutOfMemoryResult());
+                this.output.appendNewResult(WAStar_EES_GeneralExperiment.this._getOutOfMemoryResult());
                 System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": OutOfMemory");
             }
             this.output.close();
@@ -318,7 +318,7 @@ public class WAStarEESGeneralExperiment {
             throws IOException {
         // -1 is because the main thread should also receive CPU
         // Another -1 : for the system ...
-        int actualThreadCount = WAStarEESGeneralExperiment.THREAD_COUNT - 2;
+        int actualThreadCount = WAStar_EES_GeneralExperiment.THREAD_COUNT - 2;
         ExecutorService executor = Executors.newFixedThreadPool(actualThreadCount);
         List<String> resultFiles = new ArrayList<>();
         System.out.println("[INFO] Created thread pool with " + actualThreadCount + " threads");
@@ -467,7 +467,7 @@ public class WAStarEESGeneralExperiment {
     public static void mainGeneralExperimentSingleThreaded() {
         // Solve with 100 instances
         try {
-            WAStarEESGeneralExperiment experiment = new WAStarEESGeneralExperiment();
+            WAStar_EES_GeneralExperiment experiment = new WAStar_EES_GeneralExperiment();
             experiment.runExperimentSingleThreaded(
                     // First instance ID
                     1,
@@ -489,7 +489,7 @@ public class WAStarEESGeneralExperiment {
     public static void mainGeneralExperimentMultiThreaded() {
         // Solve with 100 instances
         try {
-            WAStarEESGeneralExperiment experiment = new WAStarEESGeneralExperiment();
+            WAStar_EES_GeneralExperiment experiment = new WAStar_EES_GeneralExperiment();
             experiment.runExperimentMultiThreaded(
                     // First instance ID
                     28,
@@ -505,7 +505,7 @@ public class WAStarEESGeneralExperiment {
 
     public static void cleanAllSearchFiles() {
         int cleaned = 0;
-        File outDir = new File(WAStarEESGeneralExperiment.TEMP_DIR);
+        File outDir = new File(WAStar_EES_GeneralExperiment.TEMP_DIR);
         for (File f: outDir.listFiles(
                 new FileFilter() {
                     @Override
@@ -526,8 +526,8 @@ public class WAStarEESGeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        //WAStarEESGeneralExperiment.cleanAllSearchFiles();
-        WAStarEESGeneralExperiment.mainGeneralExperimentSingleThreaded();
-        //WAStarEESGeneralExperiment.mainGeneralExperimentMultiThreaded();
+        //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
+        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }

@@ -5,14 +5,22 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.SearchResult.Solution;
+import org.cs4j.core.algorithms.BEES;
+import org.cs4j.core.algorithms.PHS;
 import org.cs4j.core.algorithms.PTS;
-import org.cs4j.core.algorithms.WAStar;
-import org.cs4j.core.data.Weights;
-import org.cs4j.core.domains.*;
+import org.cs4j.core.domains.Utils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,7 +28,7 @@ import java.util.concurrent.Executors;
  * Created by sepetnit on 11/5/2015.
  *
  */
-public class PTSGeneralExperiment {
+public class PTS_BEES_PHS_GeneralExperiment {
 
     /*******************************************************************************************************************
      * Private static fields
@@ -123,7 +131,7 @@ public class PTSGeneralExperiment {
             while (true) {
                 try {
                     String tempFileName = UUID.randomUUID().toString().replace("-", "") + ".search";
-                    output = new OutputResult(PTSGeneralExperiment.TEMP_DIR + tempFileName);
+                    output = new OutputResult(PTS_BEES_PHS_GeneralExperiment.TEMP_DIR + tempFileName);
                     break;
                 } catch (FileAlreadyExistsException e) {
                     System.out.println("[WARNING] Output path found - trying again");
@@ -215,7 +223,7 @@ public class PTSGeneralExperiment {
             System.out.println("[INFO] Thread " + this.threadID + " is now running " + this.problemDescription);
             // Setup the output
             try {
-                this.output = PTSGeneralExperiment.this.getOutputResult(null, false);
+                this.output = PTS_BEES_PHS_GeneralExperiment.this.getOutputResult(null, false);
                 System.out.println("[INFO] Thread " + this.threadID + " will be written to " + this.output.getFname());
             } catch (IOException e) {
                 this.resultFiles.add("Failed (Alg: " + this.algorithm.toString() +
@@ -228,15 +236,16 @@ public class PTSGeneralExperiment {
                 System.out.println("[INFO] Thread " + this.threadID + " is Done");
                 // No solution
                 if (!result.hasSolution()) {
-                    this.output.appendNewResult(PTSGeneralExperiment.this._getNoSolutionResult());
+                    this.output.appendNewResult(PTS_BEES_PHS_GeneralExperiment.this._getNoSolutionResult());
                     System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": NoSolution");
                 } else {
-                    double[] resultData = PTSGeneralExperiment.this._getSolutionResult(result);
+                    double[] resultData = PTS_BEES_PHS_GeneralExperiment.this._getSolutionResult(result);
                     this.output.appendNewResult(resultData);
-                    System.out.println("[INFO] Thread" + this.threadID + this.problemDescription + ": " + Arrays.toString(resultData));
+                    System.out.println("[INFO] Thread" + this.threadID + this.problemDescription + ": " +
+                            Arrays.toString(resultData));
                 }
             } catch (OutOfMemoryError e) {
-                this.output.appendNewResult(PTSGeneralExperiment.this._getOutOfMemoryResult());
+                this.output.appendNewResult(PTS_BEES_PHS_GeneralExperiment.this._getOutOfMemoryResult());
                 System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": OutOfMemory");
             }
             this.output.close();
@@ -270,7 +279,7 @@ public class PTSGeneralExperiment {
 
         // in case the maxCosts were not given - let's create some default costs array
         if (maxCosts == null) {
-            realMaxCosts = PTSGeneralExperiment.createMaxCosts(
+            realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                     new MaxCostsCreationElement[]{
                             new MaxCostsCreationElement(300, 5, 2000)
                     }
@@ -278,7 +287,9 @@ public class PTSGeneralExperiment {
             System.out.println("[WARNING] Created default costs array");
         }
 
-        SearchAlgorithm alg = new PTS();
+        //SearchAlgorithm alg = new PTS();
+        //SearchAlgorithm alg = new BEES();
+        SearchAlgorithm alg = new PHS();
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
@@ -293,6 +304,7 @@ public class PTSGeneralExperiment {
                 output.write(i + "," + maxCost + ",");
                 for (boolean reopen : this.reopenPossibilities) {
                     alg.setAdditionalParameter("max-cost", maxCost + "");
+                    alg.setAdditionalParameter("reopen", reopen + "");
                     alg.setAdditionalParameter("reopen", reopen + "");
                     System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost + ", Reopen: " + reopen);
                     try {
@@ -319,7 +331,7 @@ public class PTSGeneralExperiment {
     }
 
     /**
-     * Runs a PTS experiment, but now uses NR and only if failed runs again with AR
+     * Runs a PTS/BEES experiment, but now uses NR and only if failed runs again with AR
      *
      * @param firstInstance The id of the first instance to solve
      * @param instancesCount The number of instances to solve
@@ -344,7 +356,7 @@ public class PTSGeneralExperiment {
 
         // in case the maxCosts were not given - let's create some default costs array
         if (maxCosts == null) {
-            realMaxCosts = PTSGeneralExperiment.createMaxCosts(
+            realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                     new MaxCostsCreationElement[]{
                             new MaxCostsCreationElement(300, 5, 2000)
                     }
@@ -352,7 +364,9 @@ public class PTSGeneralExperiment {
             System.out.println("[WARNING] Created default costs array");
         }
 
-        SearchAlgorithm alg = new PTS();
+        SearchAlgorithm alg = new BEES();
+        //SearchAlgorithm alg = new PHS();
+        //SearchAlgorithm alg = new PTS();
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
@@ -407,7 +421,7 @@ public class PTSGeneralExperiment {
             throws IOException {
         // -1 is because the main thread should also receive CPU
         // Another -1 : for the system ...
-        int actualThreadCount = PTSGeneralExperiment.THREAD_COUNT - 2;
+        int actualThreadCount = PTS_BEES_PHS_GeneralExperiment.THREAD_COUNT - 2;
         ExecutorService executor = Executors.newFixedThreadPool(actualThreadCount);
         List<String> resultFiles = new ArrayList<>();
         System.out.println("[INFO] Created thread pool with " + actualThreadCount + " threads");
@@ -417,7 +431,7 @@ public class PTSGeneralExperiment {
 
         // in case the maxCosts were not given - let's create some default costs array
         if (maxCosts == null) {
-            realMaxCosts = PTSGeneralExperiment.createMaxCosts(
+            realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                     new MaxCostsCreationElement[]{
                             new MaxCostsCreationElement(100, 10, 400)
                     }
@@ -488,7 +502,7 @@ public class PTSGeneralExperiment {
     public static void mainGeneralExperimentSingleThreaded() {
         // Solve with 100 instances
         try {
-            PTSGeneralExperiment experiment = new PTSGeneralExperiment();
+            PTS_BEES_PHS_GeneralExperiment experiment = new PTS_BEES_PHS_GeneralExperiment();
             experiment.runExperimentSingleThreaded(
                     // First instance ID
                     1,
@@ -497,7 +511,7 @@ public class PTSGeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/pts-300-5-2000",
+                    "results/gridpathfinding/generated/brc202d.map/bees-300-5-2000",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -509,7 +523,7 @@ public class PTSGeneralExperiment {
     public static void mainGeneralExperimentSingleThreadedWithReRun() {
         // Solve with 100 instances
         try {
-            PTSGeneralExperiment experiment = new PTSGeneralExperiment();
+            PTS_BEES_PHS_GeneralExperiment experiment = new PTS_BEES_PHS_GeneralExperiment();
             experiment.runExperimentSingleThreadedWithReRun(
                     // First instance ID
                     1,
@@ -518,7 +532,7 @@ public class PTSGeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/pts-300-5-2000-rerun");
+                    "results/gridpathfinding/generated/brc202d.map/bees-300-5-2000-rerun");
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
@@ -531,7 +545,7 @@ public class PTSGeneralExperiment {
     public static void mainGeneralExperimentMultiThreaded() {
         // Solve with 100 instances
         try {
-            PTSGeneralExperiment experiment = new PTSGeneralExperiment();
+            PTS_BEES_PHS_GeneralExperiment experiment = new PTS_BEES_PHS_GeneralExperiment();
             experiment.runExperimentMultiThreaded(
                     // First instance ID
                     1,
@@ -549,7 +563,7 @@ public class PTSGeneralExperiment {
 
     public static void cleanAllSearchFiles() {
         int cleaned = 0;
-        File outDir = new File(PTSGeneralExperiment.TEMP_DIR);
+        File outDir = new File(PTS_BEES_PHS_GeneralExperiment.TEMP_DIR);
         for (File f: outDir.listFiles(
                 new FileFilter() {
                     @Override
@@ -570,9 +584,9 @@ public class PTSGeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        //PTSGeneralExperiment.cleanAllSearchFiles();
-        //PTSGeneralExperiment.mainGeneralExperimentSingleThreaded();
-        PTSGeneralExperiment.mainGeneralExperimentSingleThreadedWithReRun();
-        //PTSGeneralExperiment.mainGeneralExperimentMultiThreaded();
+        //PTS_BEES_PHS_GeneralExperiment.cleanAllSearchFiles();
+        //PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreadedWithReRun();
+        //PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
