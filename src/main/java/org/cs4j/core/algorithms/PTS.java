@@ -87,7 +87,7 @@ public class PTS implements SearchAlgorithm {
         }
     }
 
-    public SearchResult _search(SearchDomain domain) {
+    private SearchResult _search(SearchDomain domain) {
         this.domain = domain;
         // The result will be stored here
         Node goal = null;
@@ -104,6 +104,13 @@ public class PTS implements SearchAlgorithm {
         // algorithm)
         Node initialNode = new Node(currentState);
 
+        // A trivial case
+        if (domain.isGoal(currentState)) {
+            goal = initialNode;
+            System.err.println("[WARNING] Trivial case occurred - something wrong?!");
+            assert false;
+        }
+
         // Start the search: Add the node to the OPEN and CLOSED lists
         this.open.add(initialNode);
         // n in OPEN ==> n in CLOSED -Thus- ~(n in CLOSED) ==> ~(n in OPEN)
@@ -112,7 +119,7 @@ public class PTS implements SearchAlgorithm {
         // Loop while there is no solution and there are states in the OPEN list
         while ((goal == null) && !this.open.isEmpty()) {
             // Take a node from the OPEN list (nodes are sorted according to the 'u' function)
-            Node currentNode = open.poll();
+            Node currentNode = this.open.poll();
             // Extract a state from the node
             currentState = domain.unpack(currentNode.packed);
             // expand the node (since, if its g satisfies the goal test - it would be already returned)
@@ -167,6 +174,7 @@ public class PTS implements SearchAlgorithm {
 
                             // In case the node is in the OPEN list - update its key using the new G
                             if (dupChildNode.getIndex(this.open.getKey()) != -1) {
+                                ++result.opupdated;
                                 this.open.update(dupChildNode);
                                 this.closed.put(dupChildNode.packed, dupChildNode);
                             } else {
@@ -235,7 +243,7 @@ public class PTS implements SearchAlgorithm {
     public SearchResult search(SearchDomain domain) {
         SearchResult toReturn = this._search(domain);
         if (!toReturn.hasSolution() && (!this.reopen && this.rerun)) {
-            System.out.println("[INFO] Failed with NR, tries again with AR");
+            System.out.println("[INFO] PTS Failed with NR, tries again with AR");
             this.reopen = true;
             SearchResult toReturnAR = this._search(domain);
             toReturnAR.increase(toReturn);

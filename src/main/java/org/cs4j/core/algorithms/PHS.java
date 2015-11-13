@@ -2,8 +2,8 @@ package org.cs4j.core.algorithms;
 
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
-import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchDomain.Operator;
+import org.cs4j.core.SearchDomain.State;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
 import org.cs4j.core.collections.BinHeap;
@@ -12,7 +12,12 @@ import org.cs4j.core.collections.PackedElement;
 import org.cs4j.core.collections.SearchQueue;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by sepetnit on 11/12/2015.
@@ -32,8 +37,9 @@ public class PHS implements SearchAlgorithm {
     static
     {
         PHSPossibleParameters = new HashMap<>();
-        PHSPossibleParameters.put("MaxCost", Double.class);
-        PHSPossibleParameters.put("Reopen", Boolean.class);
+        PHSPossibleParameters.put("max-cost", Double.class);
+        PHSPossibleParameters.put("reopen", Boolean.class);
+        PHSPossibleParameters.put("rerun-if-not-found-and-nr", Boolean.class);
     }
 
     private static final int QID = 0;
@@ -52,9 +58,8 @@ public class PHS implements SearchAlgorithm {
     protected double maxCost;
     // Whether to perform reopening of states
     private boolean reopen;
-
-    private List<Operator> path;
-    private List<State> statesPath;
+    // Whether to re-run the algorithm with AR if solution not found and currently NR
+    private boolean rerun;
 
     /**
      * The default Constructor for PHS (AR and maximum cost of DOUBLE.MAX_VALUE)
@@ -64,6 +69,8 @@ public class PHS implements SearchAlgorithm {
         // Default values for parameters
         this.maxCost = Double.MAX_VALUE;
         this.reopen = true;
+        // Initially, no rerun is allowed if NR failed
+        this.reopen = false;
     }
 
     /**
@@ -89,10 +96,9 @@ public class PHS implements SearchAlgorithm {
     }
 
     private void _initDataStructures() {
+        // (Initial size is 100)
         this.open = buildHeap(heapType, 100);
         this.closed = new HashMap<>();
-        this.path = new ArrayList<>();
-        this.statesPath = new ArrayList<>();
     }
 
     @Override
@@ -106,8 +112,11 @@ public class PHS implements SearchAlgorithm {
             case "reopen": {
                 this.reopen = Boolean.parseBoolean(value);
                 break;
-            } case "maxCost": {
+            } case "max-cost": {
                 this.maxCost = Double.parseDouble(value);
+                break;
+            } case "rerun-if-not-found-and-nr": {
+                this.rerun = Boolean.parseBoolean(value);
                 break;
             } default: {
                 System.err.println("No such parameter: " + parameterName + " (value: " + value + ")");
@@ -116,8 +125,7 @@ public class PHS implements SearchAlgorithm {
         }
     }
 
-    @Override
-    public SearchResult search(SearchDomain domain) {
+    public SearchResult _search(SearchDomain domain) {
         this.domain = domain;
         Node goal = null;
         // Initialize all the data structures required for the search
@@ -135,19 +143,19 @@ public class PHS implements SearchAlgorithm {
         // The nodes are ordered in the closed list by their packed values
         this.closed.put(initNode.packed, initNode);
 
+        // A trivial case
+        if (domain.isGoal(currentState)) {
+            goal = initNode;
+            System.err.println("[WARNING] Trivial case occurred - something wrong?!");
+            assert false;
+        }
+
         // Loop over the frontier
-        while (!this.open.isEmpty()) {
+        while ((goal == null) && !this.open.isEmpty()) {
             // Take the first state (still don't remove it)
             Node currentNode = this.open.poll();
             // Extract the state from the packed value of the node
             currentState = domain.unpack(currentNode.packed);
-
-            //System.out.println(currentState.dumpStateShort());
-            // Check for goal condition
-            if (domain.isGoal(currentState)) {
-                goal = currentNode;
-                break;
-            }
 
             // Expand the current node
             ++result.expanded;
@@ -163,9 +171,15 @@ public class PHS implements SearchAlgorithm {
                 State childState = domain.applyOperator(currentState, op);
                 Node childNode = new Node(childState, currentNode, currentState, op, op.reverse(currentState));
 
-                // Ignore the node if its h value is too big
-                if (childNode.h > this.maxCost) {
+                // Ignore the node if its f value is too big
+                if (childNode.f > this.maxCost) {
                     continue;
+                }
+
+                // If the generated node satisfies the goal condition - let' mark the goal and break
+                if (domain.isGoal(childState)) {
+                    goal = childNode;
+                    break;
                 }
 
                 // Treat duplicates
@@ -180,7 +194,7 @@ public class PHS implements SearchAlgorithm {
                         //assert dupChildNode.g > childNode.g;
                         if (dupChildNode.g > childNode.g) {
 
-                                // In any case update the duplicate with the new values - we reached it via a shorter path
+                            // In any case update the duplicate with the new values - we reached it via a shorter path
                             dupChildNode.f = childNode.f;
                             dupChildNode.g = childNode.g;
                             dupChildNode.op = childNode.op;
@@ -192,7 +206,6 @@ public class PHS implements SearchAlgorithm {
                             if (dupChildNode.getIndex(this.open.getKey()) != -1) {
                                 ++result.opupdated;
                                 this.open.update(dupChildNode);
-                                this.closed.put(dupChildNode.packed, dupChildNode);
                                 // Otherwise, consider to reopen the node
                             } else {
                                 // Return to OPEN list only if reopening is allowed
@@ -200,11 +213,10 @@ public class PHS implements SearchAlgorithm {
                                     ++result.reopened;
                                     this.open.add(dupChildNode);
                                 }
-                                this.closed.put(dupChildNode.packed, dupChildNode);
                             }
                         }
                     }
-                // Otherwise, the node is new (hasn't been reached yet)
+                    // Otherwise, the node is new (hasn't been reached yet)
                 } else {
                     this.open.add(childNode);
                     this.closed.put(childNode.packed, childNode);
@@ -242,6 +254,9 @@ public class PHS implements SearchAlgorithm {
                         "(G: " + goal.g +  ", Actual: " + cost + ")");
             }
 
+            // Assert path is at most of maxCost length
+            assert path.size() <= this.maxCost;
+
             Collections.reverse(path);
             solution.addOperators(path);
 
@@ -253,6 +268,21 @@ public class PHS implements SearchAlgorithm {
         }
 
         return result;
+    }
+
+    public SearchResult search(SearchDomain domain) {
+        SearchResult toReturn = this._search(domain);
+        if (!toReturn.hasSolution() && (!this.reopen && this.rerun)) {
+            System.out.println("[INFO] PHS Failed with NR, tries again with AR");
+            this.reopen = true;
+            SearchResult toReturnAR = this._search(domain);
+            toReturnAR.increase(toReturn);
+            // Revert to base state
+            this.reopen = false;
+            System.out.println("[INFO] PHS with NR failed but PHS with AR succeeded.");
+            return  toReturnAR;
+        }
+        return toReturn;
     }
 
     /**
