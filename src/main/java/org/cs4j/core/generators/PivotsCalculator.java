@@ -6,12 +6,10 @@ import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.WAStar;
 import org.cs4j.core.collections.PairInt;
 import org.cs4j.core.domains.GridPathFinding;
+import org.cs4j.core.domains.Utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
+import java.io.*;
+import java.util.*;
 
 /**
  * Created by sepetnit on 11/12/2015.
@@ -91,6 +89,28 @@ public class PivotsCalculator {
         }
 
         /**
+         * Checks whether the given location is valid for the map (fits inside)
+         *
+         * @param location The location to check
+         *
+         * @return True if the location is valid and False otherwise
+         */
+        private boolean isValidLocation(int location) {
+            return location >= 0 && location < this.map.length;
+        }
+
+        /**
+         * Checks whether the given location is valid for the map (fits inside)
+         *
+         * @param location The location to check
+         * @return True if the location is valid and False otherwise
+         */
+        private boolean isValidLocation(PairInt location) {
+            int locationAsInt = this.getLocationIndex(location);
+            return this.isValidLocation(locationAsInt);
+        }
+
+        /**
          * Creates a Pair object with the dimensions of the given location
          *
          * @param location The required location
@@ -98,6 +118,30 @@ public class PivotsCalculator {
          */
         private PairInt getPosition(int location) {
             return new PairInt(location % this.mapWidth, location / this.mapWidth);
+        }
+
+        /**
+         * Calculate the index of the location in a one-dimensional array
+         *
+         * @param x The horizontal location
+         * @param y The vertical location
+         *
+         * @return The calculated index
+         */
+        private int getLocationIndex(int x, int y) {
+            return y * this.mapWidth + x;
+        }
+
+        /**
+         * Calculate the index of the location in a one-dimensional array, given a pair of indexes
+         *
+         * @param location A pair whose first part represents the horizontal location and whose second part represents
+         *                 the vertical location
+         *
+         * @return The calculated index
+         */
+        int getLocationIndex(PairInt location) {
+            return this.getLocationIndex(location.first, location.second);
         }
 
         @Override
@@ -195,32 +239,28 @@ public class PivotsCalculator {
     /**
      * The functions computes pivots for a given grid
      *
-     * @param width The width of the grid
-     * @param height The height of the grid
      * @param grid The grid for which pivots should be computed
+     *
      * @param pivotsCount The computed pivots count
      *
      * @return The computed pivots count
      */
-    public int[] computePivots(int width, int height, char[] grid, int pivotsCount) {
-        // Copy the grid, in order to avoid unwanted changes during the process of finding the pivots
-        GridMap gridCopy = new GridMap(width, height, grid);
-
+    private int[] _computePivots(GridMap grid, int pivotsCount) {
         int pivots[] = new int[pivotsCount];
         // Choose the first pivot
-        pivots[0] = this._chooseFirstPivotByMostLeftTop(gridCopy);
+        pivots[0] = this._chooseFirstPivotByMostLeftTop(grid);
         assert pivots[0] != -1;
-        System.out.println("[INFO] First pivot is : " + gridCopy.getPosition(pivots[0]));
-
+        System.out.println("[INFO] First pivot is : " + grid.getPosition(pivots[0]));
         // For each pivot to look for
         for (int currentPivotIndex = 1; currentPivotIndex < pivotsCount; ++currentPivotIndex) {
             System.out.println("[INFO] Looking for pivot " + currentPivotIndex);
             double maxSumOfDistances = 0.0d;
             int locationWithMaxSunOfDistances = -1;
             // Go over all the possible locations
-            for (int i = 0; i < gridCopy.mapSize; ++i) {
+            for (int i = 0; i < grid.mapSize; ++i) {
+                // Debug
                 if (i % 1000 == 0) {
-                    System.out.print("\r[INFO] Searched over " + (i + 1) + "/" + gridCopy.mapSize +
+                    System.out.print("\r[INFO] Searched over " + (i + 1) + "/" + grid.mapSize +
                             " locations");
                 }
                 if (this.contains(pivots, i)) {
@@ -229,8 +269,8 @@ public class PivotsCalculator {
                 double currentSumOfDistances = 0.0d;
                 for (int k = 0; k < pivotsCount - currentPivotIndex; ++k) {
                     double currentValue = 0;
-                    if (i != pivots[k] && !gridCopy.isBlocked(i)) {
-                        currentValue = this._minDistance(gridCopy, pivots[k], i);
+                    if (i != pivots[k] && !grid.isBlocked(i)) {
+                        currentValue = this._minDistance(grid, pivots[k], i);
                     }
                     // Here, we of course have the value of distances[pivots[k]][i] correctly set
                     if (currentValue > 0) {
@@ -247,24 +287,253 @@ public class PivotsCalculator {
             assert locationWithMaxSunOfDistances != -1;
             pivots[currentPivotIndex] = locationWithMaxSunOfDistances;
             System.out.println("[INFO] Pivot " + currentPivotIndex + " is : " +
-                    gridCopy.getPosition(pivots[currentPivotIndex]));
+                    grid.getPosition(pivots[currentPivotIndex]));
             //gridCopy.map[pivots[currentPivotIndex]] = 'Y';
         }
         //System.out.println(gridCopy.toString());
         return pivots;
     }
 
+    private static double DOUBLE_SIZE_IN_BYTES = 8.0d;
+    private static double MB_SIZE_IN_BYTES = 1024.0d * 1024.0d;
 
+    /**
+     * Returns the estimated pivots file size in Mbs
+     * @param mapSize The size of the map (1-dimensional)
+     * @param pivotsCount The number of pivots
+     *
+     * @return The estimated size
+     */
+    private double _getPivotsFileSize(int mapSize, int pivotsCount) {
+        return ((PivotsCalculator.DOUBLE_SIZE_IN_BYTES * ((pivotsCount + 1) + (mapSize * pivotsCount))) /
+                PivotsCalculator.MB_SIZE_IN_BYTES);
+    }
 
-    public static void main(String[] args) {
+    /**
+     * Stores all the pivots relevant information inside the given outputFile
+     *
+     * @param pivots The pivots to build the PDB from
+     * @param outputFile The output file to store the pivots in
+     *
+     * NOTE: The output file is of the following format:
+     *       <pivots-count>
+     *       <pivot-1>
+     *       <pivot-2>
+     *       ...
+     *       <pivot-n>
+     *       <all-distances-from-pivot-1>
+     *       <all-distances-from-pivot-2>
+     *       ...
+     *       <all-distances-from-pivot-n>
+     */
+    private void _storePivots(GridMap grid, int[] pivots, String outputFile) throws IOException {
+        DataOutputStream writer = new DataOutputStream(new FileOutputStream(outputFile));
+        System.out.println("[INFO] Creating pivots file " + outputFile);
+        System.out.println("[INFO] The file will be at least " +
+                this._getPivotsFileSize(grid.mapSize, pivots.length) + " MB");
+        // Write pivots count
+        writer.writeInt(pivots.length);
+        // Write the pivots
+        for (int pivot : pivots) {
+            writer.writeInt(pivot);
+        }
+        // Write the distances for each pivot
+        for (int pivotIndex = 0; pivotIndex < pivots.length; ++pivotIndex) {
+            int pivot = pivots[pivotIndex];
+            System.out.println("[INFO] Writing all distances for pivot # " +
+                    (pivotIndex + 1) + "/" + pivots.length + " " + grid.getPosition(pivot));
+            for (int i = 0; i < grid.mapSize; ++i) {
+                if (i % 1000 == 0) {
+                    System.out.print("\r[INFO] Wrote " + (i + 1) + "/" + grid.mapSize + " distances");
+                }
+                if (i == pivot) {
+                    writer.writeDouble(0.0d);
+                } else {
+                    writer.writeDouble(this._minDistance(grid, i, pivot));
+                }
+            }
+            // Add a newline
+            System.out.println();
+        }
+        writer.close();
+        System.out.println("[INFO] Done creating pivots file " + outputFile);
+    }
+
+    public int[] computeAndStorePivots(int width, int height, char[] grid,
+                                       int pivotsCount,
+                                       String outputFile) throws IOException {
+        GridMap gridCopy = new GridMap(width, height, grid);
+        int[] pivots = this._computePivots(gridCopy, pivotsCount);
+        if (outputFile != null) {
+            this._storePivots(gridCopy, pivots, outputFile);
+        }
+        return pivots;
+    }
+
+    /**
+     * The function reads the pivots relevant to the TDH heuristic from the given pivots file
+     *
+     * The file is assumed to be of the one of the following formats:
+     *
+     * 1. pair pair pair pair ...
+     * 2. pair
+     *    pair
+     *    pair
+     *    pair
+     *    ...
+     * 3. like 1-2 but with 1-dimensional locations
+     *
+     * @param grid An initialized grid file
+     * @param pivotsInputFile The input file which contains the pivots
+     *
+     * @return The created pivots array
+     *
+     * @throws IOException In something wrong occurred
+     */
+    private int[] _readPivots(GridMap grid, String pivotsInputFile) throws IOException {
+        BufferedReader pivotsReader =
+                new BufferedReader(
+                        new InputStreamReader(
+                                new FileInputStream(pivotsInputFile)));
+        // Initialize some initial data structure for the pivots
+        Map<Integer, PairInt> pivots = new HashMap<>(100);
+        // For keeping the order of the pivots
+        List<Integer> orderedPivots = new ArrayList<>(100);
+        Set<String> pivotsStrings = new HashSet<>(100);
+        // Now, let's read the pivots
+        String line = pivotsReader.readLine();
+        if (line == null) {
+            System.out.println("[ERROR] Empty pivots file");
+            throw new IOException();
+        }
+        String[] split = line.split(" ");
+        // In this case, the line is a single location
+        if (split.length == 1) {
+            pivotsStrings.add(line);
+            while ((line = pivotsReader.readLine()) != null) {
+                if (pivotsStrings.contains(line)) {
+                    System.out.println("[ERROR] Invalid pivots data: double pivot " + line);
+                    throw new IOException();
+                }
+                pivotsStrings.add(line);
+            }
+            // Otherwise, the line contains several locations
+        } else {
+            pivotsStrings = new HashSet<>(Arrays.asList(split));
+        }
+        // Now, let's parse the pivots
+        for (String current : pivotsStrings) {
+            int pivot1Dim;
+            // Try to treat the string as PairInt
+            PairInt pivot2Dim = PairInt.fromString(current);
+            // If not PairInt, current must be 1-dimensional location
+            if (pivot2Dim == null) {
+                try {
+                    pivot1Dim = Integer.parseInt(current);
+                } catch (NumberFormatException e) {
+                    System.out.println("[ERROR] Invalid pivot " + current);
+                    throw new IOException();
+                }
+                // assert that the PairInt is valid for the map
+                if (!grid.isValidLocation(pivot1Dim)) {
+                    System.out.println("[ERROR] Pivot " + pivot1Dim + " is out of bounds for this map");
+                    throw new IOException();
+                }
+                if (grid.isBlocked(pivot1Dim)) {
+                    System.out.println("[ERROR] Pivot " + pivot1Dim + " is blocked on this map");
+                    throw new IOException();
+                }
+                pivot2Dim = grid.getPosition(pivot1Dim);
+            } else {
+                // assert that the PairInt is valid for the map
+                if (!grid.isValidLocation(pivot2Dim)) {
+                    System.out.println("[ERROR] Pivot " + pivot2Dim + " is out of bounds for this map");
+                    throw new IOException();
+                }
+                pivot1Dim = grid.getLocationIndex(pivot2Dim);
+            }
+            // This must be true!
+            assert pivot1Dim != -1;
+            if (pivots.containsKey(pivot1Dim)) {
+                System.out.println("[ERROR] Duplicate pivot " + pivot1Dim + " - " + pivot2Dim + " for this map");
+                throw new IOException();
+            }
+            orderedPivots.add(pivot1Dim);
+            // Otherwise, the pivot is valid, so put it inside
+            pivots.put(pivot1Dim, pivot2Dim);
+        }
+        // Finally, close the reader
+        pivotsReader.close();
+        // And return the result
+        return Utils.integerListToArray(orderedPivots);
+    }
+
+    /**
+     * Reads the input pivots from a given input file and computes a PDB output file of distances from all the pivots
+     *
+     * This function is used if we already have all the pivots but need to create the PDB
+     *
+     * @param width Width of the input map
+     * @param height Height of the input map
+     * @param grid The input map
+     * @param inputFile The pivots file
+     * @param outputFile The output PDB file
+     *
+     * @throws IOException If something wrong occurred
+     */
+    public void computeAndStorePivots(int width, int height, char[] grid,
+                                      String inputFile,
+                                      String outputFile) throws IOException {
+        GridMap gridCopy = new GridMap(width, height, grid);
+        int[] pivots = this._readPivots(gridCopy, inputFile);
+        this._storePivots(gridCopy, pivots, outputFile);
+    }
+
+    /**
+     * Creates PDBs of pivots that contain distances from all locations on the map, to all pivot points
+     */
+    public static void mainCreateAllPivotsPDBs() {
+        Map<String, String> mapToPivots = new HashMap<>();
+
+        mapToPivots.put("input/gridpathfinding/raw/maps/brc202d.map", "input/gridpathfinding/raw/maps/brc202d.pivots");
+
+        PivotsCalculator calculator = new PivotsCalculator();
+
+        for (Map.Entry<String, String> pivotEntry : mapToPivots.entrySet()) {
+            // Create a fake GridPathFinding problem (just for having the map)
+            try {
+                InputStream is = new FileInputStream(new File(pivotEntry.getKey()));
+                System.out.println("INFO] Creating pivots PDB for " + pivotEntry.getKey());
+                // Create a fake map
+                GridPathFinding gridPathFindingProblem = new GridPathFinding(is, 0, 0);
+                // Copy the grid, in order to avoid unwanted changes during the process of finding the pivots
+                calculator.computeAndStorePivots(
+                        gridPathFindingProblem.getGridWidth(), gridPathFindingProblem.getGridHeight(),
+                        gridPathFindingProblem.getGridMap(),
+                        pivotEntry.getValue(),
+                        pivotEntry.getValue() + ".pdb");
+                System.out.println("[INFO] Done creating pivots PDB for " + pivotEntry.getKey());
+                // Now, let' calculate the distance to all the pivots and save the PDB
+            } catch (IOException e) {
+                System.err.println("[ERROR] For " + pivotEntry.getKey() + " " + e.getMessage());
+                // continue to next problem
+            }
+        }
+
+    }
+
+    /**
+     * Creates pivots files which contain only the farthest pivots that can be found on the map (without distances)
+     *
+     * NOTE: The function returns nothing (just creates the pivots)
+     */
+    public static void mainCreateAllPivots() {
         int pivotsCount = 10;
-
         String[] mapFiles =
                 new String[]{
-                        //"input/gridpathfinding/raw/mine/test.map",
                         "input/gridpathfinding/raw/maps/brc202d.map",
-                        "input/gridpathfinding/raw/maps/den400d.map",
-                        "input/gridpathfinding/raw/maps/ost003d.map"
+                        //"input/gridpathfinding/raw/maps/den400d.map",
+                        //"input/gridpathfinding/raw/maps/ost003d.map"
                 };
         PivotsCalculator calculator = new PivotsCalculator();
         for (String mapFile : mapFiles) {
@@ -279,16 +548,30 @@ public class PivotsCalculator {
                 System.out.println("INFO] Computing " + pivotsCount + " pivots for " + mapFile);
                 // Create a fake map
                 GridPathFinding gridPathFindingProblem = new GridPathFinding(is, 0, 0);
+                // Copy the grid, in order to avoid unwanted changes during the process of finding the pivots
+
                 int[] pivots =
-                        calculator.computePivots(
+                        calculator.computeAndStorePivots(
                                 gridPathFindingProblem.getGridWidth(), gridPathFindingProblem.getGridHeight(),
                                 gridPathFindingProblem.getGridMap(),
-                                pivotsCount);
+                                pivotsCount,
+                                mapFile + ".pivots");
                 System.out.println("[INFO] All pivots found: " + Arrays.toString(pivots));
+                // Now, let' calculate the distance to all the pivots and save the PDB
             } catch (IOException e) {
                 System.err.println("[ERROR] For " + mapFile + " " + e.getMessage());
                 // continue to next problem
             }
         }
     }
+
+    /**
+     * Main function that is ran
+     *
+     * @param args Arguments to main (ignored)
+     */
+    public static void main(String[] args) {
+        PivotsCalculator.mainCreateAllPivotsPDBs();
+    }
+
 }
