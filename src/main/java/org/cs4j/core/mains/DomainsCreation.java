@@ -28,7 +28,7 @@ public class DomainsCreation {
         InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
         problem.setAdditionalParameter("heuristic", "tdh-furthest");
-        problem.setAdditionalParameter("pivots-input-file", pivotsFileName);
+        problem.setAdditionalParameter("pivots-distances-pdb-file", pivotsFileName);
         problem.setAdditionalParameter("pivots-count", pivotsCount + "");
         return problem;
     }
