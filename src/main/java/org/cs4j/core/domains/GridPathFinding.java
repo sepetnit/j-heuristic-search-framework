@@ -36,7 +36,11 @@ public class GridPathFinding implements SearchDomain {
         return this.startY;
     }
 
-    public enum COST_FUNCTION {HEAVY, UNIT};
+    public enum COST_FUNCTION {
+        HEAVY,
+        UNIT
+    }
+
     private boolean heavy = false;
 
     private long agentLocationBitMask;
@@ -234,6 +238,18 @@ public class GridPathFinding implements SearchDomain {
         }
     }
 
+    public char[] getGridMap() {
+        return this.map.map;
+    }
+
+    public int getGridWidth() {
+        return this.map.mapWidth;
+    }
+
+    public int getGridHeight() {
+        return this.map.mapHeight;
+    }
+
     /**
      * Initializes the reverse operators array: For each operator, set its reverse operator
      *
@@ -276,12 +292,12 @@ public class GridPathFinding implements SearchDomain {
             Utils.fatal("Too many bits required: " + locationBits);
         }
         if (log) {
-            System.out.println("[Init] Initializes reverse operators");
+            System.out.println("[INFO] Initializes reverse operators");
         }
         // Initialize the array of reverse operators
         this._initializeReverseOperatorsArray();
         if (log) {
-            System.out.println("[Done] (Initializes reverse operators)");
+            System.out.println("[INFO] Done initializing reverse operators)");
         }
     }
 
@@ -292,13 +308,22 @@ public class GridPathFinding implements SearchDomain {
      * The constructor is used by some generators of instances, which want to check that the generated instance is
      * valid
      *
+     * Note: Either start1Dim or start can be given, and also, either goal1Dim or goal can be given
+     *
      * @param width The width of the grid
      * @param height The height of the grid
      * @param map The grid itself (with obstacles filled)
+     * @param start1Dim Start position (1-dimensional)
      * @param start The start position on the grid
+     * @param goal1Dim Goal position (1-dimensional)
      * @param goal The SINGLE goal on the grid
      */
-    public GridPathFinding(int width, int height, char[] map, PairInt start, PairInt goal) {
+    private GridPathFinding(int width, int height, char[] map,
+                            int start1Dim, PairInt start,
+                            int goal1Dim, PairInt goal) {
+        // Either 1-dimensional or 2-dimensional input can be given for start and goal locations
+        assert (((start1Dim == -1) ^ (start == null)) && ((goal1Dim == -1) ^ (start == null)));
+
         // MD is used by default
         this.heuristicType = HeuristicType.MD;
         // No need for this
@@ -308,16 +333,58 @@ public class GridPathFinding implements SearchDomain {
         this.map = new GridMap(width, height);
         // Set the map explicitly
         this.map.map = map;
+        if (start1Dim != -1) {
+            start = this.map.getPosition(start1Dim);
+        }
         this.startX = start.first;
         this.startY = start.second;
         this.goals = new ArrayList<>();
-        this.goals.add(this.map.getLocationIndex(goal));
+        if (goal1Dim != -1) {
+            goal = this.map.getPosition(goal1Dim);
+        } else {
+            goal1Dim = this.map.getLocationIndex(goal);
+        }
+        this.goals.add(goal1Dim);
         this.goalsPairs = new ArrayList<>();
         this.goalsPairs.add(goal);
         // System.out.println("[INFO] Start: " + start.toString());
         // System.out.println("[INFO] Goal: " + goal.toString());
         // Now, complete the initialization by initializing other parameters
         this._completeInit(false);
+    }
+
+    /**
+     * This constructor is used in order to generate a simple instance of the domain - with a single agent and a
+     * single goal - start and goal positions are given in 1-dimensional format
+     *
+     * The constructor is used by some generators of instances, which want to check that the generated instance is
+     * valid
+     *
+     * @param width The width of the grid
+     * @param height The height of the grid
+     * @param map The grid itself (with obstacles filled)
+     * @param start The start position on the grid (in a 1-dimensional format)
+     * @param goal The SINGLE goal on the grid (in a 1-dimensional format)
+     */
+    public GridPathFinding(int width, int height, char[] map, PairInt start, PairInt goal) {
+        this(width, height, map, -1, start, -1, goal);
+    }
+
+    /**
+     * This constructor is used in order to generate a simple instance of the domain - with a single agent and a
+     * single goal - start and goal positions are given in 1-dimensional format
+     *
+     * The constructor is used by some generators of instances, which want to check that the generated instance is
+     * valid
+     *
+     * @param width The width of the grid
+     * @param height The height of the grid
+     * @param map The grid itself (with obstacles filled)
+     * @param start The start position on the grid (in a 1-dimensional format)
+     * @param goal The SINGLE goal on the grid (in a 1-dimensional format)
+     */
+    public GridPathFinding(int width, int height, char[] map, int start, int goal) {
+        this(width, height, map, start, null, goal, null);
     }
 
     /**
@@ -397,11 +464,33 @@ public class GridPathFinding implements SearchDomain {
     }
 
     /**
+     * Reads a map of the moving AI format
+     *
+     * @param mapReader The reader from which the map should be read
+     *
+     * @throws IOException If something wrong occurred
+     */
+    private void _readMovingAIMap(BufferedReader mapReader) throws IOException {
+        // First, read the first line (should be ignored)
+        String sz[] = mapReader.readLine().trim().split(" ");
+        assert sz.length == 2 && sz[0].equals("type");
+        // Now, read the height of the map
+        int height = this._readSingleIntValueFromLine(mapReader, "height");
+        // Now, read the height of the map
+        int width = this._readSingleIntValueFromLine(mapReader, "width");
+        sz = mapReader.readLine().trim().split(" ");
+        assert sz.length == 1 && sz[0].equals("map");
+        // Now, read the map itself by calling the relevant function
+        this._readMap(width, height, mapReader);
+    }
+
+
+    /**
      * Reads a map file of the following format:
      *
      * <link to map (.map file)
-     * start <start location>
-     * goal <goal location>
+     * [start <start location>]
+     * [goal <goal location>]
      *
      * @param mapFilePath A path to a .map file
      * @param in A buffered reader for reading the rest of the file
@@ -412,20 +501,10 @@ public class GridPathFinding implements SearchDomain {
                     new BufferedReader(
                             new InputStreamReader(
                                     new FileInputStream(mapFilePath)));
-            // First, read the first line (should be ignored)
-            String sz[] = mapReader.readLine().trim().split(" ");
-            assert sz.length == 2 && sz[0].equals("type");
-            // Now, read the height of the map
-            int height = this._readSingleIntValueFromLine(mapReader, "height");
-            // Now, read the height of the map
-            int width = this._readSingleIntValueFromLine(mapReader, "width");
-            sz = mapReader.readLine().trim().split(" ");
-            assert sz.length == 1 && sz[0].equals("map");
-            // Now, read the map itself by calling the relevant function
-            this._readMap(width, height, mapReader);
+            this._readMovingAIMap(mapReader);
             System.out.println("[INFO] Map read from " + mapFilePath);
             // Read start location
-            sz = in.readLine().trim().split(" ");
+            String[] sz = in.readLine().trim().split(" ");
             assert sz.length == 2 && sz[0].equals("start:");
             String start[] = sz[1].split(",");
             assert start.length == 2;
@@ -466,6 +545,7 @@ public class GridPathFinding implements SearchDomain {
             String sz[] = in.readLine().trim().split(" ");
             assert sz.length == 2;
             if (sz[0].equals("map:")) {
+                // Read the start and goal locations from the file
                 this._initMapFormat2(sz[1], in);
             } else {
                 int width = Integer.parseInt(sz[0]);
@@ -484,6 +564,52 @@ public class GridPathFinding implements SearchDomain {
 
         // Now, complete the initialization by initializing other parameters
         this._completeInit(true);
+    }
+
+    /**
+     * A constructor of the class - start and end are given explicitly here
+     * The map is assumed to be in the format of the Moving AI lab:
+     *
+     * type -type-
+     * height -height-
+     * width -width-
+     * map
+     * -map-data-
+     *
+     * @param stream The input stream for parsing the instance
+     * @param start The start location
+     * @param goal The goal location
+     */
+    public GridPathFinding(InputStream stream, int start, int goal) {
+        // TODO:
+        // this.heavy = (cost == COST.HEAVY);
+        // Initialize the input-reader to allow parsing the state
+        BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+        try {
+            // Read the map (without start and goal locations)
+            this._readMovingAIMap(in);
+            // Read start
+            PairInt startPair = this.map.getPosition(start);
+            this.startX = startPair.first;
+            this.startY = startPair.second;
+            // Read goals
+            this.goals = new ArrayList<>(1);
+            this.goalsPairs = new ArrayList<>(1);
+            PairInt goalPair = this.map.getPosition(goal);
+            this.goals.add(goal);
+            this.goalsPairs.add(goalPair);
+            // Assure there is a start location
+            if (this.startX < 0 || this.startY < 0) {
+                Utils.fatal("No start location");
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+            Utils.fatal("[ERROR] Error reading input file ");
+        }
+
+        // Now, complete the initialization by initializing other parameters
+        this._completeInit(true);
+
     }
 
     /**
@@ -782,6 +908,7 @@ public class GridPathFinding implements SearchDomain {
 
     @Override
     public GridPathFindingState initialState() {
+        assert this.startX != -1 && this.startY != -1;
         // Assert settings are ok
         assert this._checkSettings();
         GridPathFindingState state = new GridPathFindingState();
