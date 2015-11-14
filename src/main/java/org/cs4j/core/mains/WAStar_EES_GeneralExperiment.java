@@ -191,7 +191,7 @@ public class WAStar_EES_GeneralExperiment {
          * @param domain The domain to run on
          * @param algorithm The algorithm to run
          * @param description The description of the problem (can be null)
-         * @parem outputFilePrefix The prefix that should be added to the created output file
+         * @param outputFilePrefix The prefix that should be added to the created output file
          * @param resultFiles The result files list - to add the result later
          *
          * @throws IOException If something wrong occurred
@@ -272,7 +272,7 @@ public class WAStar_EES_GeneralExperiment {
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             SearchDomain domain =
-                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -289,13 +289,14 @@ public class WAStar_EES_GeneralExperiment {
                         // No solution
                         if (!result.hasSolution()) {
                             output.appendNewResult(this._getNoSolutionResult());
+                            System.out.println("[INFO] Done: NoSolution");
                         } else {
                             double[] resultData = this._getSolutionResult(result);
-                            System.out.println(Arrays.toString(resultData));
+                            System.out.println("[INFO] Done: " + Arrays.toString(resultData));
                             output.appendNewResult(resultData);
                         }
                     } catch (OutOfMemoryError e) {
-                        System.out.println("Got out of memory :(");
+                        System.out.println("[INFO] Done: OutOfMemory");
                         output.appendNewResult(this._getOutOfMemoryResult());
                     }
                 }
@@ -475,7 +476,7 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/generated+ees+extended",
+                    "results/gridpathfinding/generated/brc202d.map/generated+ees+extended-tdh",
                     // Add header
                     true);
         } catch (IOException e) {
