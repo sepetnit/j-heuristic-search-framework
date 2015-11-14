@@ -115,7 +115,7 @@ public class WAStar_EES_Pancakes_GAPK_Experiment {
         for (int currentGap : gaps) {
             System.out.println("[INFO] GAP-" + currentGap);
             OutputResult output = new OutputResult(
-                    "results/pancakes/generated-" + size + "-gaps/generated+wastar+gap-" + currentGap + ".csv", true);
+                    "results/pancakes/generated-" + size + "-gaps/generated+wastar+gap-1-73-" + currentGap + ".csv", true);
             output.writeln(this._getHeader());
 
             // Go over all the possible combinations and solve!
@@ -170,11 +170,11 @@ public class WAStar_EES_Pancakes_GAPK_Experiment {
             experiment.runExperiment(
                     10,
                     // First instance ID
-                    74,
+                    1,
                     // Instances Count
-                    100,
+                    73,
                     // The gaps
-                    new int[]{6, 7, 8, 9}); // 1, 2, 3, 4, 5 - already done
+                    new int[]{9}); // 1, 2, 3, 4, 5, 6, 7, 8 - already done
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
