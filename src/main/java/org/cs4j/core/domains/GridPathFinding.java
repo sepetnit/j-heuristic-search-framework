@@ -1,12 +1,22 @@
 package org.cs4j.core.domains;
 
-import java.io.*;
-import java.util.*;
-
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.collections.PackedElement;
+import org.cs4j.core.collections.Pair;
 import org.cs4j.core.collections.PairInt;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 /**
  * Represents some grid (not a full problem!!!, only the grid!!!
@@ -32,20 +42,13 @@ public class GridPathFinding implements SearchDomain {
     {
         GridPathFindingPossibleParameters = new HashMap<>();
         GridPathFinding.GridPathFindingPossibleParameters.put("heuristic", String.class);
-        GridPathFinding.GridPathFindingPossibleParameters.put("pivots-input-file", String.class);
+        GridPathFinding.GridPathFindingPossibleParameters.put("pivots-distances-pdb-file", String.class);
         GridPathFinding.GridPathFindingPossibleParameters.put("pivots-count", Integer.class);
     }
 
     // The start location of the agent
     private int startX = -1;
     private int startY = -1;
-
-    public int getStartX() {
-        return this.startX;
-    }
-    public int getStartY() {
-        return this.startY;
-    }
 
     public enum COST_FUNCTION {
         HEAVY,
@@ -70,8 +73,9 @@ public class GridPathFinding implements SearchDomain {
     private HeuristicType heuristicType;
     // The number of pivots in case TDH_FURTHEST is used
     private int pivotsCount;
-    // The pivot points to use with TDH heuristic
-    private Map<Integer, PairInt> pivots;
+    // Required for the TDH heuristic
+    private int[] orderedPivots;
+    private Map<Integer, Map<Integer, Double>> distancesFromPivots;
 
     // 8 is the maximum count of Vacuum Robot operators
     // (4 for regular moves and more 4 for diagonals)
@@ -195,27 +199,6 @@ public class GridPathFinding implements SearchDomain {
         }
 
         /**
-         * Checks whether the given location is valid for the map (fits inside)
-         *
-         * @param location
-         * @return True if the location is valid and False otherwise
-         */
-        private boolean isValidLocation(int location) {
-            return location >= 0 && location < this.map.length;
-        }
-
-        /**
-         * Checks whether the given location is valid for the map (fits inside)
-         *
-         * @param location
-         * @return True if the location is valid and False otherwise
-         */
-        private boolean isValidLocation(PairInt location) {
-            int locationAsInt = this.getLocationIndex(location);
-            return this.isValidLocation(locationAsInt);
-        }
-
-        /**
          * Calculate the index of the location in a one-dimensional array
          *
          * @param x The horizontal location
@@ -315,6 +298,14 @@ public class GridPathFinding implements SearchDomain {
      * Completes the initialization steps of the domain
      */
     private void _completeInit(boolean log) {
+
+        // MD is used by default
+        this.heuristicType = HeuristicType.MD;
+        // No need for this
+        this.pivotsCount = -1;
+        this.orderedPivots = null;
+        this.distancesFromPivots = null;
+
         // Compute bit masks for bit twiddling states in pack/unpack
 
         // The number of bits required in order to store all the locations of the grid map
@@ -357,11 +348,6 @@ public class GridPathFinding implements SearchDomain {
                             int goal1Dim, PairInt goal) {
         // Either 1-dimensional or 2-dimensional input can be given for start and goal locations
         assert (((start1Dim == -1) ^ (start == null)) && ((goal1Dim == -1) ^ (start == null)));
-
-        // MD is used by default
-        this.heuristicType = HeuristicType.MD;
-        // No need for this
-        this.pivotsCount = -1;
 
         this.heavy = false;
         this.map = new GridMap(width, height);
@@ -647,7 +633,8 @@ public class GridPathFinding implements SearchDomain {
     }
 
     /**
-     * The constructor of the general GridPathFinding domain (with the UNIT cost function)
+     * The constructor of the general GridPathFinding domain (with the UNIT cost f
+     * unction)
      *
      * @param stream The input stream for parsing the instance
      */
@@ -667,11 +654,28 @@ public class GridPathFinding implements SearchDomain {
             case MD: {
                 int md = Utils.calcManhattanDistance(
                         this.map.getPosition(s.agentLocation),
+                        // TODO: Deals with a single goal only!
                         this.goalsPairs.get(0));
                 return new double[]{md, md};
             } case TDH_FURTHEST: {
-                // TODO!
-                throw new NotImplementedException();
+                int currentGoal = this.goals.get(0);
+                double maxDistance = 0;
+                for (int i = 0; i < this.pivotsCount; ++i) {
+                    int currentPivot = this.orderedPivots[i];
+                    double distanceFromAgentToPivot = this.distancesFromPivots.get(currentPivot).get(s.agentLocation);
+                    if (distanceFromAgentToPivot <= 0) {
+                        continue;
+                    }
+                    double distanceFromPivotToGoal = this.distancesFromPivots.get(currentPivot).get(currentGoal);
+                    if (distanceFromPivotToGoal < 0) {
+                        continue;
+                    }
+                    double diff = Math.abs(distanceFromAgentToPivot - distanceFromPivotToGoal);
+                    if (diff > maxDistance) {
+                        maxDistance = diff;
+                    }
+                }
+                return new double[]{maxDistance, maxDistance};
             }
         }
         return new double[]{0, 0};
@@ -869,97 +873,45 @@ public class GridPathFinding implements SearchDomain {
     }
 
     /**
-     * The function reads the pivots relevant to the TDH heuristic from the given pivots file
+     * The function reads the distances from all pivots of the TDH heuristic from the given pivots PDB file
      *
-     * The file is assumed to be of the one of the following formats:
+     * The file is assumed to be of the following formats:
      *
-     * 1. pair pair pair pair ...
-     * 2. pair
-     *    pair
-     *    pair
-     *    pair
-     *    ...
-     * 3. like 1-2 but with 1-dimensional locations
+     *       <pivots-count>
+     *       <pivot-1>
+     *       <pivot-2>
+     *       ...
+     *       <pivot-n>
+     *       <all-distances-from-pivot-1>
+     *       <all-distances-from-pivot-2>
+     *       ...
+     *       <all-distances-from-pivot-n>
      *
-     * @param pivotsInputFile The input file which contains the pivots
+     * @param pivotsPDBFile The input file which contains the pivots
      *
-     * @return The created map of pivots
+     * @return The created map of pivots : pivot => map : location => distance
      *
      * @throws IOException In something wrong occurred
      */
-    private Map<Integer, PairInt> _readPivots(String pivotsInputFile) throws IOException {
-        BufferedReader pivotsReader =
-                new BufferedReader(
-                        new InputStreamReader(
-                                new FileInputStream(pivotsInputFile)));
-        // Initialize some initial data structure for the pivots
-        Map<Integer, PairInt> pivots = new HashMap<>(100);
-        Set<String> pivotsStrings = new HashSet<>(100);
-        // Now, let's read the pivots
-        String line = pivotsReader.readLine();
-        if (line == null) {
-            System.out.println("[ERROR] Empty pivots file");
-            throw new IOException();
+    private Pair<int[], Map<Integer, Map<Integer, Double>>> _readPivotsPDB(String pivotsPDBFile) throws IOException {
+        DataInputStream inputStream = new DataInputStream(new FileInputStream(pivotsPDBFile));
+        // First, read count of pivots
+        int pivotsCount = inputStream.readInt();
+        // Next read the pivots
+        int[] pivots = new int[pivotsCount];
+        for (int i = 0; i < pivotsCount; ++i) {
+            pivots[i] = inputStream.readInt();
         }
-        String[] split = line.split(" ");
-        // In this case, the line is a single location
-        if (split.length == 1) {
-            pivotsStrings.add(line);
-            while ((line = pivotsReader.readLine()) != null) {
-                if (pivotsStrings.contains(line)) {
-                    System.out.println("[ERROR] Invalid pivots data: double pivot " + line);
-                    throw new IOException();
-                }
-                pivotsStrings.add(line);
+        Map<Integer, Map<Integer, Double>> distancesMap = new HashMap<>();
+        // Finally, read the distances
+        for (int pivot : pivots) {
+            Map<Integer, Double> currentDistancesMap = new HashMap<>();
+            for (int i = 0; i < this.map.mapSize; ++i) {
+                currentDistancesMap.put(i, inputStream.readDouble());
             }
-            // Otherwise, the line contains several locations
-        } else {
-            pivotsStrings = new HashSet<>(Arrays.asList(split));
+            distancesMap.put(pivot, currentDistancesMap);
         }
-        // Now, let's parse the pivots
-        for (String current : pivotsStrings) {
-            int pivot1Dim = -1;
-            // Try to treat the string as PairInt
-            PairInt pivot2Dim = PairInt.fromString(current);
-            // If not PairInt, current must be 1-dimensional location
-            if (pivot2Dim == null) {
-                try {
-                    pivot1Dim = Integer.parseInt(current);
-                } catch (NumberFormatException e) {
-                    System.out.println("[ERROR] Invalid pivot " + current);
-                    throw new IOException();
-                }
-                // assert that the PairInt is valid for the map
-                if (!this.map.isValidLocation(pivot1Dim)) {
-                    System.out.println("[ERROR] Pivot " + pivot1Dim + " is out of bounds for this map");
-                    throw new IOException();
-                }
-                if (this.map.isBlocked(pivot1Dim)) {
-                    System.out.println("[ERROR] Pivot " + pivot1Dim + " is blocked on this map");
-                    throw new IOException();
-                }
-                pivot2Dim = this.map.getPosition(pivot1Dim);
-            } else {
-                // assert that the PairInt is valid for the map
-                if (!this.map.isValidLocation(pivot2Dim)) {
-                    System.out.println("[ERROR] Pivot " + pivot2Dim + " is out of bounds for this map");
-                    throw new IOException();
-                }
-                pivot1Dim = this.map.getLocationIndex(pivot2Dim);
-            }
-            // This must be true!
-            assert pivot1Dim != -1;
-            if (pivots.containsKey(pivot1Dim)) {
-                System.out.println("[ERROR] Duplicate pivot " + pivot1Dim + " - " + pivot2Dim + " for this map");
-                throw new IOException();
-            }
-            // Otherwise, the pivot is valid, so put it inside
-            pivots.put(pivot1Dim, pivot2Dim);
-        }
-        // Finally, close the reader
-        pivotsReader.close();
-        // And return the result
-        return pivots;
+        return new Pair<>(pivots, distancesMap);
     }
 
     @Override
@@ -978,18 +930,20 @@ public class GridPathFinding implements SearchDomain {
                     default: {
                         System.err.println("Illegal heuristic type for GridPathfinding domain: " + value);
                         throw new IllegalArgumentException();
-
                     }
                 }
                 break;
             }
-            case "pivots-input-file": {
+            case "pivots-distances-pdb-file": {
                 try {
-                    this.pivots = this._readPivots(value);
+                    Pair<int[], Map<Integer, Map<Integer, Double>>> readData =
+                            this._readPivotsPDB(value);
+                    this.orderedPivots = readData.getKey();
+                    this.distancesFromPivots = readData.getValue();
                     // Debug:
-                    //for (int p : this.pivots.keySet()) {
+                    //for (int p : this.orderedPivots) {
                     //    String formattedP = String.format("%7d", p);
-                    //    System.out.println("Pivot: " + formattedP + " - " + this.pivots.get(p));
+                    //    System.out.println("Pivot: " + formattedP + " - " + this.map.getPosition(p));
                     //}
                 } catch (IOException e) {
                     System.out.println("[ERROR] Reading pivots failed" +
@@ -1001,14 +955,14 @@ public class GridPathFinding implements SearchDomain {
                 if (this.heuristicType != HeuristicType.TDH_FURTHEST) {
                     System.out.println("[ERROR] Heuristic type isn't TDH - can't set pivots count");
                     throw new IllegalArgumentException();
-                } else if (this.pivots == null) {
+                } else if (this.orderedPivots == null) {
                     System.out.println("[ERROR] Please specify pivots file");
                     throw new IllegalArgumentException();
                 } else {
                     int pivotsCount = Integer.parseInt(value);
-                    if (pivotsCount > this.pivots.size()) {
+                    if (pivotsCount > this.orderedPivots.length) {
                         System.out.println("[ERROR] Insufficient pivots number " +
-                                " (currently " + pivots.size() + " but required " + pivotsCount + ")");
+                                " (currently " + this.orderedPivots.length + " but required " + pivotsCount + ")");
                         throw new IllegalArgumentException();
                     }
                     this.pivotsCount = pivotsCount;
