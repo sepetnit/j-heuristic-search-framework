@@ -8,8 +8,21 @@ import org.cs4j.core.collections.PairInt;
 import org.cs4j.core.domains.GridPathFinding;
 import org.cs4j.core.domains.Utils;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by sepetnit on 11/12/2015.
@@ -18,6 +31,9 @@ import java.util.*;
 public class PivotsCalculator {
 
     private static final double NO_SOLUTION = -2.0d;
+
+    private static double DOUBLE_SIZE_IN_BYTES = 8.0d;
+    private static double MB_SIZE_IN_BYTES = 1024.0d * 1024.0d;
 
     /**
      * This class represents a grid on which the agent is moving
@@ -259,7 +275,7 @@ public class PivotsCalculator {
             // Go over all the possible locations
             for (int i = 0; i < grid.mapSize; ++i) {
                 // Debug
-                if (i % 1000 == 0) {
+                if (i % 999 == 0) {
                     System.out.print("\r[INFO] Searched over " + (i + 1) + "/" + grid.mapSize +
                             " locations");
                 }
@@ -293,9 +309,6 @@ public class PivotsCalculator {
         //System.out.println(gridCopy.toString());
         return pivots;
     }
-
-    private static double DOUBLE_SIZE_IN_BYTES = 8.0d;
-    private static double MB_SIZE_IN_BYTES = 1024.0d * 1024.0d;
 
     /**
      * Returns the estimated pivots file size in Mbs
@@ -343,7 +356,7 @@ public class PivotsCalculator {
             System.out.println("[INFO] Writing all distances for pivot # " +
                     (pivotIndex + 1) + "/" + pivots.length + " " + grid.getPosition(pivot));
             for (int i = 0; i < grid.mapSize; ++i) {
-                if (i % 1000 == 0) {
+                if (i % 999 == 0) {
                     System.out.print("\r[INFO] Wrote " + (i + 1) + "/" + grid.mapSize + " distances");
                 }
                 if (i == pivot) {
