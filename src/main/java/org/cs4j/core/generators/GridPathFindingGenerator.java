@@ -242,10 +242,12 @@ public class GridPathFindingGenerator extends GeneralInstancesGenerator {
                         "input/gridpathfinding/raw/maps/ost003d.map"
                 };
 
+        /*
         if (args.length != 3) {
             System.out.println("Usage: <OutputPath> <MapFile> <Count>");
             System.exit(-1);
         }
+        */
 
         for (int i = 0; i < outputPaths.length; ++i) {
             args[0] = outputPaths[i];
@@ -264,7 +266,7 @@ public class GridPathFindingGenerator extends GeneralInstancesGenerator {
             }
             // Read required count of instances
             // Required number of instances
-            int instancesCount = DockyardRobotGenerator.readIntNumber(args[2], 1, -1, "# of instances");
+            int instancesCount = GridPathFindingGenerator.readIntNumber(args[2], 1, -1, "# of instances");
 
             GridPathFindingGenerator generator = new GridPathFindingGenerator();
 
