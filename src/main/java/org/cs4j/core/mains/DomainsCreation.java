@@ -3,10 +3,7 @@ package org.cs4j.core.mains;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.domains.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 
 /**
  * Created by sepetnit on 11/10/2015.
@@ -22,6 +19,20 @@ public class DomainsCreation {
         InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/" + instance));
         return new GridPathFinding(is);
     }
+
+    public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(String instance)
+            throws IOException {
+        String mapFileName = "input/gridpathfinding/generated/brc202d";
+        String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots";
+        int pivotsCount = 10;
+        InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
+        GridPathFinding problem = new GridPathFinding(is);
+        problem.setAdditionalParameter("heuristic", "tdh-furthest");
+        problem.setAdditionalParameter("pivots-input-file", pivotsFileName);
+        problem.setAdditionalParameter("pivots-count", pivotsCount + "");
+        return problem;
+    }
+
 
     // The k is for GAP-k heuristic setting
     public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(int size, String instance, int k) throws FileNotFoundException {
