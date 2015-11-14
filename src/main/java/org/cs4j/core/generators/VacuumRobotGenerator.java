@@ -65,7 +65,7 @@ public class VacuumRobotGenerator extends GeneralInstancesGenerator {
         return new PairInt(locationIndex % mapWidth, locationIndex / mapWidth);
     }
 
-    private boolean _isObstacle(char[] map, int index) {
+    private boolean _isBlocked(char[] map, int index) {
         assert index >= 0 && index < map.length;
         return map[index] == VacuumRobotGenerator.OBSTACLE_CHARACTER;
     }
@@ -81,7 +81,7 @@ public class VacuumRobotGenerator extends GeneralInstancesGenerator {
      * @return Whether the location is free
      */
     private boolean _isFree(char[] map, int index) {
-        return index >= 0 && index < map.length && !this._isObstacle(map, index);
+        return index >= 0 && index < map.length && !this._isBlocked(map, index);
     }
 
     /**
@@ -220,7 +220,7 @@ public class VacuumRobotGenerator extends GeneralInstancesGenerator {
         while (foundObstaclesCount < obstaclesCount) {
             int obstacleIndex = (int)Math.ceil(obstaclesRandom.nextDouble() * (mapSize - 1));
             // If not already filled by an obstacle
-            if (!this._isObstacle(map, obstacleIndex)) {
+            if (!this._isBlocked(map, obstacleIndex)) {
                 map[obstacleIndex] = VacuumRobotGenerator.OBSTACLE_CHARACTER;
                 ++foundObstaclesCount;
             }
@@ -234,7 +234,7 @@ public class VacuumRobotGenerator extends GeneralInstancesGenerator {
         PairInt robotLocation = null;
         while (!robotPositionFound) {
             int robotPositionIndex = (int)Math.ceil(robotLocationRandom.nextDouble() * (mapSize - 1));
-            if (!this._isObstacle(map, robotPositionIndex) && !this._isLocationBlocked(w, h, map, robotPositionIndex)) {
+            if (!this._isBlocked(map, robotPositionIndex) && !this._isLocationBlocked(w, h, map, robotPositionIndex)) {
                 map[robotPositionIndex] = VacuumRobotGenerator.ROBOT_CHARACTER;
                 robotLocation = this.location2d(robotPositionIndex, w);
                 // Required one free location for the robot
@@ -263,7 +263,7 @@ public class VacuumRobotGenerator extends GeneralInstancesGenerator {
         while (foundDirtyCount < dirtyCount && freeLocationsCount > 0) {
             int dirtyLocation = (int)Math.ceil(dirtyLocationRandom.nextDouble() * (mapSize - 1));
             // If not already filled by an obstacle
-            if (!this._isObstacle(map, dirtyLocation) &&
+            if (!this._isBlocked(map, dirtyLocation) &&
                     !this._isRobotHere(map, dirtyLocation) &&
                     !this._isDirty(dirtyLocations, dirtyLocation, mapCopy) &&
                     !this._isLocationBlocked(w, h, map, dirtyLocation)) {
