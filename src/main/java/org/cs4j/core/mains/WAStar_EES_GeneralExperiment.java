@@ -5,6 +5,7 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.SearchResult.Solution;
+import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.algorithms.WAStar;
 import org.cs4j.core.data.Weights;
 import org.cs4j.core.data.Weights.SingleWeight;
@@ -265,13 +266,13 @@ public class WAStar_EES_GeneralExperiment {
                                               String outputPath, boolean needHeader) throws IOException {
 
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
-        SingleWeight[] weights = this.weights.OPTIMAL_WEIGHTS;
+        SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             SearchDomain domain =
-                    DomainsCreation.createPancakesInstanceFromAutomaticallyGenerated(i + ".in");
+                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -280,8 +281,8 @@ public class WAStar_EES_GeneralExperiment {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                 for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                    SearchAlgorithm alg = new WAStar(weight, reopen);
-                    //SearchAlgorithm alg = new EES(weight, reopen);
+                    //SearchAlgorithm alg = new WAStar(weight, reopen);
+                    SearchAlgorithm alg = new EES(weight, reopen);
                     System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
                     try {
                         SearchResult result = alg.search(domain);
@@ -474,7 +475,7 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/pancakes/generated-10-gaps/generated+wastar+optimal",
+                    "results/gridpathfinding/generated/brc202d.map/generated+ees+extended",
                     // Add header
                     true);
         } catch (IOException e) {
