@@ -183,7 +183,7 @@ public class VacuumRobotGenerator extends GeneralInstancesGenerator {
         SearchAlgorithm searchAlgorithm = new WAStar();
         SearchResult result = searchAlgorithm.search(domain);
         // System.out.println("[INFO] Partial Search - Found: " + (result.getSolutions().size() > 0));
-        return result.getSolutions().size() > 0;
+        return result.hasSolution();
     }
 
     /**
