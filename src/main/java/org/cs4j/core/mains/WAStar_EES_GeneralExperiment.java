@@ -63,8 +63,8 @@ public class WAStar_EES_GeneralExperiment {
      */
     private String _getHeader() {
         return "InstanceID,Wh,Wg,Weight," +
-                "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
-                "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,";
+                "AR-Slv,AR-Dep,AR-Cst,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
+                "NR-Slv,NR-Dep,AR-Cst,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,";
     }
 
     /***
@@ -80,18 +80,24 @@ public class WAStar_EES_GeneralExperiment {
     /**
      * Returns an array for NoSolution
      *
+     * @param result The search result data structure
+     *
      * @return A double array which contains default values to write in case no solution was found
      */
-    private double[] _getNoSolutionResult() {
-        // Append-  Sol- 0:solution-not-found
-        //          Dep- -1,
-        //          Ggl- -1,
-        //          Gen- 0,
-        //          Exp- 0,
-        //          Dup- 0,
-        //          Oup- 0 (updated in open),
-        //          Rep- 0
-        return new double[]{0, -1, -1, 0, 0, 0, 0, 0};
+    private double[] _getNoSolutionResult(SearchResult result) {
+        return new double[]{
+                // solution-not-found
+                0,
+                // no-length
+                -1,
+                // no-cost
+                -1,
+                result.getGenerated(),
+                result.getExpanded(),
+                result.getDuplicates(),
+                result.getUpdatedInOpen(),
+                result.getReopened(),
+        };
     }
 
     /**
@@ -152,8 +158,8 @@ public class WAStar_EES_GeneralExperiment {
         } else {
             try {
                 output = new OutputResult(outputPath, prefix, true);
-                // Create the result file + overwrite if exists!
-                // output = new OutputResult("results/vacuumrobot/generated/generated+wastar+extended", true);
+                //Create the result file + overwrite if exists!
+                //output = new OutputResult("results/vacuumrobot/generated/generated+wastar+extended", true);
                 //output = new OutputResult("results/dockyardrobot/generated/generated+wastar+optimal", true);
                 //output = new OutputResult("results/vacuumrobot/generated+ees+extended-test", true);
                 //output = new OutputResult("results/fifteenpuzzle/korf100-new", true);
@@ -230,12 +236,13 @@ public class WAStar_EES_GeneralExperiment {
                 System.out.println("[INFO] Thread " + this.threadID + " is Done");
                 // No solution
                 if (!result.hasSolution()) {
-                    this.output.appendNewResult(WAStar_EES_GeneralExperiment.this._getNoSolutionResult());
+                    this.output.appendNewResult(WAStar_EES_GeneralExperiment.this._getNoSolutionResult(result));
                     System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": NoSolution");
                 } else {
                     double[] resultData = WAStar_EES_GeneralExperiment.this._getSolutionResult(result);
                     this.output.appendNewResult(resultData);
-                    System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": " + Arrays.toString(resultData));
+                    System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": " +
+                            Arrays.toString(resultData));
                 }
             } catch (OutOfMemoryError e) {
                 this.output.appendNewResult(WAStar_EES_GeneralExperiment.this._getOutOfMemoryResult());
@@ -269,12 +276,13 @@ public class WAStar_EES_GeneralExperiment {
         SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
 
         // Create the domain by reading the first instance
-        SearchDomain domain =
-                DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(firstInstance + ".in");
+        //SearchDomain domain =
+        //        DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(firstInstance + ".in");
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(domain, i + ".in");
+            SearchDomain domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
+            //domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(domain, i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -290,7 +298,7 @@ public class WAStar_EES_GeneralExperiment {
                         SearchResult result = alg.search(domain);
                         // No solution
                         if (!result.hasSolution()) {
-                            output.appendNewResult(this._getNoSolutionResult());
+                            output.appendNewResult(this._getNoSolutionResult(result));
                             System.out.println("[INFO] Done: NoSolution");
                         } else {
                             double[] resultData = this._getSolutionResult(result);
@@ -478,7 +486,8 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/generated+ees+extended-tdh",
+                    "results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
+                    //"results/gridpathfinding/generated/brc202d.map/generated+ees+extended-tdh",
                     // Add header
                     true);
         } catch (IOException e) {
