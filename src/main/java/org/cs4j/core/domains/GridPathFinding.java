@@ -77,9 +77,7 @@ public class GridPathFinding implements SearchDomain {
     private int[] orderedPivots;
     private Map<Integer, Map<Integer, Double>> distancesFromPivots;
 
-    // 8 is the maximum count of Vacuum Robot operators
-    // (4 for regular moves and more 4 for diagonals)
-    private GridPathFindingOperator[] reverseOperators = new GridPathFindingOperator[8];
+    private GridPathFindingOperator[] reverseOperators;
 
     /**
      * A specific Move performed on the grid
@@ -255,14 +253,25 @@ public class GridPathFinding implements SearchDomain {
         }
     }
 
+    /**
+     * Returns the internal grid data for using in other contexts
+     *
+     * @return A character array which represents the grid
+     */
     public char[] getGridMap() {
         return this.map.map;
     }
 
+    /**
+     * @return The width of the grid
+     */
     public int getGridWidth() {
         return this.map.mapWidth;
     }
 
+    /**
+     * @return The height of the grid
+     */
     public int getGridHeight() {
         return this.map.mapHeight;
     }
@@ -273,6 +282,9 @@ public class GridPathFinding implements SearchDomain {
      * NOTE: This function is called only once (by the constructor)
      */
     private void _initializeReverseOperatorsArray() {
+        // 8 is the maximum count of Vacuum Robot operators
+        // (4 for regular moves and more 4 for diagonals)
+        this.reverseOperators = new GridPathFindingOperator[8];
         int reversedMovesCount = 0;
         // Go over all the possible moves
         for (int i = 0; i < this.map.possibleMovesCount; i++) {
@@ -312,6 +324,7 @@ public class GridPathFinding implements SearchDomain {
         int locationBits = (int) Math.ceil(Utils.log2(this.map.mapSize));
         // The bit-mask required in order to access the locations bit-vector
         this.agentLocationBitMask = Utils.mask(locationBits);
+
         // Assure there is no overflow : at most 64 bits can be used in order to store the state
         if (locationBits > 64) {
             Utils.fatal("Too many bits required: " + locationBits);
@@ -504,6 +517,33 @@ public class GridPathFinding implements SearchDomain {
         this._readMap(width, height, mapReader);
     }
 
+    /**
+     * The function reads start locations and goal locations from an initialized BufferedReader
+     *
+     * @param problemReader The reader to read the data from
+     *
+     * @throws IOException If something wrong occurred
+     */
+    private void _readStartAndGoalsFromProblemFile(BufferedReader problemReader) throws IOException {
+        // Read start location
+        String[] sz = problemReader.readLine().trim().split(" ");
+        assert sz.length == 2 && sz[0].equals("start:");
+        String start[] = sz[1].split(",");
+        assert start.length == 2;
+        this.startX = Integer.parseInt(start[0]);
+        this.startY = Integer.parseInt(start[1]);
+        // Read goal locations
+        sz = problemReader.readLine().trim().split(" ");
+        assert sz.length >= 2 && sz[0].equals("goals:");
+        for (int i = 1; i < sz.length; ++i) {
+            String goal[] = sz[i].split(",");
+            assert goal.length == 2;
+            int goalX = Integer.parseInt(goal[0]);
+            int goalY = Integer.parseInt(goal[1]);
+            this.goals.add(this.map.getLocationIndex(goalX, goalY));
+            this.goalsPairs.add(new PairInt(goalX, goalY));
+        }
+    }
 
     /**
      * Reads a map file of the following format:
@@ -521,26 +561,11 @@ public class GridPathFinding implements SearchDomain {
                     new BufferedReader(
                             new InputStreamReader(
                                     new FileInputStream(mapFilePath)));
+            // Read the map
             this._readMovingAIMap(mapReader);
             System.out.println("[INFO] Map read from " + mapFilePath);
-            // Read start location
-            String[] sz = in.readLine().trim().split(" ");
-            assert sz.length == 2 && sz[0].equals("start:");
-            String start[] = sz[1].split(",");
-            assert start.length == 2;
-            this.startX = Integer.parseInt(start[0]);
-            this.startY = Integer.parseInt(start[1]);
-            // Read goal locations
-            sz = in.readLine().trim().split(" ");
-            assert sz.length >= 2 && sz[0].equals("goals:");
-            for (int i = 1; i < sz.length; ++i) {
-                String goal[] = sz[i].split(",");
-                assert goal.length == 2;
-                int goalX = Integer.parseInt(goal[0]);
-                int goalY = Integer.parseInt(goal[1]);
-                this.goals.add(this.map.getLocationIndex(goalX, goalY));
-                this.goalsPairs.add(new PairInt(goalX, goalY));
-            }
+            // Read start and goal locations
+            this._readStartAndGoalsFromProblemFile(in);
         } catch (FileNotFoundException e) {
             System.err.println("[ERROR] Can't find reference map file: " + mapFilePath);
             throw new IOException();
@@ -630,6 +655,49 @@ public class GridPathFinding implements SearchDomain {
         // Now, complete the initialization by initializing other parameters
         this._completeInit(true);
 
+    }
+
+    /**
+     * This constructor initializes a GridPathFinding problem by copying all the parameters from other given problem
+     * and initializing start and goal locations from the given input stream
+     *
+     * @param other The GridPathFinding problem to copy from
+     * @param stream The stream to read start and goal locations from
+     */
+    public GridPathFinding(GridPathFinding other, InputStream stream) {
+        // TODO:
+        // this.heavy = (cost == COST.HEAVY);
+        // Initialize the input-reader to allow parsing the state
+        BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+        try {
+            this.goals = new ArrayList<>(1);
+            this.goalsPairs = new ArrayList<>(1);
+            // First, read the size of the grid
+            String sz[] = in.readLine().trim().split(" ");
+            if (!sz[0].equals("map:")) {
+                System.out.println("[ERROR] Copying GridPathFinding problem isn't allowed in this case");
+                throw new IOException();
+            }
+            // Read start and goals locations
+            this._readStartAndGoalsFromProblemFile(in);
+            // Assure there is a start location
+            if (this.startX < 0 || this.startY < 0) {
+                Utils.fatal("No start location");
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+            Utils.fatal("Error reading input file");
+        }
+
+        this.heavy = other.heavy;
+        this.agentLocationBitMask = other.agentLocationBitMask;
+        this.map = other.map;
+        this.reverseOperators = other.reverseOperators;
+
+        this.heuristicType = other.heuristicType;
+        this.pivotsCount = other.pivotsCount;
+        this.orderedPivots = other.orderedPivots;
+        this.distancesFromPivots = other.distancesFromPivots;
     }
 
     /**
