@@ -669,6 +669,8 @@ public class GridPathFinding implements SearchDomain {
         // this.heavy = (cost == COST.HEAVY);
         // Initialize the input-reader to allow parsing the state
         BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+        // We need the map in order to read start and goals
+        this.map = other.map;
         try {
             this.goals = new ArrayList<>(1);
             this.goalsPairs = new ArrayList<>(1);
@@ -691,7 +693,6 @@ public class GridPathFinding implements SearchDomain {
 
         this.heavy = other.heavy;
         this.agentLocationBitMask = other.agentLocationBitMask;
-        this.map = other.map;
         this.reverseOperators = other.reverseOperators;
 
         this.heuristicType = other.heuristicType;
@@ -962,6 +963,7 @@ public class GridPathFinding implements SearchDomain {
      * @throws IOException In something wrong occurred
      */
     private Pair<int[], Map<Integer, Map<Integer, Double>>> _readPivotsPDB(String pivotsPDBFile) throws IOException {
+        System.out.println("[INFO] Reading pivots PDB from " + pivotsPDBFile);
         DataInputStream inputStream = new DataInputStream(new FileInputStream(pivotsPDBFile));
         // First, read count of pivots
         int pivotsCount = inputStream.readInt();
@@ -979,6 +981,7 @@ public class GridPathFinding implements SearchDomain {
             }
             distancesMap.put(pivot, currentDistancesMap);
         }
+        System.out.println("[INFO] Finished reading pivots PDB from " + pivotsPDBFile);
         return new Pair<>(pivots, distancesMap);
     }
 
@@ -1029,8 +1032,8 @@ public class GridPathFinding implements SearchDomain {
                 } else {
                     int pivotsCount = Integer.parseInt(value);
                     if (pivotsCount > this.orderedPivots.length) {
-                        System.out.println("[ERROR] Insufficient pivots number " +
-                                " (currently " + this.orderedPivots.length + " but required " + pivotsCount + ")");
+                        System.out.println("[ERROR] Insufficient pivots number (currently " +
+                                this.orderedPivots.length + " but required " + pivotsCount + ")");
                         throw new IllegalArgumentException();
                     }
                     this.pivotsCount = pivotsCount;
