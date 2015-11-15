@@ -16,16 +16,19 @@
  */
 package org.cs4j.core.domains;
 
+import org.cs4j.core.SearchDomain;
+import org.cs4j.core.collections.PackedElement;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
-
-import org.cs4j.core.SearchDomain;
-import org.cs4j.core.collections.PackedElement;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * The 4x4 sliding-tiles domain class.
@@ -54,13 +57,40 @@ public final class FifteenPuzzle implements SearchDomain {
     // The possible operators (each one is represented by the REACHED tile)
     private Operator possibleOperators[] = new Operator[this.tilesNumber];
 
+    private enum HeuristicType {
+        MD,
+        PDB78,
+        PDB555
+    }
+
+    private HeuristicType heuristicType;
+
     public enum COST_FUNCTION {
         UNIT,
         SQRT,
         INVR,
         HEAVY
     }
+
     private COST_FUNCTION costFunction;
+
+    // PDBs for 7-8 partitioning
+    private Map<Integer, Character> pdb7;
+    private Map<Integer, Character> pdb8;
+
+    // PDBs for 5-5-5 partitioning
+    private Map<Integer, Character> pdb5_1;
+    private Map<Integer, Character> pdb5_2;
+    private Map<Integer, Character> pdb5_3;
+
+    private static final Map<String, Class> FifteenPuzzlePossibleParameters;
+
+    // Declare the parameters that can be tunes before running the search
+    static
+    {
+        FifteenPuzzlePossibleParameters = new HashMap<String, Class>();
+        FifteenPuzzlePossibleParameters.put("heuristic", String.class);
+    }
 
     /**
      * The function calculates Manhattan distance between two given tiles
@@ -130,13 +160,13 @@ public final class FifteenPuzzle implements SearchDomain {
                 double previousDistance = this.md[t][d];
                 for (int s = 0; s < this.tilesNumber; s++) {
                     this.mdAddends[t][d][s] = -100; // some invalid value.
-                // Moving Up
+                    // Moving Up
                 } if (d >= this.width) {
                     // d-width is the index of tile we are on if moving UP
                     this.mdAddends[t][d][d - this.width] =
                             this.md[t][d - this.width] - previousDistance;
                     this.mdAddendsUnit[t][d][d - this.width] = (int)this.mdAddends[t][d][d - this.width];
-                // Moving Left
+                    // Moving Left
                 } if (d % this.width > 0) {
                     // d-1 is the index of the tile we are on if moving Left
                     this.mdAddends[t][d][d - 1] = this.md[t][d - 1] - previousDistance;
@@ -250,6 +280,15 @@ public final class FifteenPuzzle implements SearchDomain {
         for (int i = 0; i < this.possibleOperators.length; ++i) {
             this.possibleOperators[i] = new FifteenPuzzleOperator(i);
         }
+        // Manhattan Distance is the default heuristic type
+        this.heuristicType = HeuristicType.MD;
+        // Initially, no pdb-7-8
+        this.pdb7 = null;
+        this.pdb8 = null;
+        // Initially, no pdb-555
+        this.pdb5_1 = null;
+        this.pdb5_2 = null;
+        this.pdb5_3 = null;
     }
 
     /**
@@ -285,6 +324,55 @@ public final class FifteenPuzzle implements SearchDomain {
         return sum;
     }
 
+    /**
+     * This function is called in case the heuristic type is not Manhattan Distance
+     *
+     * @param state The state for which the values should be computed
+     *
+     * @return An array of the form {h, d}
+     */
+    private double[] _computeHDNoMD(TileState state) {
+        int h = -1;
+        int d = -1;
+        switch (this.heuristicType) {
+            case PDB78: {
+                h = this.pdb7.get(state.getHash7Index()) + this.pdb8.get(state.getHash8Index());
+                d = h;
+                break;
+            }
+            case PDB555:
+            default: {
+                throw new NotImplementedException();
+            }
+        }
+        return new double[] {h, d};
+    }
+
+    /**
+     * The function computes the values of h and d for a given state
+     *
+     * @param state The state for which the values should be computed
+     *
+     * @return An array of the form {h, d}
+     */
+    private double[] computeHD(TileState state) {
+        double h = -1;
+        double d = -1;
+        switch (this.heuristicType) {
+            case MD: {
+                // Let's calculate the heuristic values (h and d)
+                h = this._computeTotalMD(state.blank, state.tiles, costFunction);
+                d = this._computeTotalMD(state.blank, state.tiles, COST_FUNCTION.UNIT);
+                break;
+            }
+            default: {
+                return this._computeHDNoMD(state);
+            }
+        }
+        assert h != -1 && d != -1;
+        return new double[]{h, d};
+    }
+
     @Override
     public State initialState() {
         int blank = -1;
@@ -309,8 +397,9 @@ public final class FifteenPuzzle implements SearchDomain {
         s.tiles = tiles;
         s.blank = blank;
         // Let's calculate the heuristic values (h and d)
-        s.h = this._computeTotalMD(s.blank, s.tiles, costFunction);
-        s.d = this._computeTotalMD(s.blank, s.tiles, COST_FUNCTION.UNIT);
+        double[] computedHD = this.computeHD(s);
+        s.h = computedHD[0];
+        s.d = computedHD[1];
         //System.out.println(s.dumpState());
         return s;
     }
@@ -377,10 +466,17 @@ public final class FifteenPuzzle implements SearchDomain {
         // Move that tile to the current position of blank
         ts.tiles[ts.blank] = tileAtFutureBlankPosition;
         // Update the h and d according to the result deltas
-        ts.h += this.mdAddends[tileAtFutureBlankPosition][futureBlankPosition][ts.blank];
-        ts.d += this.mdAddendsUnit[tileAtFutureBlankPosition][futureBlankPosition][ts.blank];
-        // Update the current blank value to the requested one (MUST be AFTER updating h and d)
-        ts.blank = futureBlankPosition;
+        if (this.heuristicType == HeuristicType.MD) {
+            ts.h += this.mdAddends[tileAtFutureBlankPosition][futureBlankPosition][ts.blank];
+            ts.d += this.mdAddendsUnit[tileAtFutureBlankPosition][futureBlankPosition][ts.blank];
+            // Update the current blank value to the requested one (MUST be AFTER updating h and d)
+            ts.blank = futureBlankPosition;
+        } else {
+            ts.blank = futureBlankPosition;
+            double[] computedHD = this._computeHDNoMD(ts);
+            ts.h = computedHD[0];
+            ts.d = computedHD[1];
+        }
         return ts;
     }
 
@@ -455,6 +551,65 @@ public final class FifteenPuzzle implements SearchDomain {
             this.blank = state.blank;
             // Copy the parent state
             this.parent = state.parent;
+        }
+
+        /**
+         * Each permutation is mapped to an index corresponding to its position in a lexicographic ordering of all
+         * permutations
+         *
+         * The function computes this value for a given permutation
+         *
+         * @param permutation The vector to be hashed
+         *
+         * @return The computed hash value
+         */
+        private int _getHashNIndex(int[] permutation) {
+            int actualLength = permutation.length - 1;
+            // initialize hash value to empty
+            int hash = 0;
+            // for each remaining position in permutation
+            for (int i = 0; i < actualLength + 1; ++i) {
+                // initially digit is value in permutation
+                int digit = permutation[i];
+                // for each previous element in permutation
+                for (int j = 0; j < i; j++) {
+                    // previous position contains smaller value - so decrement digit
+                    if (permutation[j] < permutation[i]) {
+                        --digit;
+                    }
+                }
+                // multiply digit by appropriate factor
+                hash = hash * (FifteenPuzzle.this.tilesNumber - i) + digit;
+            }
+            hash = hash / (FifteenPuzzle.this.tilesNumber - actualLength);
+            return hash;
+        }
+
+        private int getHash7Index() {
+            int[] permutation = new int[7];
+            permutation[0] = this.blank;
+            permutation[1] = this.tiles[1];
+            permutation[2] = this.tiles[2];
+            permutation[3] = this.tiles[3];
+            permutation[4] = this.tiles[4];
+            permutation[5] = this.tiles[5];
+            permutation[6] = this.tiles[6];
+            permutation[7] = this.tiles[7];
+            return this._getHashNIndex(permutation);
+        }
+
+        private int getHash8Index() {
+            int[] permutation = new int[8];
+            permutation[0] = this.blank;
+            permutation[1] = this.tiles[8];
+            permutation[2] = this.tiles[9];
+            permutation[3] = this.tiles[10];
+            permutation[4] = this.tiles[11];
+            permutation[5] = this.tiles[12];
+            permutation[6] = this.tiles[13];
+            permutation[7] = this.tiles[14];
+            permutation[8] = this.tiles[15];
+            return this._getHashNIndex(permutation);
         }
 
         @Override
@@ -541,12 +696,110 @@ public final class FifteenPuzzle implements SearchDomain {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
-        return null;
+        return FifteenPuzzle.FifteenPuzzlePossibleParameters;
+    }
+
+    // Size of the PDB for the 7 first tiles
+    private static final long TABLE_SIZE_PDB7 = 16 * 15 * 14 * 13 * 12 * 11 * 10;
+    // Size of the PDB for the 8 rest tiles
+    private static final long TABLE_SIZE_PDB8 = 16 * 15 * 14 * 13 * 12 * 11 * 10 * 9;
+
+    /**
+     * Reads a single PDB table from the given file
+     *
+     * @param pdbFileName The name of the PDB file
+     * @param permutationsCount The number of permutations assumed to be in the file
+     *
+     * @return An initialized map that contains all the distances for the permutations
+     *
+     * @throws IOException If something wrong occurred
+     */
+    private Map<Integer, Character> _readSinglePDB(String pdbFileName, long permutationsCount) throws IOException {
+        Map<Integer, Character> toReturn = new HashMap<>();
+        // Each permutation index is stored as int
+        DataInputStream inputStream = new DataInputStream(new FileInputStream(pdbFileName));
+        for (long i = 0; i < permutationsCount; ++i) {
+            // Debug
+            if (i % 999 == 0) {
+                System.out.println("\r[INFO] Read " + (i + 1) + "/" + permutationsCount + " values");
+            }
+            // First, read the hash value of the permutation
+            int hashValue = inputStream.readInt();
+            // Now, read the distance
+            char distance = inputStream.readChar();
+            if (distance >= permutationsCount) {
+                System.out.println("[ERROR] Invalid distance found in PDB " + pdbFileName +
+                        "(hash: " + hashValue + ", distance: " + distance + ")");
+                throw new IOException();
+            }
+            assert !toReturn.containsKey(hashValue);
+            toReturn.put(hashValue, distance);
+        }
+        // Last new line
+        System.out.println();
+        return toReturn;
+    }
+
+    private void _readPDB78(String pdb7FileName, String pdb8FileName) throws IOException {
+        // Read PDB 7
+        System.out.println("[INFO] Reading PDB from " + pdb7FileName);
+        Map<Integer, Character> pdb7 = this._readSinglePDB(pdb7FileName, FifteenPuzzle.TABLE_SIZE_PDB7);
+        System.out.println("[INFO] Finished reading PDB from " + pdb7FileName);
+        // Read PDB 8
+        System.out.println("[INFO] Reading PDB from " + pdb8FileName);
+        Map<Integer, Character> pdb8 = this._readSinglePDB(pdb8FileName, FifteenPuzzle.TABLE_SIZE_PDB8);
+        System.out.println("[INFO] Finished reading PDB from " + pdb8FileName);
     }
 
     @Override
     public void setAdditionalParameter(String parameterName, String value) {
-        throw new NotImplementedException();
+        switch (parameterName) {
+            case "heuristic": {
+                switch (value) {
+                    case "md": {
+                        this.heuristicType = HeuristicType.MD;
+                        break;
+                    }
+                    case "pdb-78": {
+                        this.heuristicType = HeuristicType.PDB78;
+                        break;
+                    }
+                    case "pdb-555": {
+                        this.heuristicType = HeuristicType.PDB555;
+                        break;
+                    }
+                    default: {
+                        System.err.println("Illegal heuristic type for FifteenPuzzle domain: " + value);
+                        throw new IllegalArgumentException();
+                    }
+                }
+                break;
+            }
+            case "pdb-78-files": {
+                if (heuristicType != HeuristicType.PDB78) {
+                    System.out.println("[ERROR] Heuristic type isn't pdb-78 - can't set pdb file");
+                    throw new IllegalArgumentException();
+                }
+                String[] split = value.trim().split(",");
+                if (split.length == 1) {
+                    split = value.trim().split(", ");
+                }
+                if (split.length != 2) {
+                    System.out.println("[ERROR] Invalid format for pdb-78 file: should be '<file-7>, <file-8>'");
+                    throw new IllegalArgumentException();
+                }
+                // Otherwise, read and initialize the file
+                try {
+                    this._readPDB78(split[0], split[1]);
+                } catch (IOException e) {
+                    System.out.println("[ERROR] Failed reading pdb-78 files: " + e.getMessage());
+                    throw new IllegalArgumentException();
+                }
+            } default: {
+                System.out.println("No such parameter: " + parameterName + " (value: " + value + ")");
+                throw new IllegalArgumentException();
+            }
+        }
     }
 
     /**
