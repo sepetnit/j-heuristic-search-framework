@@ -64,18 +64,24 @@ public class PTS_BEES_PHS_GeneralExperiment {
     /**
      * Returns an array for NoSolution
      *
+     * @param result The search result data structure
+     *
      * @return A double array which contains default values to write in case no solution was found
      */
-    private double[] _getNoSolutionResult() {
-        // Append-  Sol- 0:solution-not-found
-        //          Dep- -1,
-        //          Ggl- -1,
-        //          Gen- 0,
-        //          Exp- 0,
-        //          Dup- 0,
-        //          Oup- 0 (updated in open),
-        //          Rep- 0
-        return new double[]{0, -1, -1, 0, 0, 0, 0, 0};
+    private double[] _getNoSolutionResult(SearchResult result) {
+        return new double[]{
+                // solution-not-found
+                0,
+                // no-length
+                -1,
+                // no-cost
+                -1,
+                result.getGenerated(),
+                result.getExpanded(),
+                result.getDuplicates(),
+                result.getUpdatedInOpen(),
+                result.getReopened(),
+        };
     }
 
     /**
@@ -236,7 +242,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                 System.out.println("[INFO] Thread " + this.threadID + " is Done");
                 // No solution
                 if (!result.hasSolution()) {
-                    this.output.appendNewResult(PTS_BEES_PHS_GeneralExperiment.this._getNoSolutionResult());
+                    this.output.appendNewResult(PTS_BEES_PHS_GeneralExperiment.this._getNoSolutionResult(result));
                     System.out.println("[INFO] Thread " + this.threadID + this.problemDescription + ": NoSolution");
                 } else {
                     double[] resultData = PTS_BEES_PHS_GeneralExperiment.this._getSolutionResult(result);
@@ -316,7 +322,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                             SearchResult result = alg.search(domain);
                             // No solution
                             if (!result.hasSolution()) {
-                                output.appendNewResult(this._getNoSolutionResult());
+                                output.appendNewResult(this._getNoSolutionResult(result));
                                 System.out.println("[INFO] Done: NoSolution");
                             } else {
                                 double[] resultData = this._getSolutionResult(result);
@@ -364,7 +370,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
             // Write the header line
             output.writeln(
                     "InstanceID,MaxCost," +
-                            "NAR-Slv,NAR-Dep,NAR-Ggl,NAR-Gen,NAR-Exp,NAR-Dup,NAR-Oup,NAR-Rep,"
+                            "NAR-Slv,NAR-Dep,NAR-Cst,NAR-Gen,NAR-Exp,NAR-Dup,NAR-Oup,NAR-Rep,"
             );
 
             int[] realMaxCosts = maxCosts;
@@ -373,9 +379,15 @@ public class PTS_BEES_PHS_GeneralExperiment {
             if (maxCosts == null) {
                 realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                         new MaxCostsCreationElement[]{
-                                new MaxCostsCreationElement(0, 5, 2000)
+                                // DockyardRobot
+                                new MaxCostsCreationElement(10, 5, 400)
+                                // VacuumRobot
+                                //new MaxCostsCreationElement(0, 5, 2000)
+                                // ost003d.map
                                 //new MaxCostsCreationElement(80, 5, 800)
+                                // den400d.map
                                 //new MaxCostsCreationElement(100, 5, 800)
+                                // brc002d.map
                                 //new MaxCostsCreationElement(300, 5, 2000)
                         }
                 );
@@ -386,7 +398,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
             for (int i = firstInstance; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
                 SearchDomain domain =
-                        DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                        DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
                 // Bypass not found files
                 if (domain == null) {
                     continue;
@@ -401,7 +413,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                         SearchResult result = alg.search(domain);
                         // No solution
                         if (!result.hasSolution()) {
-                            output.appendNewResult(this._getNoSolutionResult());
+                            output.appendNewResult(this._getNoSolutionResult(result));
                             System.out.println("[INFO] Done: NoSolution");
                         } else {
                             double[] resultData = this._getSolutionResult(result);
@@ -420,8 +432,6 @@ public class PTS_BEES_PHS_GeneralExperiment {
         }
         return resultFiles.toArray(new String[algorithms.length]);
     }
-
-
 
     /**
      * Runs an experiment using the WAStar and EES algorithms using MULTIPLE THREADS!
@@ -551,7 +561,8 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/vacuumrobot/generated-10-dirt/<alg-name>-0-5-2000-rerun");
+                    "results/dockyardrobot/generated-max-edge-2-out-of-place-30/<alg-name>-10-5-400-rerun");
+                    //"results/vacuumrobot/generated-10-dirt/<alg-name>-0-5-2000-rerun");
                     //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800-rerun");
                     //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000-rerun");
                     //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800-rerun");
