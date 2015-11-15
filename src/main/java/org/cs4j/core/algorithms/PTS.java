@@ -254,7 +254,9 @@ public class PTS implements SearchAlgorithm {
             toReturnAR.increase(toReturn);
             // Revert to base state
             this.reopen = false;
-            System.out.println("[INFO] PTS with NR failed but PTS with AR succeeded.");
+            if (toReturnAR.hasSolution()) {
+                System.out.println("[INFO] PTS with NR failed but PTS with AR succeeded.");
+            }
             return  toReturnAR;
         }
         return toReturn;

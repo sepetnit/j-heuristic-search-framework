@@ -300,7 +300,9 @@ public class BEES implements SearchAlgorithm {
             toReturnAR.increase(toReturn);
             // Revert to base state
             this.reopen = false;
-            System.out.println("[INFO] BEES with NR failed but BEES with AR succeeded.");
+            if (toReturnAR.hasSolution()) {
+                System.out.println("[INFO] BEES with NR failed but BEES with AR succeeded.");
+            }
             return  toReturnAR;
         }
         return toReturn;

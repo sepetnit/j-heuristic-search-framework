@@ -28,7 +28,7 @@ import java.util.Set;
  * Created by sepetnit on 11/12/2015.
  *
  */
-public class PivotsCalculator {
+public class PivotsPDBGenerator {
 
     private static final double NO_SOLUTION = -2.0d;
 
@@ -232,7 +232,7 @@ public class PivotsCalculator {
         if (result.hasSolution()) {
             return result.getSolutions().get(0).getCost();
         }
-        return PivotsCalculator.NO_SOLUTION;
+        return PivotsPDBGenerator.NO_SOLUTION;
     }
 
     /**
@@ -318,8 +318,8 @@ public class PivotsCalculator {
      * @return The estimated size
      */
     private double _getPivotsFileSize(int mapSize, int pivotsCount) {
-        return ((PivotsCalculator.DOUBLE_SIZE_IN_BYTES * ((pivotsCount + 1) + (mapSize * pivotsCount))) /
-                PivotsCalculator.MB_SIZE_IN_BYTES);
+        return ((PivotsPDBGenerator.DOUBLE_SIZE_IN_BYTES * ((pivotsCount + 1) + (mapSize * pivotsCount))) /
+                PivotsPDBGenerator.MB_SIZE_IN_BYTES);
     }
 
     /**
@@ -510,7 +510,7 @@ public class PivotsCalculator {
 
         mapToPivots.put("input/gridpathfinding/raw/maps/brc202d.map", "input/gridpathfinding/raw/maps/brc202d.pivots");
 
-        PivotsCalculator calculator = new PivotsCalculator();
+        PivotsPDBGenerator calculator = new PivotsPDBGenerator();
 
         for (Map.Entry<String, String> pivotEntry : mapToPivots.entrySet()) {
             // Create a fake GridPathFinding problem (just for having the map)
@@ -548,7 +548,7 @@ public class PivotsCalculator {
                         //"input/gridpathfinding/raw/maps/den400d.map",
                         //"input/gridpathfinding/raw/maps/ost003d.map"
                 };
-        PivotsCalculator calculator = new PivotsCalculator();
+        PivotsPDBGenerator calculator = new PivotsPDBGenerator();
         for (String mapFile : mapFiles) {
             // Read the map file
             if (!(new File(mapFile).exists())) {
@@ -584,7 +584,7 @@ public class PivotsCalculator {
      * @param args Arguments to main (ignored)
      */
     public static void main(String[] args) {
-        PivotsCalculator.mainCreateAllPivotsPDBs();
+        PivotsPDBGenerator.mainCreateAllPivotsPDBs();
     }
 
 }
