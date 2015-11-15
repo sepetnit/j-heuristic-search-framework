@@ -4,6 +4,7 @@ import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.WAStar;
+import org.cs4j.core.collections.Pair;
 import org.cs4j.core.collections.PairInt;
 import org.cs4j.core.domains.GridPathFinding;
 import org.cs4j.core.domains.Utils;
@@ -253,6 +254,82 @@ public class PivotsPDBGenerator {
     }
 
     /**
+     * The function computes pivots for a given grid and stores them
+     *
+     * @param grid The grid for which pivots should be computed
+     *
+     * @param pivotsCount The computed pivots count
+     *
+     * @return The computed pivots and distances from them
+     */
+    private Pair<int[], Map<Integer, Map<Integer, Double>>> _computePivotsAndDistances(GridMap grid, int pivotsCount) {
+        int pivots[] = new int[pivotsCount];
+        System.out.println("[INFO] The file will be at least " +
+                this._getPivotsFileSize(grid.mapSize, pivots.length) + " MB");
+        Map<Integer, Map<Integer, Double>> allDistances = new HashMap<>();
+        // Choose the first pivot - left-most and top-most free location
+        pivots[0] = this._chooseFirstPivotByMostLeftTop(grid);
+        assert pivots[0] != -1;
+        System.out.println("[INFO] First pivot is : " + grid.getPosition(pivots[0]) + " - " + pivots[0]);
+        // For each pivot to look for
+        for (int currentPivotIndex = 1; currentPivotIndex < pivotsCount; ++currentPivotIndex) {
+            Map<Integer, Double> currentDistances = new HashMap<>();
+            System.out.println("[INFO] Looking for pivot " + currentPivotIndex);
+            double maxSumOfDistances = 0.0d;
+            int locationWithMaxSumOfDistances = -1;
+            // Go over all the possible locations
+            for (int i = 0; i < grid.mapSize; ++i) {
+                // Debug
+                if (i % 999 == 0) {
+                    System.out.print("\r[INFO] Searched over " + (i + 1) + "/" + grid.mapSize + " locations");
+                }
+                // i can't be a pivot
+                if (this.contains(pivots, i)) {
+                    currentDistances.put(i, 0.0d);
+                    continue;
+                }
+                if (grid.isBlocked(i)) {
+                    currentDistances.put(i, PivotsPDBGenerator.NO_SOLUTION);
+                    continue;
+                }
+                double currentSumOfDistances = 0.0d;
+                for (int k = 0; k < currentPivotIndex; ++k) {
+                    double currentValue = 0;
+                    if (i != pivots[k]) {
+                        if (k < currentPivotIndex - 1) {
+                            currentValue = allDistances.get(pivots[k]).get(i);
+                        // Otherwise, k == currentPivotIndex - 1
+                        } else {
+                            currentValue = this._minDistance(grid, pivots[k], i);
+                            currentDistances.put(i, currentValue);
+                        }
+                    } else if (k == currentPivotIndex - 1) {
+                        currentDistances.put(i, 0.0d);
+                    }
+                    // Here, we of course have the value of distances[pivots[k]][i] correctly set
+                    if (currentValue > 0) {
+                        currentSumOfDistances += currentValue;
+                    }
+                }
+                if (currentSumOfDistances > maxSumOfDistances) {
+                    maxSumOfDistances = currentSumOfDistances;
+                    locationWithMaxSumOfDistances = i;
+                }
+            }
+            System.out.println();
+            // Location was found
+            assert locationWithMaxSumOfDistances != -1;
+            pivots[currentPivotIndex] = locationWithMaxSumOfDistances;
+            System.out.println("[INFO] Pivot " + currentPivotIndex + " is : " +
+                    grid.getPosition(pivots[currentPivotIndex]) + " - " + pivots[currentPivotIndex]);
+            allDistances.put(pivots[currentPivotIndex - 1], currentDistances);
+            //gridCopy.map[pivots[currentPivotIndex]] = 'Y';
+        }
+        //System.out.println(gridCopy.toString());
+        return new Pair<>(pivots, allDistances);
+    }
+
+    /**
      * The functions computes pivots for a given grid
      *
      * @param grid The grid for which pivots should be computed
@@ -263,7 +340,7 @@ public class PivotsPDBGenerator {
      */
     private int[] _computePivots(GridMap grid, int pivotsCount) {
         int pivots[] = new int[pivotsCount];
-        // Choose the first pivot
+        // Choose the first pivot - left-most and top-most free location
         pivots[0] = this._chooseFirstPivotByMostLeftTop(grid);
         assert pivots[0] != -1;
         System.out.println("[INFO] First pivot is : " + grid.getPosition(pivots[0]));
@@ -282,10 +359,13 @@ public class PivotsPDBGenerator {
                 if (this.contains(pivots, i)) {
                     continue;
                 }
+                if (grid.isBlocked(i)) {
+                    continue;
+                }
                 double currentSumOfDistances = 0.0d;
-                for (int k = 0; k < pivotsCount - currentPivotIndex; ++k) {
+                for (int k = 0; k < currentPivotIndex; ++k) {
                     double currentValue = 0;
-                    if (i != pivots[k] && !grid.isBlocked(i)) {
+                    if (i != pivots[k]) {
                         currentValue = this._minDistance(grid, pivots[k], i);
                     }
                     // Here, we of course have the value of distances[pivots[k]][i] correctly set
@@ -370,17 +450,6 @@ public class PivotsPDBGenerator {
         }
         writer.close();
         System.out.println("[INFO] Done creating pivots file " + outputFile);
-    }
-
-    public int[] computeAndStorePivots(int width, int height, char[] grid,
-                                       int pivotsCount,
-                                       String outputFile) throws IOException {
-        GridMap gridCopy = new GridMap(width, height, grid);
-        int[] pivots = this._computePivots(gridCopy, pivotsCount);
-        if (outputFile != null) {
-            this._storePivots(gridCopy, pivots, outputFile);
-        }
-        return pivots;
     }
 
     /**
@@ -502,13 +571,81 @@ public class PivotsPDBGenerator {
         this._storePivots(gridCopy, pivots, outputFile);
     }
 
+    public int[] computeAndStorePivots(int width, int height, char[] grid,
+                                       int pivotsCount,
+                                       String outputFile) throws IOException {
+        GridMap gridCopy = new GridMap(width, height, grid);
+        int[] pivots = this._computePivots(gridCopy, pivotsCount);
+        if (outputFile != null) {
+            this._storePivots(gridCopy, pivots, outputFile);
+        }
+        return pivots;
+    }
+
+    public void computeAndStorePivotsEfficiently(int width, int height, char[] grid,
+                                                 int pivotsCount,
+                                                 String outputFile) throws IOException {
+        GridMap gridCopy = new GridMap(width, height, grid);
+        Pair<int[], Map<Integer, Map<Integer, Double>>> pivotsAndDistances =
+                this._computePivotsAndDistances(gridCopy, pivotsCount);
+        int[] pivots = pivotsAndDistances.getKey();
+        Map<Integer, Map<Integer, Double>> allDistances = pivotsAndDistances.getValue();
+        System.out.println(Arrays.toString(allDistances.keySet().toArray()));
+        DataOutputStream writer = new DataOutputStream(new FileOutputStream(outputFile));
+        // Write pivots count
+        writer.writeInt(pivots.length);
+        // Write the pivots
+        for (int pivot : pivots) {
+            writer.writeInt(pivot);
+        }
+        // Write the distances for each pivot
+        for (int pivotIndex = 0; pivotIndex < pivots.length; ++pivotIndex) {
+            int pivot = pivots[pivotIndex];
+            Map<Integer, Double> currentDistances = allDistances.get(pivot);
+            System.out.println("[INFO] Writing all distances for pivot # " +
+                    (pivotIndex + 1) + "/" + pivots.length + " " + gridCopy.getPosition(pivot));
+            for (int i = 0; i < gridCopy.mapSize; ++i) {
+                if (i % 999 == 0) {
+                    System.out.print("\r[INFO] Wrote " + (i + 1) + "/" + gridCopy.mapSize + " distances");
+                }
+                if (currentDistances != null) {
+                    writer.writeDouble(currentDistances.get(i));
+                } else  if (i == pivot) {
+                    writer.writeDouble(0.0d);
+                } else {
+                    writer.writeDouble(this._minDistance(gridCopy, i, pivot));
+                }
+            }
+            // Add a newline
+            System.out.println();
+        }
+        writer.close();
+    }
+
     /**
      * Creates PDBs of pivots that contain distances from all locations on the map, to all pivot points
      */
-    public static void mainCreateAllPivotsPDBs() {
-        Map<String, String> mapToPivots = new HashMap<>();
+    public static void mainCreateAllPivotsPDBs(Map<String, String> mapToPivots) {
+        if (mapToPivots == null) {
+            mapToPivots = new HashMap<>();
+            /*
+            mapToPivots.put(
+                    "input/gridpathfinding/raw/maps/brc202d.map",
+                    "input/gridpathfinding/raw/maps/brc202d.map.pdb");
+            */
 
-        mapToPivots.put("input/gridpathfinding/raw/maps/brc202d.map", "input/gridpathfinding/raw/maps/brc202d.pivots");
+            // Debug:
+            // mapToPivots.put(
+            //        "input/gridpathfinding/raw/mine/test.map",
+            //        "input/gridpathfinding/raw/mine/test.map.pdb");
+
+
+            mapToPivots.put(
+                    "input/gridpathfinding/raw/mazes/maze1/maze512-1-6.map",
+                    "input/gridpathfinding/raw/mazes/maze1/maze512-1-6.map.pivots.pdb");
+        }
+
+        int pivotsCount = 10;
 
         PivotsPDBGenerator calculator = new PivotsPDBGenerator();
 
@@ -520,11 +657,11 @@ public class PivotsPDBGenerator {
                 // Create a fake map
                 GridPathFinding gridPathFindingProblem = new GridPathFinding(is, 0, 0);
                 // Copy the grid, in order to avoid unwanted changes during the process of finding the pivots
-                calculator.computeAndStorePivots(
+                calculator.computeAndStorePivotsEfficiently(
                         gridPathFindingProblem.getGridWidth(), gridPathFindingProblem.getGridHeight(),
                         gridPathFindingProblem.getGridMap(),
-                        pivotEntry.getValue(),
-                        pivotEntry.getValue() + ".pdb");
+                        pivotsCount,
+                        pivotEntry.getValue());
                 System.out.println("[INFO] Done creating pivots PDB for " + pivotEntry.getKey());
                 // Now, let' calculate the distance to all the pivots and save the PDB
             } catch (IOException e) {
@@ -532,7 +669,6 @@ public class PivotsPDBGenerator {
                 // continue to next problem
             }
         }
-
     }
 
     /**
@@ -544,7 +680,9 @@ public class PivotsPDBGenerator {
         int pivotsCount = 10;
         String[] mapFiles =
                 new String[]{
-                        "input/gridpathfinding/raw/maps/brc202d.map",
+                        //"input/gridpathfinding/raw/mazes/maze32/maze512-32-8-80.map"
+                        "input/gridpathfinding/raw/mazes/maze1/maze512-1-6.map"
+                        //"input/gridpathfinding/raw/maps/brc202d.map",
                         //"input/gridpathfinding/raw/maps/den400d.map",
                         //"input/gridpathfinding/raw/maps/ost003d.map"
                 };
@@ -584,7 +722,8 @@ public class PivotsPDBGenerator {
      * @param args Arguments to main (ignored)
      */
     public static void main(String[] args) {
-        PivotsPDBGenerator.mainCreateAllPivotsPDBs();
+        // PivotsPDBGenerator.mainCreateAllPivots();
+        PivotsPDBGenerator.mainCreateAllPivotsPDBs(null);
     }
 
 }
