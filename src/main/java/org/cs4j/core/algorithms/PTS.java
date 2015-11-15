@@ -57,6 +57,11 @@ public class PTS implements SearchAlgorithm {
         this.rerun = false;
     }
 
+    @Override
+    public String getName() {
+        return "pts";
+    }
+
     private void _initDataStructures() {
         this.open = new BinHeap<>(new PTS.NodeComparator(), 0);
         this.closed = new HashMap<>();

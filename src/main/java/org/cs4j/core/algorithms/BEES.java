@@ -80,6 +80,11 @@ public class BEES implements SearchAlgorithm {
         this.reopen = false;
     }
 
+    @Override
+    public String getName() {
+        return "bees";
+    }
+
     private Node _selectNode() {
         Node toReturn = null;
         if (!this.open.isEmpty()) {
@@ -92,6 +97,7 @@ public class BEES implements SearchAlgorithm {
         }
         return toReturn;
     }
+
 
     /**
      * The function inserts a new generated node into the lists
@@ -294,7 +300,7 @@ public class BEES implements SearchAlgorithm {
             toReturnAR.increase(toReturn);
             // Revert to base state
             this.reopen = false;
-            System.out.println("[INFO] BEES with NR failed but PHS with AR succeeded.");
+            System.out.println("[INFO] BEES with NR failed but BEES with AR succeeded.");
             return  toReturnAR;
         }
         return toReturn;

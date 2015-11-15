@@ -74,6 +74,11 @@ public class EES implements SearchAlgorithm {
         this(weight, true);
     }
 
+    @Override
+    public String getName() {
+        return "ees";
+    }
+
     private Node _selectNode() {
         Node toReturn;
         Node bestDHat = this.gequeue.peekFocal();

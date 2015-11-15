@@ -52,6 +52,11 @@ public class RBFS implements SearchAlgorithm {
   }
 
   @Override
+  public String getName() {
+    return "rbfs";
+  }
+
+  @Override
   public Map<String, Class> getPossibleParameters() {
     return null;
   }

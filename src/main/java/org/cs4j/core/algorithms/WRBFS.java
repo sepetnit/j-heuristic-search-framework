@@ -31,7 +31,12 @@ public class WRBFS extends RBFS {
 	public WRBFS(double weight) {
 		super(weight);
 	}
-  
+
+	@Override
+	public String getName() {
+		return "wrbfs";
+	}
+
 	@Override
 	protected double getRank(Node n, double weight) {
 		return n.g + (weight * (n.fPrime - n.g) );

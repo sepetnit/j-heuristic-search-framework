@@ -25,6 +25,8 @@ import java.util.Map;
  */
 public interface SearchAlgorithm extends SearchConfigurable {
 
+    String getName();
+
     /**
      * Performs a search beginning at the specified state.
      *

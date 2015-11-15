@@ -24,6 +24,11 @@ public class DFS implements SearchAlgorithm {
 
     Stack<Node> stack;
 
+    @Override
+    public String getName() {
+        return "dfs";
+    }
+
     /**
      * Initializes the general data structures for starting the search
      */

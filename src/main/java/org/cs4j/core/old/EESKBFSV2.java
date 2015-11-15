@@ -45,6 +45,11 @@ public class EESKBFSV2 implements SearchAlgorithm {
     }
 
     @Override
+    public String getName() {
+        return "eeskbfs2";
+    }
+
+    @Override
     public Map<String, Class> getPossibleParameters() {
         return null;
     }

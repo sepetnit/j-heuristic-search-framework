@@ -85,6 +85,11 @@ public class WAStar implements SearchAlgorithm {
         this.reopen = reopen;
     }
 
+    @Override
+    public String getName() {
+        return "wastar";
+    }
+
     /**
      * The Constructor
      *

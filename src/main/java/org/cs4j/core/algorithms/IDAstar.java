@@ -55,6 +55,11 @@ public class IDAstar implements SearchAlgorithm {
     }
 
     @Override
+    public String getName() {
+        return "idastar";
+    }
+
+    @Override
     public Map<String, Class> getPossibleParameters() {
         return null;
     }

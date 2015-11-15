@@ -73,6 +73,11 @@ public class PHS implements SearchAlgorithm {
         this.reopen = false;
     }
 
+    @Override
+    public String getName() {
+        return "phs";
+    }
+
     /**
      * Creates a heap according to the required type (Builder design pattern)
      *
