@@ -93,7 +93,7 @@ public class Main {
     }
 
     public SearchDomain createDockyardRobot(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/dockyardrobot/generated/" + instance));
+        InputStream is = new FileInputStream(new File("input/dockyardrobot/generated-max-edge-2-out-of-place-30/" + instance));
         return new DockyardRobot(is);
     }
 
@@ -108,7 +108,7 @@ public class Main {
         SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
         SearchAlgorithm alg = new WAStar();
         SearchResult result = alg.search(domain);
-        if (result.getSolutions().size() > 0) {
+        if (result.hasSolution()) {
             double d[] = new double[]{
                     1,
                     1,
@@ -131,7 +131,7 @@ public class Main {
         SearchAlgorithm alg = new WAStar(1.0, true);
         SearchResult result = alg.search(domain);
         assert result.getSolutions().size() == 1;
-        if (result.getSolutions().size() > 0) {
+        if (result.hasSolution()) {
             double d[] = new double[]{
                     1,
                     1,
@@ -152,7 +152,7 @@ public class Main {
         SearchDomain domain = mainTest.createPancakesUnit("1.in");
         SearchAlgorithm alg = new WAStar();
         SearchResult result = alg.search(domain);
-        if (result.getSolutions().size() > 0) {
+        if (result.hasSolution()) {
             double d[] = new double[]{
                     1,
                     1,
@@ -170,10 +170,10 @@ public class Main {
 
     public static void mainDockyardRobotDomain() throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createDockyardRobot("1.in");
+        SearchDomain domain = mainTest.createDockyardRobot("19.in");
         SearchAlgorithm alg = new WAStar(1.0, true);
         SearchResult result = alg.search(domain);
-        if (result.getSolutions().size() > 0) {
+        if (result.hasSolution()) {
             double d[] = new double[]{
                     1,
                     1,
@@ -213,9 +213,9 @@ public class Main {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
         SearchAlgorithm alg = new PTS();
-        alg.setAdditionalParameter("maxCost", "80");
+        alg.setAdditionalParameter("max-cost", "80");
         SearchResult result = alg.search(domain);
-        if (result.getSolutions().size() > 0) {
+        if (result.hasSolution()) {
             double d[] = new double[]{
                     1,
                     1,
@@ -252,7 +252,7 @@ public class Main {
                         System.out.println("Solving instance " + i + " For weight " + totalWeight + " reopen? " + reopen);
                         SearchResult result = alg.search(domain);
                         double d[];
-                        if (result.getSolutions().size() > 0) {
+                        if (result.hasSolution()) {
                             d = new double[]{
                                     i,
                                     1,
@@ -283,8 +283,8 @@ public class Main {
         //Main.mainGridPathFindingDomain(args);
         //Main.mainPancakesDomain(args);
         //Main.mainVacuumRobotDomain(args);
-        //Main.mainDockyardRobotDomain();
+        Main.mainDockyardRobotDomain();
 
-        Main.mainPTS(args);
+        //Main.mainPTS(args);
     }
 }
