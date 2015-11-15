@@ -16,14 +16,14 @@ public class DomainsCreation {
      ******************************************************************************************************************/
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/" + instance));
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/den400d.map/" + instance));
         return new GridPathFinding(is);
     }
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(String instance)
             throws IOException {
         String mapFileName = "input/gridpathfinding/generated/brc202d";
-        String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots";
+        String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
         int pivotsCount = 10;
         InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
