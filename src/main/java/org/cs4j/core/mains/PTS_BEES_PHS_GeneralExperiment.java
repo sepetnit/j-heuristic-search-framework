@@ -259,57 +259,144 @@ public class PTS_BEES_PHS_GeneralExperiment {
      ******************************************************************************************************************/
 
     /**
-     * Runs an experiment using the WAStar and EES algorithms in a SINGLE THREAD!
+     * Runs an experiment using the different algorithms, in a SINGLE THREAD!
      *
      * @param firstInstance The id of the first instance to solve
      * @param instancesCount The number of instances to solve
      * @param maxCosts The max costs array
      * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
      *
-     * @return The name of the output file where all the data recedes
+     * @return Names of the output files where all the data recedes
      *
      * @throws java.io.IOException
      */
-    public String runExperimentSingleThreaded(int firstInstance, int instancesCount, int[] maxCosts,
-                                              String outputPath, boolean needHeader) throws IOException {
+    public String[] runExperimentSingleThreaded(int firstInstance, int instancesCount, int[] maxCosts,
+                                                String outputPath, boolean needHeader) throws IOException {
 
-        //SearchAlgorithm alg = new PTS();
-        //SearchAlgorithm alg = new BEES();
-        SearchAlgorithm alg = new PHS();
+        // Run using PHS, BEES, PTS
+        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new PHS(), new BEES(), new PTS()};
+        List<String> resultFiles = new ArrayList<>();
 
-        outputPath = outputPath.replace("<alg-name>", alg.getName());
-        OutputResult output = this.getOutputResult(outputPath, needHeader);
+        for (SearchAlgorithm alg : algorithms) {
+            System.out.println("[INFO] Experimenting with " + alg.getName() + " algorithm");
+            String currentOutputPath = outputPath.replace("<alg-name>", alg.getName());
+            OutputResult output = this.getOutputResult(currentOutputPath, needHeader);
 
-        int[] realMaxCosts = maxCosts;
+            int[] realMaxCosts = maxCosts;
 
-        // in case the maxCosts were not given - let's create some default costs array
-        if (maxCosts == null) {
-            realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
-                    new MaxCostsCreationElement[]{
-                            new MaxCostsCreationElement(80, 5, 800)
-                            //new MaxCostsCreationElement(100, 5, 800)
-                            //new MaxCostsCreationElement(300, 5, 2000)
-                    }
-            );
-            System.out.println("[WARNING] Created default costs array");
-        }
-
-        // Go over all the possible combinations and solve!
-        for (int i = firstInstance; i <= instancesCount; ++i) {
-            // Create the domain by reading the relevant instance file
-            SearchDomain domain =
-                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
-            // Bypass not found files
-            if (domain == null) {
-                continue;
+            // in case the maxCosts were not given - let's create some default costs array
+            if (maxCosts == null) {
+                realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
+                        new MaxCostsCreationElement[]{
+                                new MaxCostsCreationElement(0, 5, 2000)
+                                //new MaxCostsCreationElement(80, 5, 800)
+                                //new MaxCostsCreationElement(100, 5, 800)
+                                //new MaxCostsCreationElement(300, 5, 2000)
+                        }
+                );
+                System.out.println("[WARNING] Created default costs array");
             }
-            for (int maxCost : realMaxCosts) {
-                output.write(i + "," + maxCost + ",");
-                for (boolean reopen : this.reopenPossibilities) {
+
+            // Go over all the possible combinations and solve!
+            for (int i = firstInstance; i <= instancesCount; ++i) {
+                // Create the domain by reading the relevant instance file
+                SearchDomain domain =
+                        DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                // Bypass not found files
+                if (domain == null) {
+                    continue;
+                }
+                for (int maxCost : realMaxCosts) {
+                    output.write(i + "," + maxCost + ",");
+                    for (boolean reopen : this.reopenPossibilities) {
+                        alg.setAdditionalParameter("max-cost", maxCost + "");
+                        alg.setAdditionalParameter("reopen", reopen + "");
+                        System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost + ", Reopen: " + reopen);
+                        try {
+                            SearchResult result = alg.search(domain);
+                            // No solution
+                            if (!result.hasSolution()) {
+                                output.appendNewResult(this._getNoSolutionResult());
+                                System.out.println("[INFO] Done: NoSolution");
+                            } else {
+                                double[] resultData = this._getSolutionResult(result);
+                                System.out.println("[INFO] Done: " + Arrays.toString(resultData));
+                                output.appendNewResult(resultData);
+                            }
+                        } catch (OutOfMemoryError e) {
+                            System.out.println("[INFO] Done: OutOfMemory :-(");
+                            output.appendNewResult(this._getOutOfMemoryResult());
+                        }
+                    }
+                    output.newline();
+                }
+            }
+            output.close();
+            resultFiles.add(output.getFname());
+        }
+        return resultFiles.toArray(new String[algorithms.length]);
+    }
+
+    /**
+     * Runs the experiment, but now uses NR and only if failed runs again with AR
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param maxCosts The max costs array
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @return Names of the output files where all the data recedes
+     *
+     * @throws java.io.IOException
+     */
+    public String[] runExperimentSingleThreadedWithReRun(int firstInstance, int instancesCount, int[] maxCosts,
+                                                         String outputPath) throws IOException {
+
+
+        // Run using PHS, BEES, PTS
+        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new PTS(), new BEES(), new PHS()};
+        List<String> resultFiles = new ArrayList<>();
+
+        for (SearchAlgorithm alg : algorithms) {
+            System.out.println("[INFO] Experimenting with " + alg.getName() + " algorithm");
+            String currentOutputPath = outputPath.replace("<alg-name>", alg.getName());
+            OutputResult output = this.getOutputResult(currentOutputPath, false);
+            // Write the header line
+            output.writeln(
+                    "InstanceID,MaxCost," +
+                            "NAR-Slv,NAR-Dep,NAR-Ggl,NAR-Gen,NAR-Exp,NAR-Dup,NAR-Oup,NAR-Rep,"
+            );
+
+            int[] realMaxCosts = maxCosts;
+
+            // in case the maxCosts were not given - let's create some default costs array
+            if (maxCosts == null) {
+                realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
+                        new MaxCostsCreationElement[]{
+                                new MaxCostsCreationElement(0, 5, 2000)
+                                //new MaxCostsCreationElement(80, 5, 800)
+                                //new MaxCostsCreationElement(100, 5, 800)
+                                //new MaxCostsCreationElement(300, 5, 2000)
+                        }
+                );
+                System.out.println("[WARNING] Created default costs array");
+            }
+
+            // Go over all the possible combinations and solve!
+            for (int i = firstInstance; i <= instancesCount; ++i) {
+                // Create the domain by reading the relevant instance file
+                SearchDomain domain =
+                        DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
+                // Bypass not found files
+                if (domain == null) {
+                    continue;
+                }
+                for (int maxCost : realMaxCosts) {
+                    output.write(i + "," + maxCost + ",");
                     alg.setAdditionalParameter("max-cost", maxCost + "");
-                    alg.setAdditionalParameter("reopen", reopen + "");
-                    alg.setAdditionalParameter("reopen", reopen + "");
-                    System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost + ", Reopen: " + reopen);
+                    alg.setAdditionalParameter("reopen", false + "");
+                    alg.setAdditionalParameter("rerun-if-not-found-and-nr", true + "");
+                    System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost);
                     try {
                         SearchResult result = alg.search(domain);
                         // No solution
@@ -325,91 +412,13 @@ public class PTS_BEES_PHS_GeneralExperiment {
                         System.out.println("[INFO] Done: OutOfMemory :-(");
                         output.appendNewResult(this._getOutOfMemoryResult());
                     }
+                    output.newline();
                 }
-                output.newline();
             }
+            output.close();
+            resultFiles.add(output.getFname());
         }
-        output.close();
-        return output.getFname();
-    }
-
-    /**
-     * Runs a PTS/BEES experiment, but now uses NR and only if failed runs again with AR
-     *
-     * @param firstInstance The id of the first instance to solve
-     * @param instancesCount The number of instances to solve
-     * @param maxCosts The max costs array
-     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
-     *
-     * @return The name of the output file where all the data recedes
-     *
-     * @throws java.io.IOException
-     */
-    public String runExperimentSingleThreadedWithReRun(int firstInstance, int instancesCount, int[] maxCosts,
-                                                       String outputPath) throws IOException {
-
-
-        //SearchAlgorithm alg = new PHS();
-        //SearchAlgorithm alg = new BEES();
-        SearchAlgorithm alg = new PTS();
-
-        outputPath = outputPath.replace("<alg-name>", alg.getName());
-        OutputResult output = this.getOutputResult(outputPath, false);
-        // Write the header line
-        output.writeln(
-                "InstanceID,MaxCost," +
-                        "NAR-Slv,NAR-Dep,NAR-Ggl,NAR-Gen,NAR-Exp,NAR-Dup,NAR-Oup,NAR-Rep,"
-        );
-
-        int[] realMaxCosts = maxCosts;
-
-        // in case the maxCosts were not given - let's create some default costs array
-        if (maxCosts == null) {
-            realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
-                    new MaxCostsCreationElement[]{
-                            //new MaxCostsCreationElement(80, 5, 800)
-                            new MaxCostsCreationElement(100, 5, 800)
-                            //new MaxCostsCreationElement(300, 5, 2000)
-                    }
-            );
-            System.out.println("[WARNING] Created default costs array");
-        }
-
-        // Go over all the possible combinations and solve!
-        for (int i = firstInstance; i <= instancesCount; ++i) {
-            // Create the domain by reading the relevant instance file
-            SearchDomain domain =
-                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
-            // Bypass not found files
-            if (domain == null) {
-                continue;
-            }
-            for (int maxCost : realMaxCosts) {
-                output.write(i + "," + maxCost + ",");
-                alg.setAdditionalParameter("max-cost", maxCost + "");
-                alg.setAdditionalParameter("reopen", false + "");
-                alg.setAdditionalParameter("rerun-if-not-found-and-nr", true + "");
-                System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost);
-                try {
-                    SearchResult result = alg.search(domain);
-                    // No solution
-                    if (!result.hasSolution()) {
-                        output.appendNewResult(this._getNoSolutionResult());
-                        System.out.println("[INFO] Done: NoSolution");
-                    } else {
-                        double[] resultData = this._getSolutionResult(result);
-                        System.out.println("[INFO] Done: " + Arrays.toString(resultData));
-                        output.appendNewResult(resultData);
-                    }
-                } catch (OutOfMemoryError e) {
-                    System.out.println("[INFO] Done: OutOfMemory :-(");
-                    output.appendNewResult(this._getOutOfMemoryResult());
-                }
-                output.newline();
-            }
-        }
-        output.close();
-        return output.getFname();
+        return resultFiles.toArray(new String[algorithms.length]);
     }
 
 
@@ -518,7 +527,8 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800",
+                    "results/vacuumrobot/generated-10-dirt/<alg-name>-0-5-2000",
+                    //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800",
                     //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800",
                     //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000",
                     // Add header
@@ -541,31 +551,10 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
+                    "results/vacuumrobot/generated-10-dirt/<alg-name>-0-5-2000-rerun");
                     //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800-rerun");
                     //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000-rerun");
-                    "results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800-rerun");
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-            System.exit(-1);
-        }
-    }
-
-    /**
-     * For multiple threads
-     */
-    public static void mainGeneralExperimentMultiThreaded() {
-        // Solve with 100 instances
-        try {
-            PTS_BEES_PHS_GeneralExperiment experiment = new PTS_BEES_PHS_GeneralExperiment();
-            experiment.runExperimentMultiThreaded(
-                    // First instance ID
-                    1,
-                    // Instances Count
-                    100,
-                    // Max costs
-                    new int[] {55, 60, 65, 70, 75, 80, 85, 90},
-                    // Output Path
-                    "results/fifteenpuzzle/korf100-new/pts-55-60-65-70-75-80-85-90");
+                    //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800-rerun");
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);

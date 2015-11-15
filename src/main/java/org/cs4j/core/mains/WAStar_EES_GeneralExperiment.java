@@ -268,11 +268,13 @@ public class WAStar_EES_GeneralExperiment {
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
         SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
 
+        // Create the domain by reading the first instance
+        SearchDomain domain =
+                DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(firstInstance + ".in");
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            SearchDomain domain =
-                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(i + ".in");
+            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(domain, i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;

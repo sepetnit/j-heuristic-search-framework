@@ -24,7 +24,7 @@ public class DomainsCreation {
             throws IOException {
         String mapFileName = "input/gridpathfinding/generated/brc202d";
         String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
-        int pivotsCount = 10;
+        int pivotsCount = 5;
         InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
         problem.setAdditionalParameter("heuristic", "tdh-furthest");
@@ -33,6 +33,13 @@ public class DomainsCreation {
         return problem;
     }
 
+    public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(SearchDomain previous,
+                                                                                              String instance)
+            throws IOException {
+        String mapFileName = "input/gridpathfinding/generated/brc202d";
+        InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
+        return new GridPathFinding((GridPathFinding)previous, is);
+    }
 
     // The k is for GAP-k heuristic setting
     public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(int size, String instance, int k) throws FileNotFoundException {
