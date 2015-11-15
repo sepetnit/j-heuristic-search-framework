@@ -273,6 +273,11 @@ public class PTS_BEES_PHS_GeneralExperiment {
     public String runExperimentSingleThreaded(int firstInstance, int instancesCount, int[] maxCosts,
                                               String outputPath, boolean needHeader) throws IOException {
 
+        //SearchAlgorithm alg = new PTS();
+        //SearchAlgorithm alg = new BEES();
+        SearchAlgorithm alg = new PHS();
+
+        outputPath = outputPath.replace("<alg-name>", alg.getName());
         OutputResult output = this.getOutputResult(outputPath, needHeader);
 
         int[] realMaxCosts = maxCosts;
@@ -281,15 +286,13 @@ public class PTS_BEES_PHS_GeneralExperiment {
         if (maxCosts == null) {
             realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                     new MaxCostsCreationElement[]{
-                            new MaxCostsCreationElement(300, 5, 2000)
+                            new MaxCostsCreationElement(80, 5, 800)
+                            //new MaxCostsCreationElement(100, 5, 800)
+                            //new MaxCostsCreationElement(300, 5, 2000)
                     }
             );
             System.out.println("[WARNING] Created default costs array");
         }
-
-        //SearchAlgorithm alg = new PTS();
-        //SearchAlgorithm alg = new BEES();
-        SearchAlgorithm alg = new PHS();
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
@@ -345,6 +348,12 @@ public class PTS_BEES_PHS_GeneralExperiment {
     public String runExperimentSingleThreadedWithReRun(int firstInstance, int instancesCount, int[] maxCosts,
                                                        String outputPath) throws IOException {
 
+
+        //SearchAlgorithm alg = new PHS();
+        //SearchAlgorithm alg = new BEES();
+        SearchAlgorithm alg = new PTS();
+
+        outputPath = outputPath.replace("<alg-name>", alg.getName());
         OutputResult output = this.getOutputResult(outputPath, false);
         // Write the header line
         output.writeln(
@@ -358,15 +367,13 @@ public class PTS_BEES_PHS_GeneralExperiment {
         if (maxCosts == null) {
             realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                     new MaxCostsCreationElement[]{
-                            new MaxCostsCreationElement(300, 5, 2000)
+                            //new MaxCostsCreationElement(80, 5, 800)
+                            new MaxCostsCreationElement(100, 5, 800)
+                            //new MaxCostsCreationElement(300, 5, 2000)
                     }
             );
             System.out.println("[WARNING] Created default costs array");
         }
-
-        SearchAlgorithm alg = new BEES();
-        //SearchAlgorithm alg = new PHS();
-        //SearchAlgorithm alg = new PTS();
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
@@ -511,7 +518,9 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/bees-300-5-2000",
+                    "results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800",
+                    //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800",
+                    //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -532,7 +541,9 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/bees-300-5-2000-rerun");
+                    //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800-rerun");
+                    //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000-rerun");
+                    "results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800-rerun");
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(-1);
