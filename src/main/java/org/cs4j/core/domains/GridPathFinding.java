@@ -42,7 +42,7 @@ public class GridPathFinding implements SearchDomain {
     {
         GridPathFindingPossibleParameters = new HashMap<>();
         GridPathFinding.GridPathFindingPossibleParameters.put("heuristic", String.class);
-        GridPathFinding.GridPathFindingPossibleParameters.put("pivots-distances-pdb-file", String.class);
+        GridPathFinding.GridPathFindingPossibleParameters.put("pivots-distances-db-file", String.class);
         GridPathFinding.GridPathFindingPossibleParameters.put("pivots-count", Integer.class);
     }
 
@@ -962,8 +962,8 @@ public class GridPathFinding implements SearchDomain {
      *
      * @throws IOException In something wrong occurred
      */
-    private Pair<int[], Map<Integer, Map<Integer, Double>>> _readPivotsPDB(String pivotsPDBFile) throws IOException {
-        System.out.println("[INFO] Reading pivots PDB from " + pivotsPDBFile);
+    private Pair<int[], Map<Integer, Map<Integer, Double>>> _readPivotsDB(String pivotsPDBFile) throws IOException {
+        System.out.println("[INFO] Reading pivots DB from " + pivotsPDBFile);
         DataInputStream inputStream = new DataInputStream(new FileInputStream(pivotsPDBFile));
         // First, read count of pivots
         int pivotsCount = inputStream.readInt();
@@ -981,7 +981,7 @@ public class GridPathFinding implements SearchDomain {
             }
             distancesMap.put(pivot, currentDistancesMap);
         }
-        System.out.println("[INFO] Finished reading pivots PDB from " + pivotsPDBFile);
+        System.out.println("[INFO] Finished reading pivots DB from " + pivotsPDBFile);
         return new Pair<>(pivots, distancesMap);
     }
 
@@ -1005,10 +1005,9 @@ public class GridPathFinding implements SearchDomain {
                 }
                 break;
             }
-            case "pivots-distances-pdb-file": {
+            case "pivots-distances-db-file": {
                 try {
-                    Pair<int[], Map<Integer, Map<Integer, Double>>> readData =
-                            this._readPivotsPDB(value);
+                    Pair<int[], Map<Integer, Map<Integer, Double>>> readData = this._readPivotsDB(value);
                     this.orderedPivots = readData.getKey();
                     this.distancesFromPivots = readData.getValue();
                     // Debug:

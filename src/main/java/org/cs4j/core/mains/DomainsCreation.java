@@ -28,7 +28,7 @@ public class DomainsCreation {
         InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
         problem.setAdditionalParameter("heuristic", "tdh-furthest");
-        problem.setAdditionalParameter("pivots-distances-pdb-file", pivotsFileName);
+        problem.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
         problem.setAdditionalParameter("pivots-count", pivotsCount + "");
         return problem;
     }
@@ -78,7 +78,7 @@ public class DomainsCreation {
     }
 
     public static SearchDomain createDockyardRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/dockyardrobot/generated/" + instance));
+        InputStream is = new FileInputStream(new File("input/dockyardrobot/generated-max-edge-2-out-of-place-30/" + instance));
         return new DockyardRobot(is);
     }
 }
