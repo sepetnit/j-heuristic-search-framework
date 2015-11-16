@@ -20,16 +20,16 @@ public class DomainsCreation {
         return new GridPathFinding(is);
     }
 
-    public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(String instance)
-            throws IOException {
-        //String mapFileName = "input/gridpathfinding/generated/brc202d";
-        String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
-        //String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
-        String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_" + new File(mapFileName).getName() + ".pivots.pdb";
-        int pivotsCount = 2;
+    public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
+            String instance, int pivotsCount) throws IOException {
+        String mapFileName = "input/gridpathfinding/generated/brc202d.map";
+        //String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
+        String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
+        //String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_" + new File(mapFileName).getName() + ".pivots.pdb";
         InputStream is = new FileInputStream(new File(mapFileName + "/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
         problem.setAdditionalParameter("heuristic", "tdh-furthest");
+        //problem.setAdditionalParameter("heuristic", "tdh-furthest-md-prob-50");
         problem.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
         problem.setAdditionalParameter("pivots-count", pivotsCount + "");
         return problem;
@@ -38,8 +38,8 @@ public class DomainsCreation {
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(SearchDomain previous,
                                                                                               String instance)
             throws IOException {
-        //String mapFileName = "input/gridpathfinding/generated/brc202d";
-        String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
+        String mapFileName = "input/gridpathfinding/generated/brc202d.map";
+        //String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
         InputStream is = new FileInputStream(new File(mapFileName, instance));
         return new GridPathFinding((GridPathFinding)previous, is);
     }

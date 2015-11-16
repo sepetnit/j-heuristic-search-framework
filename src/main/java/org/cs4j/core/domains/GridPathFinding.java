@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Vector;
 
 /**
@@ -67,15 +68,19 @@ public class GridPathFinding implements SearchDomain {
         // Manhattan distance
         MD,
         // TDH with furthest k pivots
-        TDH_FURTHEST
+        DH_FURTHEST,
+        // 50% take h of DH (with k pivots) and 50% take MD (Warning: Not consistent!)
+        DH_FURTHEST_MD_PROB_50
     }
 
     private HeuristicType heuristicType;
-    // The number of pivots in case TDH_FURTHEST is used
+    // The number of pivots in case DH_FURTHEST is used
     private int pivotsCount;
     // Required for the TDH heuristic
     private int[] orderedPivots;
     private Map<Integer, Map<Integer, Double>> distancesFromPivots;
+    // Used for DH_FURTHEST_MD_PROB_50 heuristic
+    private Random rand;
 
     private GridPathFindingOperator[] reverseOperators;
 
@@ -699,6 +704,7 @@ public class GridPathFinding implements SearchDomain {
         this.pivotsCount = other.pivotsCount;
         this.orderedPivots = other.orderedPivots;
         this.distancesFromPivots = other.distancesFromPivots;
+        this.rand = other.rand;
     }
 
     /**
@@ -726,7 +732,9 @@ public class GridPathFinding implements SearchDomain {
                         // TODO: Deals with a single goal only!
                         this.goalsPairs.get(0));
                 return new double[]{md, md};
-            } case TDH_FURTHEST: {
+            }
+            case DH_FURTHEST:
+            case DH_FURTHEST_MD_PROB_50: {
                 int currentGoal = this.goals.get(0);
                 double maxDistance = 0;
                 for (int i = 0; i < this.pivotsCount; ++i) {
@@ -749,9 +757,17 @@ public class GridPathFinding implements SearchDomain {
                         this.map.getPosition(s.agentLocation),
                         // TODO: Deals with a single goal only!
                         this.goalsPairs.get(0));
-                // Take the maximum value (chose from MD and DH)
-                double maxValue = Math.max(maxDistance, md);
-                return new double[]{maxValue, maxValue};
+                if (this.heuristicType == HeuristicType.DH_FURTHEST_MD_PROB_50) {
+                    if (this.rand.nextDouble() > 0.5) {
+                        return new double[]{maxDistance, maxDistance};
+                    } else {
+                        return new double[]{md, md};
+                    }
+                } else {
+                    // Take the maximum value (chose from MD and DH)
+                    double maxValue = Math.max(maxDistance, md);
+                    return new double[]{maxValue, maxValue};
+                }
             }
         }
         return new double[]{0, 0};
@@ -998,9 +1014,14 @@ public class GridPathFinding implements SearchDomain {
             case "heuristic": {
                 switch (value) {
                     case "tdh-furthest": {
-                        this.heuristicType = HeuristicType.TDH_FURTHEST;
+                        this.heuristicType = HeuristicType.DH_FURTHEST;
                         break;
                     }
+                    case "tdh-furthest-md-prob-50":
+                        this.heuristicType = HeuristicType.DH_FURTHEST_MD_PROB_50;
+                        // In this case we need the rand
+                        this.rand = new Random();
+                        break;
                     case "md": {
                         this.heuristicType = HeuristicType.MD;
                         break;
@@ -1029,8 +1050,9 @@ public class GridPathFinding implements SearchDomain {
                 }
                 break;
             } case "pivots-count": {
-                if (this.heuristicType != HeuristicType.TDH_FURTHEST) {
-                    System.out.println("[ERROR] Heuristic type isn't TDH - can't set pivots count");
+                if ((this.heuristicType != HeuristicType.DH_FURTHEST) &&
+                        (this.heuristicType != HeuristicType.DH_FURTHEST_MD_PROB_50)) {
+                    System.out.println("[ERROR] Heuristic type isn't DH - can't set pivots count");
                     throw new IllegalArgumentException();
                 } else if (this.orderedPivots == null) {
                     System.out.println("[ERROR] Please specify pivots file");
@@ -1099,7 +1121,7 @@ public class GridPathFinding implements SearchDomain {
      * @return Whether the domain settings are Ok
      */
     private boolean _checkSettings() {
-        return this.heuristicType != HeuristicType.TDH_FURTHEST || this.pivotsCount >= 1;
+        return this.heuristicType != HeuristicType.DH_FURTHEST || this.pivotsCount >= 1;
     }
 
     @Override

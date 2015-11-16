@@ -543,7 +543,7 @@ public class EES implements SearchAlgorithm {
             this.dHat = this._computeDHat();
             this.fHat = this.g + this.hHat;
 
-            // This must be true assuming the heuristic is admissible (fHat may only overestimate the cost to the goal)
+            // This must be true assuming the heuristic is consistent (fHat may only overestimate the cost to the goal)
             assert this.fHat >= this.f;
             assert this.dHat >= 0;
         }
