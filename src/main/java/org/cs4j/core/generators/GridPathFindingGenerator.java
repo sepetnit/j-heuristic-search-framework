@@ -425,7 +425,7 @@ public class GridPathFindingGenerator extends GeneralInstancesGenerator {
         sb.append(",");
         sb.append(startY);
         sb.append("\n");
-        sb.append("goal: ");
+        sb.append("goals: ");
         sb.append(goalX);
         sb.append(",");
         sb.append(goalY);
