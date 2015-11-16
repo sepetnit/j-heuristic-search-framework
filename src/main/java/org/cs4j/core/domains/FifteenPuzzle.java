@@ -684,8 +684,6 @@ public final class FifteenPuzzle implements SearchDomain {
             this.parent = state.parent;
         }
 
-
-
         private int getHash7Index() {
             int[] permutation = new int[7];
             permutation[0] = this.blank;
@@ -806,6 +804,23 @@ public final class FifteenPuzzle implements SearchDomain {
     private static final long TABLE_SIZE_PDB8 = 16 * 15 * 14 * 13 * 12 * 11 * 10 * 9;
 
     /**
+     * Read a permutation index from the DB
+     *
+     * @param inputStream The DB of permutations
+     *
+     * @return The read index
+     *
+     * @throws IOException If something wrong occurred
+     */
+    private int _readIndex(DataInputStream inputStream) throws IOException {
+        int val = 0;
+        for (int i = 0; i < 4; ++i) {
+            val = (val * 256) + inputStream.readChar();
+        }
+        return val;
+    }
+
+    /**
      * Reads a single PDB table from the given file
      *
      * @param pdbFileName The name of the PDB file
@@ -825,7 +840,8 @@ public final class FifteenPuzzle implements SearchDomain {
                 System.out.println("\r[INFO] Read " + (i + 1) + "/" + permutationsCount + " values");
             }
             // First, read the hash value of the permutation
-            int hashValue = inputStream.readInt();
+            //int hashValue = inputStream.readInt();
+            int hashValue = this._readIndex(inputStream);
             // Now, read the distance
             char distance = inputStream.readChar();
             if (distance >= permutationsCount) {
