@@ -744,7 +744,14 @@ public class GridPathFinding implements SearchDomain {
                         maxDistance = diff;
                     }
                 }
-                return new double[]{maxDistance, maxDistance};
+                // Compute also the Manhattan Distance
+                int md = Utils.calcManhattanDistance(
+                        this.map.getPosition(s.agentLocation),
+                        // TODO: Deals with a single goal only!
+                        this.goalsPairs.get(0));
+                // Take the maximum value (chose from MD and DH)
+                double maxValue = Math.max(maxDistance, md);
+                return new double[]{maxValue, maxValue};
             }
         }
         return new double[]{0, 0};
