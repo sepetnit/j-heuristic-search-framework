@@ -231,6 +231,32 @@ public final class FifteenPuzzle implements SearchDomain {
         this.costFunction = cost;
         this._initMD();
         this._initOperators();
+        // Create a new operator for each possible tile - i is the position of blank
+        for (int i = 0; i < this.possibleOperators.length; ++i) {
+            this.possibleOperators[i] = new FifteenPuzzleOperator(i);
+        }
+        // Manhattan Distance is the default heuristic type
+        this.heuristicType = HeuristicType.MD;
+        // Initially, no pdb-7-8
+        this.pdb7 = null;
+        this.pdb8 = null;
+        // Initially, no pdb-555
+        this.pdb5_1 = null;
+        this.pdb5_2 = null;
+        this.pdb5_3 = null;
+    }
+
+    /**
+     * A default constructor of the class:
+     *
+     * Initialize a default instance of the FifteenPuzzle such that all the tiles are at their place
+     */
+    public FifteenPuzzle() {
+        for (int t = 0; t < this.tilesNumber; ++t) {
+            this.init[t] = t;
+        }
+        // Initialize the rest
+        this._init(COST_FUNCTION.UNIT);
     }
 
     /**
@@ -273,22 +299,8 @@ public final class FifteenPuzzle implements SearchDomain {
             e.printStackTrace();
             Utils.fatal("Error reading input file");
         }
-        // Call the init function and initialize the domain and the instance, according to the read
-        // values
+        // Call the init function and initialize the domain and the instance, according to the read values
         this._init(costFunction);
-        // Create a new operator for each possible tile - i is the position of blank
-        for (int i = 0; i < this.possibleOperators.length; ++i) {
-            this.possibleOperators[i] = new FifteenPuzzleOperator(i);
-        }
-        // Manhattan Distance is the default heuristic type
-        this.heuristicType = HeuristicType.MD;
-        // Initially, no pdb-7-8
-        this.pdb7 = null;
-        this.pdb8 = null;
-        // Initially, no pdb-555
-        this.pdb5_1 = null;
-        this.pdb5_2 = null;
-        this.pdb5_3 = null;
     }
 
     /**
@@ -298,6 +310,27 @@ public final class FifteenPuzzle implements SearchDomain {
      */
     public FifteenPuzzle(InputStream stream) {
         this(stream, COST_FUNCTION.UNIT);
+    }
+
+    /**
+     * A copy constructor of the class - used for cases when heuristic is calculated with PDB -
+     *
+     * we don't want to read it each time again
+     *
+     * @param other Instance to copy from
+     *
+     * @param stream The input stream to read the tiles from
+     */
+    public FifteenPuzzle(FifteenPuzzle other, InputStream stream) {
+        // Call a regular constructor
+        this(stream);
+        // Copy heuristic related data
+        this.heuristicType = other.heuristicType;
+        this.pdb7 = other.pdb7;
+        this.pdb8 = other.pdb8;
+        this.pdb5_1 = other.pdb5_1;
+        this.pdb5_2 = other.pdb5_2;
+        this.pdb5_3 = other.pdb5_3;
     }
 
     /**
@@ -373,8 +406,12 @@ public final class FifteenPuzzle implements SearchDomain {
         return new double[]{h, d};
     }
 
-    @Override
-    public State initialState() {
+    /**
+     * Creates an initial state but ignores any heuristic related issues
+     *
+     * @return The created state
+     */
+    public TileState initialStateNoHeuristic() {
         int blank = -1;
         // Initialize the tiles
         int tiles[] = new int[this.tilesNumber];
@@ -396,6 +433,44 @@ public final class FifteenPuzzle implements SearchDomain {
         TileState s = new TileState();
         s.tiles = tiles;
         s.blank = blank;
+        return s;
+    }
+
+    /**
+     * Each permutation is mapped to an index corresponding to its position in a lexicographic ordering of all
+     * permutations
+     *
+     * The function computes this value for a given permutation
+     *
+     * @param permutation The vector to be hashed
+     *
+     * @return The computed hash value
+     */
+    public int _getHashNIndex(int[] permutation) {
+        int actualLength = permutation.length - 1;
+        // initialize hash value to empty
+        int hash = 0;
+        // for each remaining position in permutation
+        for (int i = 0; i < actualLength + 1; ++i) {
+            // initially digit is value in permutation
+            int digit = permutation[i];
+            // for each previous element in permutation
+            for (int j = 0; j < i; j++) {
+                // previous position contains smaller value - so decrement digit
+                if (permutation[j] < permutation[i]) {
+                    --digit;
+                }
+            }
+            // multiply digit by appropriate factor
+            hash = hash * (FifteenPuzzle.this.tilesNumber - i) + digit;
+        }
+        hash = hash / (FifteenPuzzle.this.tilesNumber - actualLength);
+        return hash;
+    }
+
+    @Override
+    public State initialState() {
+        TileState s = this.initialStateNoHeuristic();
         // Let's calculate the heuristic values (h and d)
         double[] computedHD = this.computeHD(s);
         s.h = computedHD[0];
@@ -455,6 +530,28 @@ public final class FifteenPuzzle implements SearchDomain {
         return copy;
     }
 
+    /**
+     * Apply an operator, but ignore any heuristic related issues
+     *
+     * @param s The state to apply the operator on
+     * @param op The operator to apply
+     *
+     * @return The result state
+     */
+    public State applyOperatorNoHeuristic(State s, Operator op) {
+        TileState ts = (TileState) copy(s);
+        FifteenPuzzleOperator fop = (FifteenPuzzleOperator) op;
+        // Get the updated position of the blank
+        int futureBlankPosition = fop.value;
+        // Get the tile located at the future blank position
+        int tileAtFutureBlankPosition = ts.tiles[fop.value];
+        // Move that tile to the current position of blank
+        ts.tiles[ts.blank] = tileAtFutureBlankPosition;
+        ts.blank = futureBlankPosition;
+        return ts;
+    }
+
+
     @Override
     public State applyOperator(State s, Operator op) {
         TileState ts = (TileState) copy(s);
@@ -494,6 +591,35 @@ public final class FifteenPuzzle implements SearchDomain {
         return new PackedElement(result);
     }
 
+    /**
+     * Unpacks the state but ignores all the heuristic related issues
+     *
+     * @param packed The packed state
+     *
+     * @return The unpacked state
+     */
+    public State unpackNoHeuristic(PackedElement packed) {
+        assert packed.getLongsCount() == 1;
+        long firstPacked = packed.getFirst();
+        TileState ts = new TileState();
+        ts.blank = -1;
+        // Start from end and go to start
+        for (int i = this.tilesNumber - 1; i >= 0; --i) {
+            // Each time, extract a single tile
+            int t = (int) firstPacked & 0xF;
+            // Initialize this tile
+            ts.tiles[i] = t;
+            // Mark the blank (in this case there is no need to update the distance between the tile
+            // and its required position (in the goal)
+            if (t == 0) {
+                ts.blank = i;
+            }
+            // Update the word so that the next tile can be now extracted
+            firstPacked >>= 4;
+        }
+        return ts;
+    }
+
     @Override
     public State unpack(PackedElement packed) {
         assert packed.getLongsCount() == 1;
@@ -510,12 +636,17 @@ public final class FifteenPuzzle implements SearchDomain {
             // and its required position (in the goal)
             if (t == 0) {
                 ts.blank = i;
-            } else {
+            } else if (this.heuristicType == HeuristicType.MD) {
                 ts.h += this.md[t][i];
                 ts.d += this.mdUnit[t][i];
             }
             // Update the word so that the next tile can be now extracted
             firstPacked >>= 4;
+        }
+        if (this.heuristicType != HeuristicType.MD) {
+            double[] computedHD = this.computeHD(ts);
+            ts.h = computedHD[0];
+            ts.d = computedHD[1];
         }
         return ts;
     }
@@ -553,37 +684,7 @@ public final class FifteenPuzzle implements SearchDomain {
             this.parent = state.parent;
         }
 
-        /**
-         * Each permutation is mapped to an index corresponding to its position in a lexicographic ordering of all
-         * permutations
-         *
-         * The function computes this value for a given permutation
-         *
-         * @param permutation The vector to be hashed
-         *
-         * @return The computed hash value
-         */
-        private int _getHashNIndex(int[] permutation) {
-            int actualLength = permutation.length - 1;
-            // initialize hash value to empty
-            int hash = 0;
-            // for each remaining position in permutation
-            for (int i = 0; i < actualLength + 1; ++i) {
-                // initially digit is value in permutation
-                int digit = permutation[i];
-                // for each previous element in permutation
-                for (int j = 0; j < i; j++) {
-                    // previous position contains smaller value - so decrement digit
-                    if (permutation[j] < permutation[i]) {
-                        --digit;
-                    }
-                }
-                // multiply digit by appropriate factor
-                hash = hash * (FifteenPuzzle.this.tilesNumber - i) + digit;
-            }
-            hash = hash / (FifteenPuzzle.this.tilesNumber - actualLength);
-            return hash;
-        }
+
 
         private int getHash7Index() {
             int[] permutation = new int[7];
@@ -595,7 +696,7 @@ public final class FifteenPuzzle implements SearchDomain {
             permutation[5] = this.tiles[5];
             permutation[6] = this.tiles[6];
             permutation[7] = this.tiles[7];
-            return this._getHashNIndex(permutation);
+            return FifteenPuzzle.this._getHashNIndex(permutation);
         }
 
         private int getHash8Index() {
@@ -609,7 +710,7 @@ public final class FifteenPuzzle implements SearchDomain {
             permutation[6] = this.tiles[13];
             permutation[7] = this.tiles[14];
             permutation[8] = this.tiles[15];
-            return this._getHashNIndex(permutation);
+            return FifteenPuzzle.this._getHashNIndex(permutation);
         }
 
         @Override
