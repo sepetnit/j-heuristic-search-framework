@@ -29,7 +29,7 @@ import java.util.Set;
  * Created by sepetnit on 11/12/2015.
  *
  */
-public class PivotsPDBGenerator {
+public class PivotsDBGenerator {
 
     private static final double NO_SOLUTION = -2.0d;
 
@@ -233,7 +233,7 @@ public class PivotsPDBGenerator {
         if (result.hasSolution()) {
             return result.getSolutions().get(0).getCost();
         }
-        return PivotsPDBGenerator.NO_SOLUTION;
+        return PivotsDBGenerator.NO_SOLUTION;
     }
 
     /**
@@ -289,7 +289,7 @@ public class PivotsPDBGenerator {
                     continue;
                 }
                 if (grid.isBlocked(i)) {
-                    currentDistances.put(i, PivotsPDBGenerator.NO_SOLUTION);
+                    currentDistances.put(i, PivotsDBGenerator.NO_SOLUTION);
                     continue;
                 }
                 double currentSumOfDistances = 0.0d;
@@ -398,8 +398,8 @@ public class PivotsPDBGenerator {
      * @return The estimated size
      */
     private double _getPivotsFileSize(int mapSize, int pivotsCount) {
-        return ((PivotsPDBGenerator.DOUBLE_SIZE_IN_BYTES * ((pivotsCount + 1) + (mapSize * pivotsCount))) /
-                PivotsPDBGenerator.MB_SIZE_IN_BYTES);
+        return ((PivotsDBGenerator.DOUBLE_SIZE_IN_BYTES * ((pivotsCount + 1) + (mapSize * pivotsCount))) /
+                PivotsDBGenerator.MB_SIZE_IN_BYTES);
     }
 
     /**
@@ -647,7 +647,7 @@ public class PivotsPDBGenerator {
 
         int pivotsCount = 10;
 
-        PivotsPDBGenerator calculator = new PivotsPDBGenerator();
+        PivotsDBGenerator calculator = new PivotsDBGenerator();
 
         for (Map.Entry<String, String> pivotEntry : mapToPivots.entrySet()) {
             // Create a fake GridPathFinding problem (just for having the map)
@@ -686,7 +686,7 @@ public class PivotsPDBGenerator {
                         //"input/gridpathfinding/raw/maps/den400d.map",
                         //"input/gridpathfinding/raw/maps/ost003d.map"
                 };
-        PivotsPDBGenerator calculator = new PivotsPDBGenerator();
+        PivotsDBGenerator calculator = new PivotsDBGenerator();
         for (String mapFile : mapFiles) {
             // Read the map file
             if (!(new File(mapFile).exists())) {
@@ -722,8 +722,8 @@ public class PivotsPDBGenerator {
      * @param args Arguments to main (ignored)
      */
     public static void main(String[] args) {
-        // PivotsPDBGenerator.mainCreateAllPivots();
-        PivotsPDBGenerator.mainCreateAllPivotsPDBs(null);
+        // PivotsDBGenerator.mainCreateAllPivots();
+        PivotsDBGenerator.mainCreateAllPivotsPDBs(null);
     }
 
 }
