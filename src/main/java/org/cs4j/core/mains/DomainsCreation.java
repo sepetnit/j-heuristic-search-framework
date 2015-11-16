@@ -22,10 +22,12 @@ public class DomainsCreation {
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(String instance)
             throws IOException {
-        String mapFileName = "input/gridpathfinding/generated/brc202d";
-        String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
-        int pivotsCount = 5;
-        InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
+        //String mapFileName = "input/gridpathfinding/generated/brc202d";
+        String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
+        //String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
+        String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_" + new File(mapFileName).getName() + ".pivots.pdb";
+        int pivotsCount = 2;
+        InputStream is = new FileInputStream(new File(mapFileName + "/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
         problem.setAdditionalParameter("heuristic", "tdh-furthest");
         problem.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
@@ -36,8 +38,9 @@ public class DomainsCreation {
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(SearchDomain previous,
                                                                                               String instance)
             throws IOException {
-        String mapFileName = "input/gridpathfinding/generated/brc202d";
-        InputStream is = new FileInputStream(new File(mapFileName + ".map/" + instance));
+        //String mapFileName = "input/gridpathfinding/generated/brc202d";
+        String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
+        InputStream is = new FileInputStream(new File(mapFileName, instance));
         return new GridPathFinding((GridPathFinding)previous, is);
     }
 
