@@ -22,7 +22,7 @@ public class DFS implements SearchAlgorithm {
     // Visited list (seen states)
     private Map<PackedElement, Node> visited;
 
-    Stack<Node> stack;
+    private Stack<Node> stack;
 
     @Override
     public String getName() {

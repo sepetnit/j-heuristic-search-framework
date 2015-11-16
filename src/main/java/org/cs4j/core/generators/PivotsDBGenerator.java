@@ -640,9 +640,13 @@ public class PivotsDBGenerator {
             //        "input/gridpathfinding/raw/mine/test.map.pdb");
 
 
+            //mapToPivots.put(
+            //        "input/gridpathfinding/raw/mazes/maze1/maze512-1-6.map",
+            //        "input/gridpathfinding/raw/mazes/maze1/maze512-1-6.map.pivots.pdb");
+
             mapToPivots.put(
-                    "input/gridpathfinding/raw/mazes/maze1/maze512-1-6.map",
-                    "input/gridpathfinding/raw/mazes/maze1/maze512-1-6.map.pivots.pdb");
+                    "input/gridpathfinding/raw/mazes/maze1/maze512-1-6-80.map",
+                    "input/gridpathfinding/raw/mazes/maze1/maze512-1-6-80.map.pivots.pdb");
         }
 
         int pivotsCount = 10;
