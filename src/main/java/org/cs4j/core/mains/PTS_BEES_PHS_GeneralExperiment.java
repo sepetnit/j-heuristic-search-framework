@@ -181,7 +181,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                 maxCosts.add(i);
             }
         }
-        List<Integer> maxCostsAsList = new ArrayList<Integer>(maxCosts);
+        List<Integer> maxCostsAsList = new ArrayList<>(maxCosts);
         Collections.sort(maxCostsAsList);
         return Utils.integerListToArray(maxCostsAsList);
     }
@@ -280,7 +280,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                                                 String outputPath, boolean needHeader) throws IOException {
 
         // Run using PHS, BEES, PTS
-        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new PHS(), new BEES(), new PTS()};
+        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new BEES(), new PTS(), new PHS()};
         List<String> resultFiles = new ArrayList<>();
 
         for (SearchAlgorithm alg : algorithms) {
@@ -537,7 +537,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     // Max costs
                     null,
                     // Output Path
-                    "results/vacuumrobot/generated-10-dirt/<alg-name>-0-5-2000",
+                    "results/vacuumrobot/generated-10-dirt/last_<alg-name>-0-5-2000",
                     //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800",
                     //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800",
                     //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000",
@@ -596,8 +596,8 @@ public class PTS_BEES_PHS_GeneralExperiment {
 
     public static void main(String[] args) {
         //PTS_BEES_PHS_GeneralExperiment.cleanAllSearchFiles();
-        //PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreadedWithReRun();
+        PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreadedWithReRun();
         //PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }

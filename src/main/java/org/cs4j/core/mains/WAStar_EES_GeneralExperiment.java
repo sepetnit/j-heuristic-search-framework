@@ -289,8 +289,11 @@ public class WAStar_EES_GeneralExperiment {
             for (int i = firstInstance; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
                 //SearchDomain domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
-                domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
-                        domain, i + ".in");
+                domain =
+                        DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
+                                domain,
+                                i + ".in",
+                                pivotsCount);
                 // Bypass not found files
                 if (domain == null) {
                     continue;
@@ -343,16 +346,20 @@ public class WAStar_EES_GeneralExperiment {
 
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
         SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
+        int pivotsCount = 10;
 
         // Create the domain by reading the first instance
         SearchDomain domain =
                 DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
-                        firstInstance + ".in", 10);
+                        firstInstance + ".in", pivotsCount);
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             //SearchDomain domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
-            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(domain, i + ".in");
+            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
+                    domain,
+                    i + ".in",
+                    pivotsCount);
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -556,8 +563,8 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/generated+wastar+extended-tdh",
-                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+ees+extended-tdh",
+                    //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended-tdh",
+                    "results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-tdh",
                     // Add header
                     true);
         } catch (IOException e) {

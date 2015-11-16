@@ -74,9 +74,31 @@ public class Main {
     }
 
     public SearchDomain createGridPathFinding(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/"+instance));
+        //InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/"+instance));
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/"+instance));
         GridPathFinding gridPathFindingInstance = new GridPathFinding(is);
         return gridPathFindingInstance;
+    }
+
+    public SearchDomain createGridPathFindingWithPivots(String instance) throws FileNotFoundException {
+        String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6.map.pivots.pdb";
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/"+instance));
+        GridPathFinding gridPathFindingInstance = new GridPathFinding(is);
+        gridPathFindingInstance.setAdditionalParameter("heuristic", "tdh-furthest");
+        //problem.setAdditionalParameter("heuristic", "tdh-furthest-md-prob-50");
+        gridPathFindingInstance.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
+        gridPathFindingInstance.setAdditionalParameter("pivots-count", 1 + "");
+        return gridPathFindingInstance;
+    }
+
+    public SearchDomain createFifteenPuzzleUnitWithPDB(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/"+instance));
+        FifteenPuzzle puzzle = new FifteenPuzzle(is);
+        puzzle.setAdditionalParameter("heuristic", "pdb-78");
+        puzzle.setAdditionalParameter(
+                "pdb-78-files",
+                "C:\\Users\\user\\dis_1_2_3_4_5_6_7,C:\\Users\\user\\dis_8_9_10_11_12_13_14_15");
+        return puzzle;
     }
 
     public SearchDomain createFifteenPuzzleUnit(String instance) throws FileNotFoundException {
@@ -105,7 +127,9 @@ public class Main {
 
     public static void mainFifteenPuzzleDomain(String[] args) throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
+
+        SearchDomain domain = mainTest.createFifteenPuzzleUnitWithPDB("2.in");
+        //SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
         SearchAlgorithm alg = new WAStar();
         SearchResult result = alg.search(domain);
         if (result.hasSolution()) {
@@ -129,6 +153,29 @@ public class Main {
         SearchDomain domain = mainTest.createGridPathFinding("1.in");
         //SearchAlgorithm alg = new EES(1, true);
         SearchAlgorithm alg = new WAStar(1.0, true);
+        SearchResult result = alg.search(domain);
+        assert result.getSolutions().size() == 1;
+        if (result.hasSolution()) {
+            double d[] = new double[]{
+                    1,
+                    1,
+                    result.getSolutions().get(0).getLength(),
+                    result.getSolutions().get(0).getCost(),
+                    result.getGenerated(),
+                    result.getExpanded(),
+                    ((SearchResultImpl) result).reopened};
+            System.out.println(Arrays.toString(d));
+            //System.out.println(result.getSolutions().get(0).dumpSolution());
+        } else {
+            System.out.println("No solution :-(");
+        }
+    }
+
+    public static void mainGridPathFindingWithPivotsDomain(String[] args) throws IOException {
+        Main mainTest = new Main();
+        SearchDomain domain = mainTest.createGridPathFindingWithPivots("1.in");
+        //SearchAlgorithm alg = new EES(1, true);
+        SearchAlgorithm alg = new WAStar(1.05, true);
         SearchResult result = alg.search(domain);
         assert result.getSolutions().size() == 1;
         if (result.hasSolution()) {
@@ -279,11 +326,12 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        //Main.mainFifteenPuzzle(args);
+        Main.mainFifteenPuzzleDomain(args);
+        //Main.mainGridPathFindingWithPivotsDomain(args);
         //Main.mainGridPathFindingDomain(args);
         //Main.mainPancakesDomain(args);
         //Main.mainVacuumRobotDomain(args);
-        Main.mainDockyardRobotDomain();
+        //Main.mainDockyardRobotDomain();
 
         //Main.mainPTS(args);
     }

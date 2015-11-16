@@ -684,7 +684,7 @@ public class GridPathFinding implements SearchDomain {
             if (!sz[0].equals("map:")) {
                 System.out.println("[ERROR] Copying GridPathFinding problem isn't allowed in this case");
                 throw new IOException();
-            }
+        }
             // Read start and goals locations
             this._readStartAndGoalsFromProblemFile(in);
             // Assure there is a start location
