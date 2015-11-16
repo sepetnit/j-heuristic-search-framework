@@ -359,12 +359,12 @@ public class GridPathFindingGenerator extends GeneralInstancesGenerator {
 
         String[] mapFiles =
                 new String[]{
-                        "input/gridpathfinding/raw/mazes/maze512-1-6.map",
-                        "input/gridpathfinding/raw/mazes/maze512-2-2.map",
-                        "input/gridpathfinding/raw/mazes/maze512-8-6.map",
-                        "input/gridpathfinding/raw/mazes/maze512-32-8.map",
+                        "input/gridpathfinding/raw/mazes/maze1/maze512-1-6-100.map",
+                        //"input/gridpathfinding/raw/mazes/maze512-2-2.map",
+                        //"input/gridpathfinding/raw/mazes/maze512-8-6.map",
+                        //"input/gridpathfinding/raw/mazes/maze512-32-8.map",
                 };
-        double obstaclesPercentages[] = new double[]{100, 80, 50, 30, 10};
+        double obstaclesPercentages[] = new double[]{98};
 
         GridPathFindingGenerator generator = new GridPathFindingGenerator();
 
@@ -597,8 +597,8 @@ public class GridPathFindingGenerator extends GeneralInstancesGenerator {
 
     public static void main(String[] args) {
         try {
-            GridPathFindingGenerator.mainGenerateInstancesFromMovingAISceneFiles();
-            //GridPathFindingGenerator.mainGenerateMazesFromExistingMazesWithObstaclesTuning();
+            //GridPathFindingGenerator.mainGenerateInstancesFromMovingAISceneFiles();
+            GridPathFindingGenerator.mainGenerateMazesFromExistingMazesWithObstaclesTuning();
         } catch (IOException e) {
             System.out.println("[ERROR] " + e.getMessage());
         }

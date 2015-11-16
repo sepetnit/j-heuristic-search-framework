@@ -346,20 +346,11 @@ public class WAStar_EES_GeneralExperiment {
 
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
         SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
-        int pivotsCount = 10;
 
-        // Create the domain by reading the first instance
-        SearchDomain domain =
-                DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
-                        firstInstance + ".in", pivotsCount);
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            //SearchDomain domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
-            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
-                    domain,
-                    i + ".in",
-                    pivotsCount);
+            SearchDomain domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -368,8 +359,8 @@ public class WAStar_EES_GeneralExperiment {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                 for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                    //SearchAlgorithm alg = new WAStar(weight, reopen);
-                    SearchAlgorithm alg = new EES(weight, reopen);
+                    SearchAlgorithm alg = new WAStar(weight, reopen);
+                    //SearchAlgorithm alg = new EES(weight, reopen);
                     System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
                     try {
                         SearchResult result = alg.search(domain);
@@ -563,7 +554,7 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended-tdh",
+                    //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended-tdh-random",
                     "results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-tdh",
                     // Add header
                     true);
@@ -587,8 +578,8 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
-                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+ees+extended-tdh-2",
+                    //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
+                    "results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -641,8 +632,8 @@ public class WAStar_EES_GeneralExperiment {
 
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }

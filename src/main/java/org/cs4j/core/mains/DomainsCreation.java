@@ -16,7 +16,7 @@ public class DomainsCreation {
      ******************************************************************************************************************/
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/den400d.map/" + instance));
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/" + instance));
         return new GridPathFinding(is);
     }
 
@@ -25,7 +25,7 @@ public class DomainsCreation {
         //String mapFileName = "input/gridpathfinding/generated/brc202d.map";
         String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
         //String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
-        String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_" + new File(mapFileName).getName() + ".pivots.pdb";
+        String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6-30.map.pivots.pdb";
         InputStream is = new FileInputStream(new File(mapFileName + "/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
         problem.setAdditionalParameter("heuristic", "tdh-furthest");

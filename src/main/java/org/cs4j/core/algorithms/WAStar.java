@@ -208,7 +208,7 @@ public class WAStar implements SearchAlgorithm {
                         if (dupChildNode.g > childNode.g) {
 
                             // Node in closed but we get duplicate
-                            if (weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1) {
+                            if (this.weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1) {
                                 System.out.println(dupChildNode.f + " " + childNode.f);
                                 System.out.println(dupChildNode.g + " " + childNode.g);
                                 System.out.println(dupChildNode.h + " " + childNode.h);
