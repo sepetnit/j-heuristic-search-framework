@@ -75,20 +75,20 @@ public final class FifteenPuzzle implements SearchDomain {
     private COST_FUNCTION costFunction;
 
     // PDBs for 7-8 partitioning
-    private Map<Integer, Character> pdb7;
-    private Map<Integer, Character> pdb8;
+    private Map<Long, Byte> pdb7;
+    private Map<Long, Byte> pdb8;
 
     // PDBs for 5-5-5 partitioning
-    private Map<Integer, Character> pdb5_1;
-    private Map<Integer, Character> pdb5_2;
-    private Map<Integer, Character> pdb5_3;
+    private Map<Long, Byte> pdb5_1;
+    private Map<Long, Byte> pdb5_2;
+    private Map<Long, Byte> pdb5_3;
 
     private static final Map<String, Class> FifteenPuzzlePossibleParameters;
 
     // Declare the parameters that can be tunes before running the search
     static
     {
-        FifteenPuzzlePossibleParameters = new HashMap<String, Class>();
+        FifteenPuzzlePossibleParameters = new HashMap<>();
         FifteenPuzzlePossibleParameters.put("heuristic", String.class);
     }
 
@@ -365,15 +365,27 @@ public final class FifteenPuzzle implements SearchDomain {
      * @return An array of the form {h, d}
      */
     private double[] _computeHDNoMD(TileState state) {
-        int h = -1;
-        int d = -1;
+        int h;
+        int d;
         switch (this.heuristicType) {
             case PDB78: {
                 h = this.pdb7.get(state.getHash7Index()) + this.pdb8.get(state.getHash8Index());
                 d = h;
                 break;
             }
-            case PDB555:
+            case PDB555: {
+                System.out.println(state.getHash5_1Index());
+                System.out.println(this.pdb5_1.get(state.getHash5_1Index()));
+                System.out.println(state.getHash5_2Index());
+                System.out.println(this.pdb5_2.get(state.getHash5_2Index()));
+                System.out.println(state.getHash5_3Index());
+                System.out.println(this.pdb5_3.get(state.getHash5_3Index()));
+                h = this.pdb5_1.get(state.getHash5_1Index()) +
+                        this.pdb5_2.get(state.getHash5_2Index()) +
+                        this.pdb5_3.get(state.getHash5_3Index());
+                d = h;
+                break;
+            }
             default: {
                 throw new NotImplementedException();
             }
@@ -389,8 +401,8 @@ public final class FifteenPuzzle implements SearchDomain {
      * @return An array of the form {h, d}
      */
     private double[] computeHD(TileState state) {
-        double h = -1;
-        double d = -1;
+        double h;
+        double d;
         switch (this.heuristicType) {
             case MD: {
                 // Let's calculate the heuristic values (h and d)
@@ -415,6 +427,7 @@ public final class FifteenPuzzle implements SearchDomain {
         int blank = -1;
         // Initialize the tiles
         int tiles[] = new int[this.tilesNumber];
+        int positionsOfTiles[] = new int[this.tilesNumber];
         for (int i = 0; i < this.tilesNumber; ++i) {
             // Find the blank
             if (this.init[i] == 0) {
@@ -423,6 +436,8 @@ public final class FifteenPuzzle implements SearchDomain {
             // In any case, initialize the tiles array with the initial state
             // (read from the input file)
             tiles[i] = this.init[i];
+            // Mark the position of current tile
+            positionsOfTiles[tiles[i]] = i;
         }
         // Blank must be found!
         if (blank < 0) {
@@ -432,6 +447,7 @@ public final class FifteenPuzzle implements SearchDomain {
         // Finally, initialize the start state
         TileState s = new TileState();
         s.tiles = tiles;
+        s.positionsOfTiles = positionsOfTiles;
         s.blank = blank;
         return s;
     }
@@ -455,7 +471,7 @@ public final class FifteenPuzzle implements SearchDomain {
             // initially digit is value in permutation
             int digit = permutation[i];
             // for each previous element in permutation
-            for (int j = 0; j < i; j++) {
+            for (int j = 0; j < i; ++j) {
                 // previous position contains smaller value - so decrement digit
                 if (permutation[j] < permutation[i]) {
                     --digit;
@@ -471,6 +487,7 @@ public final class FifteenPuzzle implements SearchDomain {
     @Override
     public State initialState() {
         TileState s = this.initialStateNoHeuristic();
+        System.out.println(s.dumpState());
         // Let's calculate the heuristic values (h and d)
         double[] computedHD = this.computeHD(s);
         s.h = computedHD[0];
@@ -555,10 +572,11 @@ public final class FifteenPuzzle implements SearchDomain {
     @Override
     public State applyOperator(State s, Operator op) {
         TileState ts = (TileState) copy(s);
+        s.dumpState();
         FifteenPuzzleOperator fop = (FifteenPuzzleOperator) op;
         // Get the updated position of the blank
         int futureBlankPosition = fop.value;
-        // Get the tile located at the future blank position
+        // Get the tile that is currently located at a position that will be converted to blank in the next step
         int tileAtFutureBlankPosition = ts.tiles[fop.value];
         // Move that tile to the current position of blank
         ts.tiles[ts.blank] = tileAtFutureBlankPosition;
@@ -568,8 +586,13 @@ public final class FifteenPuzzle implements SearchDomain {
             ts.d += this.mdAddendsUnit[tileAtFutureBlankPosition][futureBlankPosition][ts.blank];
             // Update the current blank value to the requested one (MUST be AFTER updating h and d)
             ts.blank = futureBlankPosition;
+            ts.tiles[futureBlankPosition] = 0;
         } else {
+            ts.positionsOfTiles[tileAtFutureBlankPosition] = ts.blank;
+            ts.positionsOfTiles[0] = futureBlankPosition;
+            ts.tiles[futureBlankPosition] = 0;
             ts.blank = futureBlankPosition;
+            ts.dumpState();
             double[] computedHD = this._computeHDNoMD(ts);
             ts.h = computedHD[0];
             ts.d = computedHD[1];
@@ -657,6 +680,7 @@ public final class FifteenPuzzle implements SearchDomain {
     private final class TileState implements State {
 
         private int tiles[] = new int[FifteenPuzzle.this.tilesNumber];
+        private int positionsOfTiles[] = new int[FifteenPuzzle.this.tilesNumber];
         private int blank;
 
         private double h;
@@ -684,30 +708,63 @@ public final class FifteenPuzzle implements SearchDomain {
             this.parent = state.parent;
         }
 
-        private int getHash7Index() {
-            int[] permutation = new int[7];
-            permutation[0] = this.blank;
-            permutation[1] = this.tiles[1];
-            permutation[2] = this.tiles[2];
-            permutation[3] = this.tiles[3];
-            permutation[4] = this.tiles[4];
-            permutation[5] = this.tiles[5];
-            permutation[6] = this.tiles[6];
-            permutation[7] = this.tiles[7];
+        private long getHash7Index() {
+            int[] permutation = new int[7 + 1];
+            permutation[7] = this.positionsOfTiles[0];
+            permutation[0] = this.positionsOfTiles[1];
+            permutation[1] = this.positionsOfTiles[2];
+            permutation[2] = this.positionsOfTiles[3];
+            permutation[3] = this.positionsOfTiles[4];
+            permutation[4] = this.positionsOfTiles[5];
+            permutation[5] = this.positionsOfTiles[6];
+            permutation[6] = this.positionsOfTiles[7];
             return FifteenPuzzle.this._getHashNIndex(permutation);
         }
 
-        private int getHash8Index() {
-            int[] permutation = new int[8];
-            permutation[0] = this.blank;
-            permutation[1] = this.tiles[8];
-            permutation[2] = this.tiles[9];
-            permutation[3] = this.tiles[10];
-            permutation[4] = this.tiles[11];
-            permutation[5] = this.tiles[12];
-            permutation[6] = this.tiles[13];
-            permutation[7] = this.tiles[14];
-            permutation[8] = this.tiles[15];
+        private long getHash8Index() {
+            int[] permutation = new int[8 + 1];
+            permutation[8] = this.positionsOfTiles[0];
+            permutation[0] = this.positionsOfTiles[8];
+            permutation[1] = this.positionsOfTiles[9];
+            permutation[2] = this.positionsOfTiles[10];
+            permutation[3] = this.positionsOfTiles[11];
+            permutation[4] = this.positionsOfTiles[12];
+            permutation[5] = this.positionsOfTiles[13];
+            permutation[6] = this.positionsOfTiles[14];
+            permutation[7] = this.positionsOfTiles[15];
+            return FifteenPuzzle.this._getHashNIndex(permutation);
+        }
+
+        private long getHash5_1Index() {
+            int[] permutation = new int[5 + 1];
+            permutation[5] = this.positionsOfTiles[0];
+            permutation[0] = this.positionsOfTiles[1];
+            permutation[1] = this.positionsOfTiles[2];
+            permutation[2] = this.positionsOfTiles[3];
+            permutation[3] = this.positionsOfTiles[4];
+            permutation[4] = this.positionsOfTiles[5];
+            return FifteenPuzzle.this._getHashNIndex(permutation);
+        }
+
+        private long getHash5_2Index() {
+            int[] permutation = new int[5 + 1];
+            permutation[5] = this.positionsOfTiles[0];
+            permutation[0] = this.positionsOfTiles[6];
+            permutation[1] = this.positionsOfTiles[7];
+            permutation[2] = this.positionsOfTiles[8];
+            permutation[3] = this.positionsOfTiles[9];
+            permutation[4] = this.positionsOfTiles[10];
+            return FifteenPuzzle.this._getHashNIndex(permutation);
+        }
+
+        private long getHash5_3Index() {
+            int[] permutation = new int[5 + 1];
+            permutation[5] = this.positionsOfTiles[0];
+            permutation[0] = this.positionsOfTiles[11];
+            permutation[1] = this.positionsOfTiles[12];
+            permutation[2] = this.positionsOfTiles[13];
+            permutation[3] = this.positionsOfTiles[14];
+            permutation[4] = this.positionsOfTiles[15];
             return FifteenPuzzle.this._getHashNIndex(permutation);
         }
 
@@ -798,6 +855,8 @@ public final class FifteenPuzzle implements SearchDomain {
         return FifteenPuzzle.FifteenPuzzlePossibleParameters;
     }
 
+    // Size of the PDB for 5 tiles
+    private static final long TABLE_SIZE_PDB5 = 16*15*14*13*12;
     // Size of the PDB for the 7 first tiles
     private static final long TABLE_SIZE_PDB7 = 16 * 15 * 14 * 13 * 12 * 11 * 10;
     // Size of the PDB for the 8 rest tiles
@@ -812,12 +871,19 @@ public final class FifteenPuzzle implements SearchDomain {
      *
      * @throws IOException If something wrong occurred
      */
-    private int _readIndex(DataInputStream inputStream) throws IOException {
-        int val = 0;
+    private long _readIndex(DataInputStream inputStream) throws IOException {
+        /*
+        long val = 0;
         for (int i = 0; i < 4; ++i) {
-            val = (val * 256) + inputStream.readChar();
+            val = (val * 256) + inputStream.readByte();
         }
         return val;
+        */
+        byte c1 = inputStream.readByte();
+        byte c2 = inputStream.readByte();
+        byte c3 = inputStream.readByte();
+        byte c4 = inputStream.readByte();
+        return c4+256*(c3+256*(c2+256*c1));
     }
 
     /**
@@ -830,26 +896,33 @@ public final class FifteenPuzzle implements SearchDomain {
      *
      * @throws IOException If something wrong occurred
      */
-    private Map<Integer, Character> _readSinglePDB(String pdbFileName, long permutationsCount) throws IOException {
-        Map<Integer, Character> toReturn = new HashMap<>();
+    private Map<Long, Byte> _readSinglePDB(String pdbFileName, long permutationsCount) throws IOException {
+        Map<Long, Byte> toReturn = new HashMap<>();
         // Each permutation index is stored as int
         DataInputStream inputStream = new DataInputStream(new FileInputStream(pdbFileName));
         for (long i = 0; i < permutationsCount; ++i) {
             // Debug
             if (i % 999 == 0) {
-                System.out.println("\r[INFO] Read " + (i + 1) + "/" + permutationsCount + " values");
+                System.out.print("\r[INFO] Read " + (i + 1) + "/" + permutationsCount + " values");
             }
             // First, read the hash value of the permutation
-            //int hashValue = inputStream.readInt();
-            int hashValue = this._readIndex(inputStream);
+            long hashValue = this._readIndex(inputStream);
             // Now, read the distance
-            char distance = inputStream.readChar();
+            byte distance = inputStream.readByte();
             if (distance >= permutationsCount) {
                 System.out.println("[ERROR] Invalid distance found in PDB " + pdbFileName +
                         "(hash: " + hashValue + ", distance: " + distance + ")");
                 throw new IOException();
             }
-            assert !toReturn.containsKey(hashValue);
+            // Debug:
+            /*
+            if (toReturn.containsKey(hashValue)) {
+                System.out.println((int)toReturn.get(hashValue));
+                System.out.println((int) distance);
+                assert toReturn.get(hashValue) == distance;
+            } else {
+                toReturn.put(hashValue, distance);
+            }*/
             toReturn.put(hashValue, distance);
         }
         // Last new line
@@ -860,12 +933,27 @@ public final class FifteenPuzzle implements SearchDomain {
     private void _readPDB78(String pdb7FileName, String pdb8FileName) throws IOException {
         // Read PDB 7
         System.out.println("[INFO] Reading PDB from " + pdb7FileName);
-        Map<Integer, Character> pdb7 = this._readSinglePDB(pdb7FileName, FifteenPuzzle.TABLE_SIZE_PDB7);
+        this.pdb7 = this._readSinglePDB(pdb7FileName, FifteenPuzzle.TABLE_SIZE_PDB7);
         System.out.println("[INFO] Finished reading PDB from " + pdb7FileName);
         // Read PDB 8
         System.out.println("[INFO] Reading PDB from " + pdb8FileName);
-        Map<Integer, Character> pdb8 = this._readSinglePDB(pdb8FileName, FifteenPuzzle.TABLE_SIZE_PDB8);
+        this.pdb8 = this._readSinglePDB(pdb8FileName, FifteenPuzzle.TABLE_SIZE_PDB8);
         System.out.println("[INFO] Finished reading PDB from " + pdb8FileName);
+    }
+
+    private void _readPDB555(String pdb5_1FileName, String pdb5_2FileName, String pdb5_3FileName) throws IOException {
+        // Read PDB 5_1
+        System.out.println("[INFO] Reading PDB from " + pdb5_1FileName);
+        this.pdb5_1 = this._readSinglePDB(pdb5_1FileName, FifteenPuzzle.TABLE_SIZE_PDB5);
+        System.out.println("[INFO] Finished reading PDB from " + pdb5_1FileName);
+        // Read PDB 5_2
+        System.out.println("[INFO] Reading PDB from " + pdb5_2FileName);
+        this.pdb5_2 = this._readSinglePDB(pdb5_2FileName, FifteenPuzzle.TABLE_SIZE_PDB5);
+        System.out.println("[INFO] Finished reading PDB from " + pdb5_2FileName);
+        // Read PDB 5_3
+        System.out.println("[INFO] Reading PDB from " + pdb5_3FileName);
+        this.pdb5_3 = this._readSinglePDB(pdb5_3FileName, FifteenPuzzle.TABLE_SIZE_PDB5);
+        System.out.println("[INFO] Finished reading PDB from " + pdb5_3FileName);
     }
 
     @Override
@@ -892,6 +980,29 @@ public final class FifteenPuzzle implements SearchDomain {
                 }
                 break;
             }
+            case "pdb-555-files": {
+                if (heuristicType != HeuristicType.PDB555) {
+                    System.out.println("[ERROR] Heuristic type isn't pdb-555 - can't set pdb file");
+                    throw new IllegalArgumentException();
+                }
+                String[] split = value.trim().split(",");
+                if (split.length == 1) {
+                    split = value.trim().split(", ");
+                }
+                if (split.length != 3) {
+                    System.out.println("[ERROR] Invalid format for pdb-555 file: " +
+                            "should be '<file-5_1>, <file-5_2> <file-5_3>'");
+                    throw new IllegalArgumentException();
+                }
+                // Otherwise, read and initialize the files
+                try {
+                    this._readPDB555(split[0], split[1], split[2]);
+                } catch (IOException e) {
+                    System.out.println("[ERROR] Failed reading pdb-555 files: " + e.getMessage());
+                    throw new IllegalArgumentException();
+                }
+                break;
+            }
             case "pdb-78-files": {
                 if (heuristicType != HeuristicType.PDB78) {
                     System.out.println("[ERROR] Heuristic type isn't pdb-78 - can't set pdb file");
@@ -902,7 +1013,7 @@ public final class FifteenPuzzle implements SearchDomain {
                     split = value.trim().split(", ");
                 }
                 if (split.length != 2) {
-                    System.out.println("[ERROR] Invalid format for pdb-78 file: should be '<file-7>, <file-8>'");
+                    System.out.println("[ERROR] Invalid format for pdb-78 files: should be '<file-7>, <file-8>'");
                     throw new IllegalArgumentException();
                 }
                 // Otherwise, read and initialize the file
@@ -912,7 +1023,9 @@ public final class FifteenPuzzle implements SearchDomain {
                     System.out.println("[ERROR] Failed reading pdb-78 files: " + e.getMessage());
                     throw new IllegalArgumentException();
                 }
-            } default: {
+                break;
+            }
+            default: {
                 System.out.println("No such parameter: " + parameterName + " (value: " + value + ")");
                 throw new IllegalArgumentException();
             }

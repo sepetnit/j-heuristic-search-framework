@@ -273,7 +273,7 @@ public class WAStar_EES_GeneralExperiment {
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
         SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
-        int[] pivotsCounts = new int[]{1, 2, 3, 4, 5, 6, 8, 10};
+        int[] pivotsCounts = new int[]{10};
         List<String> allOutputFiles = new ArrayList<>(pivotsCounts.length);
 
         // Create the domain by reading the first instance (the pivots DB is read once!)
@@ -632,8 +632,8 @@ public class WAStar_EES_GeneralExperiment {
 
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
