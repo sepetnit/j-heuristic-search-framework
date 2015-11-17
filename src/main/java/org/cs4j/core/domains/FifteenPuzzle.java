@@ -203,7 +203,7 @@ public final class FifteenPuzzle implements SearchDomain {
      * 12 13 14 15
      */
     private void _initOperators() {
-        for (int i = 0; i < this.tilesNumber; i++) {
+        for (int i = 0; i < this.tilesNumber; ++i) {
             // Initially, there is no optional operators, so initialize the counter to 0
             this.operatorsCount[i] = 0;
             // Move up
@@ -246,6 +246,11 @@ public final class FifteenPuzzle implements SearchDomain {
         this.pdb5_3 = null;
     }
 
+    @Override
+    public boolean isCurrentHeuristicConsistent() {
+        return (this.heuristicType == HeuristicType.MD);
+    }
+
     /**
      * A default constructor of the class:
      *
@@ -283,7 +288,7 @@ public final class FifteenPuzzle implements SearchDomain {
                 // Read a value of a tile and place p
                 int p = Integer.parseInt(reader.readLine());
                 // Insert the tile value into the storage
-                this.init[p] = t;
+                this.init[t] = p;
             }
             // Now, read the goal positions of the puzzle (Each one in a single line)
             // (actually, reading the goals is redundant - since they must form 1-15 series:
@@ -369,17 +374,12 @@ public final class FifteenPuzzle implements SearchDomain {
         int d;
         switch (this.heuristicType) {
             case PDB78: {
-                h = this.pdb7.get(state.getHash7Index()) + this.pdb8.get(state.getHash8Index());
+                h = this.pdb7.get(state.getHash7Index()) +
+                        this.pdb8.get(state.getHash8Index());
                 d = h;
                 break;
             }
             case PDB555: {
-                System.out.println(state.getHash5_1Index());
-                System.out.println(this.pdb5_1.get(state.getHash5_1Index()));
-                System.out.println(state.getHash5_2Index());
-                System.out.println(this.pdb5_2.get(state.getHash5_2Index()));
-                System.out.println(state.getHash5_3Index());
-                System.out.println(this.pdb5_3.get(state.getHash5_3Index()));
                 h = this.pdb5_1.get(state.getHash5_1Index()) +
                         this.pdb5_2.get(state.getHash5_2Index()) +
                         this.pdb5_3.get(state.getHash5_3Index());
@@ -406,7 +406,7 @@ public final class FifteenPuzzle implements SearchDomain {
         switch (this.heuristicType) {
             case MD: {
                 // Let's calculate the heuristic values (h and d)
-                h = this._computeTotalMD(state.blank, state.tiles, costFunction);
+                h = this._computeTotalMD(state.blank, state.tiles, this.costFunction);
                 d = this._computeTotalMD(state.blank, state.tiles, COST_FUNCTION.UNIT);
                 break;
             }
@@ -433,11 +433,12 @@ public final class FifteenPuzzle implements SearchDomain {
             if (this.init[i] == 0) {
                 blank = i;
             }
+            int t = this.init[i];
             // In any case, initialize the tiles array with the initial state
             // (read from the input file)
-            tiles[i] = this.init[i];
+            tiles[i] = t;
             // Mark the position of current tile
-            positionsOfTiles[tiles[i]] = i;
+            positionsOfTiles[t] = i;
         }
         // Blank must be found!
         if (blank < 0) {
@@ -462,10 +463,10 @@ public final class FifteenPuzzle implements SearchDomain {
      *
      * @return The computed hash value
      */
-    public int _getHashNIndex(int[] permutation) {
+    public long _getHashNIndex(int[] permutation) {
         int actualLength = permutation.length - 1;
         // initialize hash value to empty
-        int hash = 0;
+        long hash = 0;
         // for each remaining position in permutation
         for (int i = 0; i < actualLength + 1; ++i) {
             // initially digit is value in permutation
@@ -480,14 +481,12 @@ public final class FifteenPuzzle implements SearchDomain {
             // multiply digit by appropriate factor
             hash = hash * (FifteenPuzzle.this.tilesNumber - i) + digit;
         }
-        hash = hash / (FifteenPuzzle.this.tilesNumber - actualLength);
-        return hash;
+        return hash / (FifteenPuzzle.this.tilesNumber - actualLength);
     }
 
     @Override
     public State initialState() {
         TileState s = this.initialStateNoHeuristic();
-        System.out.println(s.dumpState());
         // Let's calculate the heuristic values (h and d)
         double[] computedHD = this.computeHD(s);
         s.h = computedHD[0];
@@ -540,6 +539,8 @@ public final class FifteenPuzzle implements SearchDomain {
         TileState copy = new TileState();
         // Copy the tiles
         System.arraycopy(ts.tiles, 0, copy.tiles, 0, ts.tiles.length);
+        // Copy the positions of the tiles
+        System.arraycopy(ts.positionsOfTiles, 0, copy.positionsOfTiles, 0, ts.positionsOfTiles.length);
         // Copy the position of 0 (blank) and the tile numbered as 1
         copy.blank = ts.blank;
         copy.h = ts.h;
@@ -555,7 +556,7 @@ public final class FifteenPuzzle implements SearchDomain {
      *
      * @return The result state
      */
-    public State applyOperatorNoHeuristic(State s, Operator op) {
+    /*public State applyOperatorNoHeuristic(State s, Operator op) {
         TileState ts = (TileState) copy(s);
         FifteenPuzzleOperator fop = (FifteenPuzzleOperator) op;
         // Get the updated position of the blank
@@ -567,32 +568,31 @@ public final class FifteenPuzzle implements SearchDomain {
         ts.blank = futureBlankPosition;
         return ts;
     }
+    */
 
 
     @Override
     public State applyOperator(State s, Operator op) {
         TileState ts = (TileState) copy(s);
-        s.dumpState();
         FifteenPuzzleOperator fop = (FifteenPuzzleOperator) op;
         // Get the updated position of the blank
         int futureBlankPosition = fop.value;
         // Get the tile that is currently located at a position that will be converted to blank in the next step
-        int tileAtFutureBlankPosition = ts.tiles[fop.value];
+        int currentTileAtFutureBlankPosition = ts.tiles[fop.value];
         // Move that tile to the current position of blank
-        ts.tiles[ts.blank] = tileAtFutureBlankPosition;
+        ts.tiles[ts.blank] = currentTileAtFutureBlankPosition;
         // Update the h and d according to the result deltas
         if (this.heuristicType == HeuristicType.MD) {
-            ts.h += this.mdAddends[tileAtFutureBlankPosition][futureBlankPosition][ts.blank];
-            ts.d += this.mdAddendsUnit[tileAtFutureBlankPosition][futureBlankPosition][ts.blank];
+            ts.h += this.mdAddends[currentTileAtFutureBlankPosition][futureBlankPosition][ts.blank];
+            ts.d += this.mdAddendsUnit[currentTileAtFutureBlankPosition][futureBlankPosition][ts.blank];
             // Update the current blank value to the requested one (MUST be AFTER updating h and d)
             ts.blank = futureBlankPosition;
             ts.tiles[futureBlankPosition] = 0;
         } else {
-            ts.positionsOfTiles[tileAtFutureBlankPosition] = ts.blank;
-            ts.positionsOfTiles[0] = futureBlankPosition;
             ts.tiles[futureBlankPosition] = 0;
+            ts.positionsOfTiles[currentTileAtFutureBlankPosition] = ts.blank;
+            ts.positionsOfTiles[0] = futureBlankPosition;
             ts.blank = futureBlankPosition;
-            ts.dumpState();
             double[] computedHD = this._computeHDNoMD(ts);
             ts.h = computedHD[0];
             ts.d = computedHD[1];
@@ -605,7 +605,8 @@ public final class FifteenPuzzle implements SearchDomain {
         TileState ts = (TileState) s;
         long result = 0;
         // TODO: Sounds that the value of blank is unnecessary
-        ts.tiles[ts.blank] = 0;
+        assert ts.tiles[ts.blank] == 0;
+        //ts.tiles[ts.blank] = 0;
         // We need at most 4 bits in order to pack a single Fifteen-Puzzle tile: (0b1111 is 15)
         // Thus, we need at most 4 * 16 = 64 bits to pack the full state (64 bits = a long number)
         for (int i = 0; i < this.tilesNumber; ++i) {
@@ -632,6 +633,7 @@ public final class FifteenPuzzle implements SearchDomain {
             int t = (int) firstPacked & 0xF;
             // Initialize this tile
             ts.tiles[i] = t;
+            ts.positionsOfTiles[t] = i;
             // Mark the blank (in this case there is no need to update the distance between the tile
             // and its required position (in the goal)
             if (t == 0) {
@@ -655,6 +657,7 @@ public final class FifteenPuzzle implements SearchDomain {
             int t = (int) firstPacked & 0xF;
             // Initialize this tile
             ts.tiles[i] = t;
+            ts.positionsOfTiles[t] = i;
             // Mark the blank (in this case there is no need to update the distance between the tile
             // and its required position (in the goal)
             if (t == 0) {
@@ -703,6 +706,7 @@ public final class FifteenPuzzle implements SearchDomain {
             this.d = state.d;
             // Copy the tiles
             System.arraycopy(this.tiles, 0, state.tiles, 0,this.tiles.length);
+            System.arraycopy(this.positionsOfTiles, 0, state.positionsOfTiles, 0,this.positionsOfTiles.length);
             this.blank = state.blank;
             // Copy the parent state
             this.parent = state.parent;
@@ -786,12 +790,12 @@ public final class FifteenPuzzle implements SearchDomain {
 
         @Override
         public double getH() {
-            return h;
+            return this.h;
         }
 
         @Override
         public double getD() {
-            return d;
+            return this.d;
         }
 
         @Override
@@ -856,7 +860,7 @@ public final class FifteenPuzzle implements SearchDomain {
     }
 
     // Size of the PDB for 5 tiles
-    private static final long TABLE_SIZE_PDB5 = 16*15*14*13*12;
+    private static final long TABLE_SIZE_PDB5 = 16 * 15 * 14 * 13 * 12;
     // Size of the PDB for the 7 first tiles
     private static final long TABLE_SIZE_PDB7 = 16 * 15 * 14 * 13 * 12 * 11 * 10;
     // Size of the PDB for the 8 rest tiles
@@ -872,18 +876,7 @@ public final class FifteenPuzzle implements SearchDomain {
      * @throws IOException If something wrong occurred
      */
     private long _readIndex(DataInputStream inputStream) throws IOException {
-        /*
-        long val = 0;
-        for (int i = 0; i < 4; ++i) {
-            val = (val * 256) + inputStream.readByte();
-        }
-        return val;
-        */
-        byte c1 = inputStream.readByte();
-        byte c2 = inputStream.readByte();
-        byte c3 = inputStream.readByte();
-        byte c4 = inputStream.readByte();
-        return c4+256*(c3+256*(c2+256*c1));
+        return inputStream.readInt() & 0xffffffffl;
     }
 
     /**
@@ -909,8 +902,8 @@ public final class FifteenPuzzle implements SearchDomain {
             long hashValue = this._readIndex(inputStream);
             // Now, read the distance
             byte distance = inputStream.readByte();
-            if (distance >= permutationsCount) {
-                System.out.println("[ERROR] Invalid distance found in PDB " + pdbFileName +
+            if (hashValue >= permutationsCount) {
+                System.out.println("[ERROR] Invalid hash value found in PDB " + pdbFileName +
                         "(hash: " + hashValue + ", distance: " + distance + ")");
                 throw new IOException();
             }

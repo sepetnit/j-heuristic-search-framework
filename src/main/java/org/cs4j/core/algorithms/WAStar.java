@@ -195,7 +195,7 @@ public class WAStar implements SearchAlgorithm {
                 State childState = domain.applyOperator(currentState, op);
                 Node childNode = new Node(childState, currentNode, currentState, op, op.reverse(currentState));
 
-                    // Treat duplicates
+                // Treat duplicates
                 if (this.closed.containsKey(childNode.packed)) {
                     // Count the duplicates
                     ++result.duplicates;
@@ -208,7 +208,7 @@ public class WAStar implements SearchAlgorithm {
                         if (dupChildNode.g > childNode.g) {
 
                             // Node in closed but we get duplicate
-                            if (this.weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1) {
+                            if (this.weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1 && this.domain.isCurrentHeuristicConsistent()) {
                                 System.out.println(dupChildNode.f + " " + childNode.f);
                                 System.out.println(dupChildNode.g + " " + childNode.g);
                                 System.out.println(dupChildNode.h + " " + childNode.h);
@@ -219,7 +219,7 @@ public class WAStar implements SearchAlgorithm {
                                 assert false;
                             }
 
-                                // In any case update the duplicate with the new values - we reached it via a shorter path
+                            // In any case update the duplicate with the new values - we reached it via a shorter path
                             dupChildNode.f = childNode.f;
                             dupChildNode.g = childNode.g;
                             dupChildNode.op = childNode.op;
@@ -235,7 +235,7 @@ public class WAStar implements SearchAlgorithm {
                                 // Otherwise, consider to reopen the node
                             } else {
                                 // For debugging issues!
-                                if (this.weight == 1.0) {
+                                if (this.weight == 1.0 && this.domain.isCurrentHeuristicConsistent()) {
                                     assert false;
                                 }
                                 // Return to OPEN list only if reopening is allowed
@@ -247,7 +247,7 @@ public class WAStar implements SearchAlgorithm {
                             }
                         }
                     }
-                // Otherwise, the node is new (hasn't been reached yet)
+                    // Otherwise, the node is new (hasn't been reached yet)
                 } else {
                     this.open.add(childNode);
                     this.closed.put(childNode.packed, childNode);

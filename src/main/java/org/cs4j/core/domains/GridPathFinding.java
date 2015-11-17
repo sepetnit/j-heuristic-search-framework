@@ -773,6 +773,11 @@ public class GridPathFinding implements SearchDomain {
         return new double[]{0, 0};
     }
 
+    @Override
+    public boolean isCurrentHeuristicConsistent() {
+        return (this.heuristicType != HeuristicType.DH_FURTHEST_MD_PROB_50);
+    }
+
     /**
      * A GridPathFinding State
      */

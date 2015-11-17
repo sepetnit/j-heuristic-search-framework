@@ -1277,6 +1277,11 @@ public class VacuumRobot implements SearchDomain {
         return new VacuumRobotState((VacuumRobotState)state);
     }
 
+    @Override
+    public boolean isCurrentHeuristicConsistent() {
+        return true;
+    }
+
     /**
      * Pack a state into a long number
      *

@@ -105,6 +105,12 @@ public interface SearchDomain extends SearchConfigurable {
     String dumpStatesCollection(State[] states);
 
     /**
+     *
+     * @return Whether the currently used heuristic is consistent
+     */
+    boolean isCurrentHeuristicConsistent();
+
+    /**
      * The State interface.
      */
     interface State {

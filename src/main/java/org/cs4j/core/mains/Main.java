@@ -92,7 +92,7 @@ public class Main {
     }
 
     public SearchDomain createFifteenPuzzleUnitWithPDB(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/"+instance));
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf1000/"+instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
         //puzzle.setAdditionalParameter("heuristic", "pdb-78");
         puzzle.setAdditionalParameter("heuristic", "pdb-555");
@@ -151,7 +151,7 @@ public class Main {
                     result.getExpanded(),
                     ((SearchResultImpl) result).reopened};
             System.out.println(Arrays.toString(d));
-            System.out.println(result.getSolutions().get(0).dumpSolution());
+            //System.out.println(result.getSolutions().get(0).dumpSolution());
         } else {
             System.out.println("No solution :-(");
         }

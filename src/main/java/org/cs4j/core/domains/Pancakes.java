@@ -231,6 +231,11 @@ public class Pancakes implements SearchDomain {
     }
 
     @Override
+    public boolean isCurrentHeuristicConsistent() {
+        return true;
+    }
+
+    @Override
     public boolean isGoal(State s) {
         PancakeState state = (PancakeState) s;
         return state.dNoGaps == 0;
