@@ -81,7 +81,19 @@ public class DomainsCreation {
 
     public static SearchDomain create15PuzzleInstanceFromKorfInstances(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
-        return new FifteenPuzzle(is);
+        FifteenPuzzle puzzle = new FifteenPuzzle(is);
+        puzzle.setAdditionalParameter("heuristic", "pdb-555");
+        puzzle.setAdditionalParameter(
+                "pdb-555-files",
+                "H:\\PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
+                        "H:\\PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
+                        "H:\\PDBs\\15-puzzle\\dis_11_12_13_14_15");
+        return puzzle;
+    }
+
+    public static SearchDomain create15PuzzleInstanceFromKorfInstances(SearchDomain previous, String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
+        return new FifteenPuzzle((FifteenPuzzle)previous, is);
     }
 
     public static SearchDomain createDockyardRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {

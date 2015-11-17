@@ -347,10 +347,13 @@ public class WAStar_EES_GeneralExperiment {
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
         SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
 
+        // Create the first domain by reading the first instance
+        SearchDomain domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(firstInstance + ".in");
+
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            SearchDomain domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+            domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -579,7 +582,8 @@ public class WAStar_EES_GeneralExperiment {
                     100,
                     // Output Path
                     //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
-                    "results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended",
+                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended",
+                    "results/fifteenpuzzle/korf100/pdb555/generated-wastar+extended",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -632,8 +636,8 @@ public class WAStar_EES_GeneralExperiment {
 
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
