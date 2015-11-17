@@ -42,6 +42,8 @@ public final class FifteenPuzzle implements SearchDomain {
     private final int tilesNumber = this.width * this.height;
     // TODO?
     private int init[] = new int[this.tilesNumber]; // 16
+    // Reflection via the diagonal
+    private int reflectedIndexes[] = new int[this.tilesNumber]; // 16
     // Pre-computed Manhattan distance between each pair of tiles
     private double md[][] = new double[this.tilesNumber][this.tilesNumber]; // 4x4 array
     // The difference in the Manhattan Distance when applying any kind of operator on any tile
@@ -64,6 +66,7 @@ public final class FifteenPuzzle implements SearchDomain {
     }
 
     private HeuristicType heuristicType;
+    private boolean useReflection;
 
     public enum COST_FUNCTION {
         UNIT,
@@ -90,6 +93,9 @@ public final class FifteenPuzzle implements SearchDomain {
     {
         FifteenPuzzlePossibleParameters = new HashMap<>();
         FifteenPuzzlePossibleParameters.put("heuristic", String.class);
+        FifteenPuzzlePossibleParameters.put("pdb-78-files", String.class);
+        FifteenPuzzlePossibleParameters.put("pdb-555-files", String.class);
+        FifteenPuzzlePossibleParameters.put("use-reflection", Boolean.class);
     }
 
     /**
@@ -237,6 +243,8 @@ public final class FifteenPuzzle implements SearchDomain {
         }
         // Manhattan Distance is the default heuristic type
         this.heuristicType = HeuristicType.MD;
+        // By default reflection is not used!
+        this.useReflection = false;
         // Initially, no pdb-7-8
         this.pdb7 = null;
         this.pdb8 = null;
@@ -331,6 +339,7 @@ public final class FifteenPuzzle implements SearchDomain {
         this(stream);
         // Copy heuristic related data
         this.heuristicType = other.heuristicType;
+        this.useReflection = other.useReflection;
         this.pdb7 = other.pdb7;
         this.pdb8 = other.pdb8;
         this.pdb5_1 = other.pdb5_1;
@@ -370,12 +379,17 @@ public final class FifteenPuzzle implements SearchDomain {
      * @return An array of the form {h, d}
      */
     private double[] _computeHDNoMD(TileState state) {
-        int h;
-        int d;
+        double h;
+        double d;
         switch (this.heuristicType) {
             case PDB78: {
                 h = this.pdb7.get(state.getHash7Index()) +
                         this.pdb8.get(state.getHash8Index());
+                if (this.useReflection) {
+                    int hRef = this.pdb7.get(state.getHash7ReflectionIndex()) +
+                            this.pdb8.get(state.getHash8ReflectionIndex());
+                    h = Math.max(h, hRef);
+                }
                 d = h;
                 break;
             }
@@ -383,6 +397,12 @@ public final class FifteenPuzzle implements SearchDomain {
                 h = this.pdb5_1.get(state.getHash5_1Index()) +
                         this.pdb5_2.get(state.getHash5_2Index()) +
                         this.pdb5_3.get(state.getHash5_3Index());
+                if (this.useReflection) {
+                    int hRef = this.pdb5_1.get(state.getHash5_1ReflectIndex()) +
+                            this.pdb5_2.get(state.getHash5_2ReflectIndex()) +
+                            this.pdb5_3.get(state.getHash5_3ReflectIndex());
+                    h = Math.max(h, hRef);
+                }
                 d = h;
                 break;
             }
@@ -712,64 +732,92 @@ public final class FifteenPuzzle implements SearchDomain {
             this.parent = state.parent;
         }
 
-        private long getHash7Index() {
-            int[] permutation = new int[7 + 1];
-            permutation[7] = this.positionsOfTiles[0];
-            permutation[0] = this.positionsOfTiles[1];
-            permutation[1] = this.positionsOfTiles[2];
-            permutation[2] = this.positionsOfTiles[3];
-            permutation[3] = this.positionsOfTiles[4];
-            permutation[4] = this.positionsOfTiles[5];
-            permutation[5] = this.positionsOfTiles[6];
-            permutation[6] = this.positionsOfTiles[7];
+        /**
+         * Creates a permutation array for computing hash indexes in the PDBs
+         *
+         * @param permutationLengthNoBlank The length of the permutation array
+         *                                 (will be actually greater by 1 - for having the blank at the end)
+         * @param firstTileIndex The index of the first tile to create the permutation from
+         *                       (assumes each PDB is constructed of sequential tiles)
+         * @return The computed index in the relevant PDB
+         */
+        private long _getHashNIndex(int permutationLengthNoBlank, int firstTileIndex) {
+            int[] permutation = new int[permutationLengthNoBlank + 1];
+            // The last element of the permutation array always contains the blank
+            permutation[permutationLengthNoBlank] = this.positionsOfTiles[0];
+            System.arraycopy(this.positionsOfTiles, firstTileIndex, permutation, 0, permutationLengthNoBlank);
             return FifteenPuzzle.this._getHashNIndex(permutation);
+        }
+
+        /**
+         * Creates a permutation array for computing hash indexes in the PDBs but now, uses reflected tiles
+         *
+         * @param permutationLengthNoBlank The length of the permutation array
+         *                                 (will be actually greater by 1 - for having the blank at the end)
+         * @param firstTileIndex The index of the first tile to create the permutation from
+         *                       (assumes each PDB is constructed of sequential tiles)
+         * @return The computed index in the relevant PDB
+         *
+         * Explanation:
+         *  1. reflect[] return the reflected index of the required tiles
+         *  2. s2[reflect[]] returns the position of that tile
+         *  3. The last reflect[] returns the reflected position, such that now it suits the PDB we currently have
+         */
+        private long _getHashNReflectionIndex(int permutationLengthNoBlank, int firstTileIndex) {
+            int[] permutation = new int[permutationLengthNoBlank + 1];
+            // The last element of the permutation array always contains the reflection of blank
+            permutation[permutationLengthNoBlank] =
+                    FifteenPuzzle.this.reflectedIndexes[
+                            this.positionsOfTiles[
+                                    FifteenPuzzle.this.reflectedIndexes[0]]];
+            // Now, reflect other tiles
+            for (int i = 0; i < permutationLengthNoBlank; ++i) {
+                permutation[i] =
+                        FifteenPuzzle.this.reflectedIndexes[
+                                this.positionsOfTiles[
+                                        FifteenPuzzle.this.reflectedIndexes[firstTileIndex + i]]];
+            }
+            return FifteenPuzzle.this._getHashNIndex(permutation);
+        }
+
+        private long getHash7Index() {
+            return this._getHashNIndex(7, 1);
+        }
+
+        private long getHash7ReflectionIndex() {
+            return this._getHashNReflectionIndex(7, 1);
         }
 
         private long getHash8Index() {
-            int[] permutation = new int[8 + 1];
-            permutation[8] = this.positionsOfTiles[0];
-            permutation[0] = this.positionsOfTiles[8];
-            permutation[1] = this.positionsOfTiles[9];
-            permutation[2] = this.positionsOfTiles[10];
-            permutation[3] = this.positionsOfTiles[11];
-            permutation[4] = this.positionsOfTiles[12];
-            permutation[5] = this.positionsOfTiles[13];
-            permutation[6] = this.positionsOfTiles[14];
-            permutation[7] = this.positionsOfTiles[15];
-            return FifteenPuzzle.this._getHashNIndex(permutation);
+            return this._getHashNIndex(8, 8);
+        }
+
+        private long getHash8ReflectionIndex() {
+            return this._getHashNReflectionIndex(8, 8);
         }
 
         private long getHash5_1Index() {
-            int[] permutation = new int[5 + 1];
-            permutation[5] = this.positionsOfTiles[0];
-            permutation[0] = this.positionsOfTiles[1];
-            permutation[1] = this.positionsOfTiles[2];
-            permutation[2] = this.positionsOfTiles[3];
-            permutation[3] = this.positionsOfTiles[4];
-            permutation[4] = this.positionsOfTiles[5];
-            return FifteenPuzzle.this._getHashNIndex(permutation);
+            return this._getHashNIndex(5, 1);
+        }
+
+        private long getHash5_1ReflectIndex() {
+            return this._getHashNReflectionIndex(5, 1);
         }
 
         private long getHash5_2Index() {
-            int[] permutation = new int[5 + 1];
-            permutation[5] = this.positionsOfTiles[0];
-            permutation[0] = this.positionsOfTiles[6];
-            permutation[1] = this.positionsOfTiles[7];
-            permutation[2] = this.positionsOfTiles[8];
-            permutation[3] = this.positionsOfTiles[9];
-            permutation[4] = this.positionsOfTiles[10];
-            return FifteenPuzzle.this._getHashNIndex(permutation);
+            return this._getHashNIndex(5, 6);
+        }
+
+        private long getHash5_2ReflectIndex() {
+            return this._getHashNReflectionIndex(5, 6);
         }
 
         private long getHash5_3Index() {
-            int[] permutation = new int[5 + 1];
-            permutation[5] = this.positionsOfTiles[0];
-            permutation[0] = this.positionsOfTiles[11];
-            permutation[1] = this.positionsOfTiles[12];
-            permutation[2] = this.positionsOfTiles[13];
-            permutation[3] = this.positionsOfTiles[14];
-            permutation[4] = this.positionsOfTiles[15];
-            return FifteenPuzzle.this._getHashNIndex(permutation);
+            return this._getHashNIndex(5, 11);
+        }
+
+        private long getHash5_3ReflectIndex() {
+            return this._getHashNReflectionIndex(5, 11);
         }
 
         @Override
@@ -949,6 +997,17 @@ public final class FifteenPuzzle implements SearchDomain {
         System.out.println("[INFO] Finished reading PDB from " + pdb5_3FileName);
     }
 
+    /**
+     * Calculates the reflected index via the diagonal
+     *
+     * @param tile The tile (index) to calculate the reflection on
+     *
+     * @return The calculated reflection index
+     */
+    private int _getReflectedTile(int tile) {
+        return (tile % this.width) * this.width + (tile / this.height);
+    }
+
     @Override
     public void setAdditionalParameter(String parameterName, String value) {
         switch (parameterName) {
@@ -1015,6 +1074,18 @@ public final class FifteenPuzzle implements SearchDomain {
                 } catch (IOException e) {
                     System.out.println("[ERROR] Failed reading pdb-78 files: " + e.getMessage());
                     throw new IllegalArgumentException();
+                }
+                break;
+            }
+            case "use-reflection": {
+                if (this.heuristicType == HeuristicType.MD) {
+                    System.out.println("[ERROR] Reflection is only relevant if PDB-555 or PDB-78 heuristics are used");
+                    throw new IllegalArgumentException();
+                }
+                this.useReflection = Boolean.parseBoolean(value);
+                // Otherwise, let's initialize the reflection array
+                for (int tile = 0; tile < this.tilesNumber; ++tile) {
+                    this.reflectedIndexes[tile] = this._getReflectedTile(tile);
                 }
                 break;
             }

@@ -92,7 +92,7 @@ public class Main {
     }
 
     public SearchDomain createFifteenPuzzleUnitWithPDB(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf1000/"+instance));
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/"+instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
         //puzzle.setAdditionalParameter("heuristic", "pdb-78");
         puzzle.setAdditionalParameter("heuristic", "pdb-555");
@@ -101,12 +101,13 @@ public class Main {
                 "pdb-78-files",
                 "H:\\PDBs\\15-puzzle\\dis_1_2_3_4_5_6_7,H:\\PDBs\\15-puzzle\\dis_8_9_10_11_12_13_14_15");
         */
+        String PDBsDir = "C:\\users\\user\\";
         puzzle.setAdditionalParameter(
                 "pdb-555-files",
-                "H:\\PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
-                        "H:\\PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
-                        "H:\\PDBs\\15-puzzle\\dis_11_12_13_14_15");
-
+                PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
+                        PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
+                        PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");
+        puzzle.setAdditionalParameter("use-reflection", true + "");
         return puzzle;
     }
 
