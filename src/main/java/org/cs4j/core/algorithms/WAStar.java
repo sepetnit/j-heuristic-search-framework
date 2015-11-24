@@ -325,10 +325,12 @@ public class WAStar implements SearchAlgorithm {
             this.g = (parent != null) ? parent.g + cost : cost;
 
             // Start of PathMax
+            /*
             if (parent != null) {
                 double costsDiff = this.g - parent.g;
                 this.h = Math.max(this.h, (parent.h - costsDiff));
             }
+            */
             // End of PathMax
             this.f = this.g + (WAStar.this.weight * this.h);
 
