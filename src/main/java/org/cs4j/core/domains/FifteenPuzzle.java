@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * The 4x4 sliding-tiles domain class.
@@ -938,7 +939,7 @@ public final class FifteenPuzzle implements SearchDomain {
      * @throws IOException If something wrong occurred
      */
     private Map<Long, Byte> _readSinglePDB(String pdbFileName, long permutationsCount) throws IOException {
-        Map<Long, Byte> toReturn = new HashMap<>();
+        Map<Long, Byte> toReturn = new TreeMap<>();
         // Each permutation index is stored as int
         DataInputStream inputStream = new DataInputStream(new FileInputStream(pdbFileName));
         for (long i = 0; i < permutationsCount; ++i) {
