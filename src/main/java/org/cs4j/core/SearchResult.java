@@ -43,6 +43,13 @@ public interface SearchResult {
     public List<Solution> getSolutions();
 
     /**
+     * Returns expanded count in the first iteration of running
+     *
+     * @return The expanded count in the first iteration of running
+     */
+    public long getFirstIterationExpanded();
+
+    /**
      * Returns expanded count.
      *
      * @return expanded count
