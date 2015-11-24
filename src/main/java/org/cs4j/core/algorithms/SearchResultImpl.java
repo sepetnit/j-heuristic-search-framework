@@ -49,11 +49,20 @@ public class SearchResultImpl implements SearchResult {
     private long stopWallTimeMillis;
     private long stopCpuTimeMillis;
 
-    private List<Iteration> iterations = new ArrayList<>();
+    public List<Iteration> iterations = new ArrayList<>();
     private List<Solution> solutions = new ArrayList<>();
 
     @Override
     public long getExpanded() {
+        return this.expanded;
+    }
+
+    @Override
+    public long getFirstIterationExpanded() {
+        if (this.iterations.size() > 0) {
+            Iteration current = this.iterations.get(0);
+            return current.getExpanded();
+        }
         return this.expanded;
     }
 
@@ -103,6 +112,11 @@ public class SearchResultImpl implements SearchResult {
 
     public void addIteration(int i, double bound, long expanded, long generated) {
         iterations.add(new Iteration(bound, expanded, generated));
+    }
+
+    public void addIterations(SearchResultImpl other) {
+        other.iterations.addAll(this.iterations);
+        this.iterations = other.iterations;
     }
 
     public void setExpanded(long expanded) {
