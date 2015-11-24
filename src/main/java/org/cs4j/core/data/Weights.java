@@ -16,7 +16,27 @@ public class Weights {
     };
 
     public final SingleWeight[] OPTIMAL_WEIGHTS = {
-            new SingleWeight(1.0)
+            new SingleWeight(1.0d)
+    };
+
+    public final SingleWeight[] VERY_LOW_WEIGHTS = {
+            new SingleWeight(1.000001d),
+            new SingleWeight(1.00001d),
+            new SingleWeight(1.0001d),
+            new SingleWeight(1.001d),
+            new SingleWeight(1.002d),
+            new SingleWeight(1.003d),
+            new SingleWeight(1.004d),
+            new SingleWeight(1.005d),
+            new SingleWeight(1.006d),
+            new SingleWeight(1.007d),
+            new SingleWeight(1.008d),
+            new SingleWeight(1.009d),
+            new SingleWeight(1.01d),
+            new SingleWeight(1.015d),
+            new SingleWeight(1.02d),
+            new SingleWeight(1.03d),
+            new SingleWeight(1.04d),
     };
 
     public final SingleWeight[] LOW_WEIGHTS = {
