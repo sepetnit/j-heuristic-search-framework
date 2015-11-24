@@ -725,18 +725,19 @@ public class GridPathFinding implements SearchDomain {
      */
     private double[] computeHD(GridPathFindingState s) {
         assert this.goalsPairs.size() == 1;
+        // Compute also the Manhattan Distance
+        int md = Utils.calcManhattanDistance(
+                this.map.getPosition(s.agentLocation),
+                // TODO: Deals with a single goal only!
+                this.goalsPairs.get(0));
         switch (this.heuristicType) {
             case MD: {
-                int md = Utils.calcManhattanDistance(
-                        this.map.getPosition(s.agentLocation),
-                        // TODO: Deals with a single goal only!
-                        this.goalsPairs.get(0));
                 return new double[]{md, md};
             }
             case DH_FURTHEST:
             case DH_FURTHEST_MD_PROB_50: {
                 int currentGoal = this.goals.get(0);
-                double maxDistance = 0;
+                double maxDistance = 0.0d;
                 for (int i = 0; i < this.pivotsCount; ++i) {
                     int currentPivot = this.orderedPivots[i];
                     double distanceFromAgentToPivot = this.distancesFromPivots.get(currentPivot).get(s.agentLocation);
@@ -744,7 +745,7 @@ public class GridPathFinding implements SearchDomain {
                         continue;
                     }
                     double distanceFromPivotToGoal = this.distancesFromPivots.get(currentPivot).get(currentGoal);
-                    if (distanceFromPivotToGoal < 0) {
+                    if (distanceFromPivotToGoal <= 0) {
                         continue;
                     }
                     double diff = Math.abs(distanceFromAgentToPivot - distanceFromPivotToGoal);
@@ -752,14 +753,15 @@ public class GridPathFinding implements SearchDomain {
                         maxDistance = diff;
                     }
                 }
-                // Compute also the Manhattan Distance
-                int md = Utils.calcManhattanDistance(
-                        this.map.getPosition(s.agentLocation),
-                        // TODO: Deals with a single goal only!
-                        this.goalsPairs.get(0));
                 if (this.heuristicType == HeuristicType.DH_FURTHEST_MD_PROB_50) {
-                    if (this.rand.nextDouble() > 0.5) {
+                    if (maxDistance > 0) {
+                        double val = (md + maxDistance) / 2;
+                        return new double[]{val, val};
+
+
+                    /*if (this.rand.nextDouble() > 0.5 && maxDistance > 0) {
                         return new double[]{maxDistance, maxDistance};
+                        */
                     } else {
                         return new double[]{md, md};
                     }
