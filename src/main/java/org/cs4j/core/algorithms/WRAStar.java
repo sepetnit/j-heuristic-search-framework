@@ -191,6 +191,8 @@ public class WRAStar implements SearchAlgorithm {
                     ++result.duplicates;
                     // Get the previous copy of this node (and extract it)
                     Node dupChildNode = this.closed.get(childNode.packed);
+                    // Take the h value from the previous version of the node (for case of randomization of h values)
+                    childNode.computeHValues(dupChildNode.h);
                     // All this is relevant only if we reached the node via a cheaper path
                     if (dupChildNode.wF > childNode.wF) {
                         // If false - let's check it!
@@ -398,10 +400,10 @@ public class WRAStar implements SearchAlgorithm {
             // TODO: Why?
             this.secondaryIndex = new int[(heapType == HeapType.BUCKET) ? 2 : 1];
             double cost = (op != null) ? op.getCost(state, parentState) : 0;
-            this.h = state.getH();
-
             // If each operation costs something, we should add the cost to the g value of the parent
             this.g = (parent != null) ? parent.g + cost : cost;
+            // Update h and f values
+            this.computeHValues(state.getH());
 
             // Start of PathMax
             /*
@@ -411,14 +413,25 @@ public class WRAStar implements SearchAlgorithm {
             }
             */
             // End of PathMax
-            this.wF = this.g + (WRAStar.this.weight * this.h);
-            this.rF = this.g + this.h;
 
             // Parent node
             this.parent = parent;
             this.packed = WRAStar.this.domain.pack(state);
             this.pop = pop;
             this.op = op;
+        }
+
+        /**
+         * The function computes the F values according to the given heuristic value (which is computed externally)
+         *
+         * Also, all other values that depend on h are updated
+         *
+         * @param updatedHValue The updated heuristic value
+         */
+        public void computeHValues(double updatedHValue) {
+            this.h = updatedHValue;
+            this.wF = this.g + (WRAStar.this.weight * this.h);
+            this.rF = this.g + this.h;
         }
 
         /**

@@ -201,6 +201,8 @@ public class WAStar implements SearchAlgorithm {
                     ++result.duplicates;
                     // Get the previous copy of this node (and extract it)
                     Node dupChildNode = this.closed.get(childNode.packed);
+                    // Take the h value from the previous version of the node (for case of randomization of h values)
+                    childNode.computeFValue(dupChildNode.h);
                     // All this is relevant only if we reached the node via a cheaper path
                     if (dupChildNode.f > childNode.f) {
                         // If false - let's check it!
@@ -319,10 +321,11 @@ public class WAStar implements SearchAlgorithm {
             // TODO: Why?
             this.secondaryIndex = new int[(heapType == HeapType.BUCKET) ? 2 : 1];
             double cost = (op != null) ? op.getCost(state, parentState) : 0;
-            this.h = state.getH();
-
             // If each operation costs something, we should add the cost to the g value of the parent
             this.g = (parent != null) ? parent.g + cost : cost;
+
+            // Update h and f values
+            this.computeFValue(state.getH());
 
             // Start of PathMax
             /*
@@ -332,13 +335,24 @@ public class WAStar implements SearchAlgorithm {
             }
             */
             // End of PathMax
-            this.f = this.g + (WAStar.this.weight * this.h);
 
             // Parent node
             this.parent = parent;
             this.packed = WAStar.this.domain.pack(state);
             this.pop = pop;
             this.op = op;
+        }
+
+        /**
+         * The function computes the F values according to the given heuristic value (which is computed externally)
+         *
+         * Also, all other values that depend on h are updated
+         *
+         * @param updatedHValue The updated heuristic value
+         */
+        public void computeFValue(double updatedHValue) {
+            this.h = updatedHValue;
+            this.f = this.g + (WAStar.this.weight * this.h);
         }
 
         /**
