@@ -69,8 +69,10 @@ public class GridPathFinding implements SearchDomain {
         MD,
         // TDH with furthest k pivots
         DH_FURTHEST,
-        // 50% take h of DH (with k pivots) and 50% take MD (Warning: Not consistent!)
-        DH_FURTHEST_MD_PROB_50
+        // Take the average between DH and MD, also, take MD if DH is 0 (this is inconsistent heuristic!)
+        DH_MD_AVERAGE_MD_IF_DH_IS_0,
+        // Take random pivot among the available (this is inconsistent heuristic if pvitosCount > 0!)
+        DH_RANDOM_PIVOT
     }
 
     private HeuristicType heuristicType;
@@ -79,7 +81,7 @@ public class GridPathFinding implements SearchDomain {
     // Required for the TDH heuristic
     private int[] orderedPivots;
     private Map<Integer, Map<Integer, Double>> distancesFromPivots;
-    // Used for DH_FURTHEST_MD_PROB_50 heuristic
+    // Used for DH_RANDOM_PIVOT heuristic
     private Random rand;
 
     private GridPathFindingOperator[] reverseOperators;
@@ -684,7 +686,7 @@ public class GridPathFinding implements SearchDomain {
             if (!sz[0].equals("map:")) {
                 System.out.println("[ERROR] Copying GridPathFinding problem isn't allowed in this case");
                 throw new IOException();
-        }
+            }
             // Read start and goals locations
             this._readStartAndGoalsFromProblemFile(in);
             // Assure there is a start location
@@ -718,6 +720,30 @@ public class GridPathFinding implements SearchDomain {
     }
 
     /**
+     * The function computes the differential heuristics value for a single pivot case
+     *
+     * @param startLocation The start location on the grid
+     * @param pivotIndex The index of the pivot to take from the pivots map
+     * @param goalLocation The end location on the grid
+     * @param failIf0 Whether to return -1 if one of the pivots is unreachable from start or from goal or the distance
+     *                from one of the pivots is 0
+     *
+     * @return The computed heuristic value or -1 in case one of the distances is unreachable or 0 and failIf0 is true
+     */
+    private double _computeDHForSinglePivot(int startLocation, int pivotIndex, int goalLocation, boolean failIf0) {
+        int currentPivot = this.orderedPivots[pivotIndex];
+        double distanceFromAgentToPivot = this.distancesFromPivots.get(currentPivot).get(startLocation);
+        if ((failIf0 && distanceFromAgentToPivot == 0) || distanceFromAgentToPivot < 0) {
+            return -1;
+        }
+        double distanceFromPivotToGoal = this.distancesFromPivots.get(currentPivot).get(goalLocation);
+        if ((failIf0 && distanceFromPivotToGoal == 0) || distanceFromPivotToGoal < 0) {
+            return -1;
+        }
+        return Math.abs(distanceFromAgentToPivot - distanceFromPivotToGoal);
+    }
+
+    /**
      * Compute the heuristic value of a given state
      *
      * @param s The state whose heuristic value should be computed
@@ -730,46 +756,66 @@ public class GridPathFinding implements SearchDomain {
                 this.map.getPosition(s.agentLocation),
                 // TODO: Deals with a single goal only!
                 this.goalsPairs.get(0));
+        int currentGoal = this.goals.get(0);
+        double maxDistance;
+
         switch (this.heuristicType) {
+            // A simple Manhattan distance
             case MD: {
                 return new double[]{md, md};
             }
-            case DH_FURTHEST:
-            case DH_FURTHEST_MD_PROB_50: {
-                int currentGoal = this.goals.get(0);
-                double maxDistance = 0.0d;
+            // A simple DH heuristic, but, choose max from DH and MD
+            case DH_FURTHEST: {
+                maxDistance = 0.0d;
                 for (int i = 0; i < this.pivotsCount; ++i) {
-                    int currentPivot = this.orderedPivots[i];
-                    double distanceFromAgentToPivot = this.distancesFromPivots.get(currentPivot).get(s.agentLocation);
-                    if (distanceFromAgentToPivot <= 0) {
-                        continue;
-                    }
-                    double distanceFromPivotToGoal = this.distancesFromPivots.get(currentPivot).get(currentGoal);
-                    if (distanceFromPivotToGoal <= 0) {
-                        continue;
-                    }
-                    double diff = Math.abs(distanceFromAgentToPivot - distanceFromPivotToGoal);
+                    // Compute the heuristic value for this pivot, don't return -1 if the distance from one of the
+                    // pivots is 0
+                    double diff = this._computeDHForSinglePivot(
+                            s.agentLocation,
+                            this.orderedPivots[i],
+                            currentGoal,
+                            false);
                     if (diff > maxDistance) {
                         maxDistance = diff;
                     }
                 }
-                if (this.heuristicType == HeuristicType.DH_FURTHEST_MD_PROB_50) {
-                    if (maxDistance > 0) {
-                        double val = (md + maxDistance) / 2;
-                        return new double[]{val, val};
-
-
-                    /*if (this.rand.nextDouble() > 0.5 && maxDistance > 0) {
-                        return new double[]{maxDistance, maxDistance};
-                        */
-                    } else {
-                        return new double[]{md, md};
+                // Take the maximum value (chose from MD and DH)
+                double maxValue = Math.max(maxDistance, md);
+                return new double[]{maxValue, maxValue};
+            }
+            // Take the average between DH (no max with MD) and MD; if DH == 0 => Take only MD
+            case DH_MD_AVERAGE_MD_IF_DH_IS_0: {
+                maxDistance = 0.0d;
+                for (int i = 0; i < this.pivotsCount; ++i) {
+                    // Compute the heuristic value for this pivot, return -1 if the distance from one of the
+                    // pivots is 0
+                    double diff = this._computeDHForSinglePivot(
+                            s.agentLocation,
+                            i,
+                            currentGoal,
+                            true);
+                    if (diff > maxDistance) {
+                        maxDistance = diff;
                     }
-                } else {
-                    // Take the maximum value (chose from MD and DH)
-                    double maxValue = Math.max(maxDistance, md);
-                    return new double[]{maxValue, maxValue};
                 }
+                // If DH is greater than 0 => return the average, otherwise, return only MD
+                if (maxDistance > 0) {
+                    double val = (md + maxDistance) / 2;
+                    return new double[]{val, val};
+                } else {
+                    return new double[]{md, md};
+                }
+            }
+            case DH_RANDOM_PIVOT: {
+                // The pivot index is calculated using the packed value (takes the first long only ...)
+                double diff = this._computeDHForSinglePivot(
+                        s.agentLocation,
+                        (int)(this.pack(s).getLongsSum() % this.pivotsCount),
+                        currentGoal,
+                        false);
+                // Take the maximum value (chose from MD and DH)
+                double maxValue = Math.max(diff, md);
+                return new double[]{maxValue, maxValue};
             }
         }
         return new double[]{0, 0};
@@ -777,7 +823,9 @@ public class GridPathFinding implements SearchDomain {
 
     @Override
     public boolean isCurrentHeuristicConsistent() {
-        return (this.heuristicType != HeuristicType.DH_FURTHEST_MD_PROB_50);
+        return (this.heuristicType != HeuristicType.DH_MD_AVERAGE_MD_IF_DH_IS_0) &&
+                // This heuristic is consistent only if the number of pivots is 1
+                (this.heuristicType != HeuristicType.DH_RANDOM_PIVOT || this.pivotsCount == 1);
     }
 
     /**
@@ -1024,10 +1072,15 @@ public class GridPathFinding implements SearchDomain {
                         this.heuristicType = HeuristicType.DH_FURTHEST;
                         break;
                     }
-                    case "tdh-furthest-md-prob-50":
-                        this.heuristicType = HeuristicType.DH_FURTHEST_MD_PROB_50;
+                    case "dh-md-average-md-if-dh-is-0":
+                        System.out.println("[WARNING] This heuristic is inconsistent");
+                        this.heuristicType = HeuristicType.DH_MD_AVERAGE_MD_IF_DH_IS_0;
+                        break;
+                    case "dh-random-pivot":
+                        System.out.println("[WARNING] This heuristic is inconsistent if pivots-count > 1");
                         // In this case we need the rand
                         this.rand = new Random();
+                        this.heuristicType = HeuristicType.DH_RANDOM_PIVOT;
                         break;
                     case "md": {
                         this.heuristicType = HeuristicType.MD;
@@ -1058,7 +1111,8 @@ public class GridPathFinding implements SearchDomain {
                 break;
             } case "pivots-count": {
                 if ((this.heuristicType != HeuristicType.DH_FURTHEST) &&
-                        (this.heuristicType != HeuristicType.DH_FURTHEST_MD_PROB_50)) {
+                        (this.heuristicType != HeuristicType.DH_MD_AVERAGE_MD_IF_DH_IS_0) &&
+                        (this.heuristicType != HeuristicType.DH_RANDOM_PIVOT)) {
                     System.out.println("[ERROR] Heuristic type isn't DH - can't set pivots count");
                     throw new IllegalArgumentException();
                 } else if (this.orderedPivots == null) {
