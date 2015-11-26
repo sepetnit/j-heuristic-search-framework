@@ -16,6 +16,7 @@
  */
 package org.cs4j.core.domains;
 
+import com.carrotsearch.hppc.LongByteHashMap;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.collections.PackedElement;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -29,10 +30,6 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
-
-
-import com.carrotsearch.hppc.LongByteHashMap;
 
 /**
  * The 4x4 sliding-tiles domain class.
@@ -91,6 +88,13 @@ public final class FifteenPuzzle implements SearchDomain {
     private LongByteHashMap pdb5_3;
 
     private static final Map<String, Class> FifteenPuzzlePossibleParameters;
+
+    // Size of the PDB for 5 tiles
+    private static final int TABLE_SIZE_PDB5 = 16 * 15 * 14 * 13 * 12;
+    // Size of the PDB for the 7 first tiles
+    private static final int TABLE_SIZE_PDB7 = 16 * 15 * 14 * 13 * 12 * 11 * 10;
+    // Size of the PDB for the 8 rest tiles
+    private static final int TABLE_SIZE_PDB8 = 16 * 15 * 14 * 13 * 12 * 11 * 10 * 9;
 
     // Declare the parameters that can be tunes before running the search
     static
@@ -911,13 +915,6 @@ public final class FifteenPuzzle implements SearchDomain {
         return FifteenPuzzle.FifteenPuzzlePossibleParameters;
     }
 
-    // Size of the PDB for 5 tiles
-    private static final long TABLE_SIZE_PDB5 = 16 * 15 * 14 * 13 * 12;
-    // Size of the PDB for the 7 first tiles
-    private static final long TABLE_SIZE_PDB7 = 16 * 15 * 14 * 13 * 12 * 11 * 10;
-    // Size of the PDB for the 8 rest tiles
-    private static final long TABLE_SIZE_PDB8 = 16 * 15 * 14 * 13 * 12 * 11 * 10 * 9;
-
     /**
      * Read a permutation index from the DB
      *
@@ -941,8 +938,8 @@ public final class FifteenPuzzle implements SearchDomain {
      *
      * @throws IOException If something wrong occurred
      */
-    private LongByteHashMap _readSinglePDB(String pdbFileName, long permutationsCount) throws IOException {
-        LongByteHashMap toReturn = new LongByteHashMap();
+    private LongByteHashMap _readSinglePDB(String pdbFileName, int permutationsCount) throws IOException {
+        LongByteHashMap toReturn = new LongByteHashMap(permutationsCount);
         // Each permutation index is stored as int
         DataInputStream inputStream = new DataInputStream(new FileInputStream(pdbFileName));
         for (long i = 0; i < permutationsCount; ++i) {
