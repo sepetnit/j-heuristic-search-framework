@@ -150,14 +150,14 @@ public class WRAStar_General_Experiment {
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
         Weights.SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
-        int[] pivotsCounts = new int[]{1};
+        int[] pivotsCounts = new int[]{10};
         List<String> allOutputFiles = new ArrayList<>(pivotsCounts.length);
 
         // Create the domain by reading the first instance (the pivots DB is read once!)
         SearchDomain domain =
                 DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
                         firstInstance + ".in",
-                        1);
+                        10);
 
         for (int pivotsCount : pivotsCounts) {
             System.out.println("[INFO] Runs experiment with " + pivotsCount + " pivots");
@@ -220,7 +220,8 @@ public class WRAStar_General_Experiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/maze512-1-6.map/generated+wrastar+extended",
+                    "results/gridpathfinding/generated/brc202d.map/generated+wrastar+extended",
+                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+wrastar+extended",
                     // Add header
                     true);
         } catch (IOException e) {

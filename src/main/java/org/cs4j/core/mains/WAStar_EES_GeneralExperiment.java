@@ -7,6 +7,7 @@ import org.cs4j.core.SearchResult;
 import org.cs4j.core.SearchResult.Solution;
 import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.algorithms.WAStar;
+import org.cs4j.core.algorithms.WRAStar;
 import org.cs4j.core.data.Weights;
 import org.cs4j.core.data.Weights.SingleWeight;
 import org.cs4j.core.domains.*;
@@ -62,7 +63,7 @@ public class WAStar_EES_GeneralExperiment {
      * @return The created header line
      */
     private String _getHeader() {
-        return "InstanceID,Wh,Wg,Weight," +
+        return "InstanceID,Wg,Wh,Weight," +
                 "AR-Slv,AR-Dep,AR-Cst,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
                 "NR-Slv,NR-Dep,NR-Cst,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,";
     }
@@ -258,6 +259,7 @@ public class WAStar_EES_GeneralExperiment {
      * Public member definitions
      ******************************************************************************************************************/
 
+
     /**
      * Runs an experiment using the WAStar and EES algorithms in a SINGLE THREAD!
      *
@@ -272,7 +274,7 @@ public class WAStar_EES_GeneralExperiment {
     public String[] runGridPathFindingWithPivotsExperimentSingleThreaded(
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
-        SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
+        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
         int[] pivotsCounts = new int[]{10};
         List<String> allOutputFiles = new ArrayList<>(pivotsCounts.length);
 
@@ -304,7 +306,11 @@ public class WAStar_EES_GeneralExperiment {
                     for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
                         SearchAlgorithm alg = new WAStar(weight, reopen);
                         //SearchAlgorithm alg = new EES(weight, reopen);
-                        System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
+                        System.out.println(
+                                "[INFO] Alg: " + alg.getName() +
+                                        ", Instance: " + i +
+                                        ", Weight: " + weight +
+                                        ", Reopen: " + reopen);
                         try {
                             SearchResult result = alg.search(domain);
                             // No solution
@@ -344,16 +350,19 @@ public class WAStar_EES_GeneralExperiment {
     public String runExperimentSingleThreaded(int firstInstance, int instancesCount,
                                               String outputPath, boolean needHeader) throws IOException {
 
+        SearchDomain domain;
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
-        SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
+        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
 
         // Create the first domain by reading the first instance
-        SearchDomain domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(firstInstance + ".in");
+        //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(firstInstance + ".in");
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
+            //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
+            //domain = DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
+            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -557,8 +566,8 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended-tdh-random",
-                    "results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-tdh",
+                    "results/gridpathfinding/generated/brc202d.map/generated+wastar+extended-average-md-pivots",
+                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-average-md-pivots",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -582,8 +591,10 @@ public class WAStar_EES_GeneralExperiment {
                     100,
                     // Output Path
                     //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
-                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended",
-                    "results/fifteenpuzzle/korf100/pdb555/generated-wastar+extended",
+                    "results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-80-md",
+                    //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended",
+                    //"results/fifteenpuzzle/korf100/pdb555/generated-wastar+extended",
+                    //"results/vacuumrobot/generated+wastar+extended",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -636,8 +647,8 @@ public class WAStar_EES_GeneralExperiment {
 
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }

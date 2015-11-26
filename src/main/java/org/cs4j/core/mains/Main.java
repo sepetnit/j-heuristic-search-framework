@@ -71,8 +71,8 @@ public class Main {
         String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6.map.pivots.pdb";
         InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/"+instance));
         GridPathFinding gridPathFindingInstance = new GridPathFinding(is);
-        gridPathFindingInstance.setAdditionalParameter("heuristic", "tdh-furthest");
-        //problem.setAdditionalParameter("heuristic", "tdh-furthest-md-prob-50");
+        gridPathFindingInstance.setAdditionalParameter("heuristic", "dh-furthest");
+        //problem.setAdditionalParameter("heuristic", "dh-md-average-md-if-dh-is-0");
         gridPathFindingInstance.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
         gridPathFindingInstance.setAdditionalParameter("pivots-count", 1 + "");
         return gridPathFindingInstance;
