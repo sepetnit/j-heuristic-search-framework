@@ -31,6 +31,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+
+import com.carrotsearch.hppc.LongByteHashMap;
+
 /**
  * The 4x4 sliding-tiles domain class.
  *
@@ -79,13 +82,13 @@ public final class FifteenPuzzle implements SearchDomain {
     private COST_FUNCTION costFunction;
 
     // PDBs for 7-8 partitioning
-    private Map<Long, Byte> pdb7;
-    private Map<Long, Byte> pdb8;
+    private LongByteHashMap pdb7;
+    private LongByteHashMap pdb8;
 
     // PDBs for 5-5-5 partitioning
-    private Map<Long, Byte> pdb5_1;
-    private Map<Long, Byte> pdb5_2;
-    private Map<Long, Byte> pdb5_3;
+    private LongByteHashMap pdb5_1;
+    private LongByteHashMap pdb5_2;
+    private LongByteHashMap pdb5_3;
 
     private static final Map<String, Class> FifteenPuzzlePossibleParameters;
 
@@ -938,8 +941,8 @@ public final class FifteenPuzzle implements SearchDomain {
      *
      * @throws IOException If something wrong occurred
      */
-    private Map<Long, Byte> _readSinglePDB(String pdbFileName, long permutationsCount) throws IOException {
-        Map<Long, Byte> toReturn = new TreeMap<>();
+    private LongByteHashMap _readSinglePDB(String pdbFileName, long permutationsCount) throws IOException {
+        LongByteHashMap toReturn = new LongByteHashMap();
         // Each permutation index is stored as int
         DataInputStream inputStream = new DataInputStream(new FileInputStream(pdbFileName));
         for (long i = 0; i < permutationsCount; ++i) {
@@ -982,6 +985,7 @@ public final class FifteenPuzzle implements SearchDomain {
         this.pdb8 = this._readSinglePDB(pdb8FileName, FifteenPuzzle.TABLE_SIZE_PDB8);
         System.out.println("[INFO] Finished reading PDB from " + pdb8FileName);
     }
+
 
     private void _readPDB555(String pdb5_1FileName, String pdb5_2FileName, String pdb5_3FileName) throws IOException {
         // Read PDB 5_1
