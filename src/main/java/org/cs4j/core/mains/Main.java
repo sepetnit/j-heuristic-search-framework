@@ -7,8 +7,6 @@ import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.*;
 import org.cs4j.core.data.Weights;
 import org.cs4j.core.domains.*;
-import org.cs4j.core.old.EESKBFS;
-import org.cs4j.core.old.EESKBFSV2;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,17 +28,6 @@ public class Main {
 //        System.out.println("Cost: "+sol.getCost());
 //        System.out.println("Length: "+sol.getLength());
         return new double[]{result.getGenerated(),result.getExpanded(),sol.getCost(),sol.getLength()};
-    }
-    public double[] testKBFSEES(int k, String puzzle) throws FileNotFoundException {
-        SearchDomain domain = createFifteenPuzzleKorf(puzzle);
-        SearchAlgorithm algo = new EESKBFS(2,k);
-        return testSearchAlgorithm(domain, algo);
-    }
-
-    public double[] testKBFSEESV2(int k, String puzzle) throws FileNotFoundException {
-        SearchDomain domain = createFifteenPuzzleKorf(puzzle);
-        SearchAlgorithm algo = new EESKBFSV2(2,k);
-        return testSearchAlgorithm(domain, algo);
     }
 
     public void testEES() throws FileNotFoundException {
@@ -94,19 +81,20 @@ public class Main {
     public SearchDomain createFifteenPuzzleUnitWithPDB(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/"+instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
-        //puzzle.setAdditionalParameter("heuristic", "pdb-78");
-        puzzle.setAdditionalParameter("heuristic", "pdb-555");
-        /*
+        String PDBsDir = "C:\\users\\user\\";
+        //puzzle.setAdditionalParameter("heuristic", "pdb-555");
+        puzzle.setAdditionalParameter("heuristic", "pdb-78");
         puzzle.setAdditionalParameter(
                 "pdb-78-files",
-                "H:\\PDBs\\15-puzzle\\dis_1_2_3_4_5_6_7,H:\\PDBs\\15-puzzle\\dis_8_9_10_11_12_13_14_15");
-        */
-        String PDBsDir = "C:\\users\\user\\";
+                PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5_6_7,"+
+                        PDBsDir + "PDBs\\15-puzzle\\dis_8_9_10_11_12_13_14_15");
+       /*
         puzzle.setAdditionalParameter(
                 "pdb-555-files",
                 PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
                         PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
                         PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");
+        */
         puzzle.setAdditionalParameter("use-reflection", true + "");
         return puzzle;
     }
@@ -138,7 +126,7 @@ public class Main {
     public static void mainFifteenPuzzleDomain(String[] args) throws IOException {
         Main mainTest = new Main();
 
-        SearchDomain domain = mainTest.createFifteenPuzzleUnitWithPDB("2.in");
+        SearchDomain domain = mainTest.createFifteenPuzzleUnitWithPDB("1.in");
         //SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
         SearchAlgorithm alg = new WAStar();
         SearchResult result = alg.search(domain);
@@ -152,7 +140,7 @@ public class Main {
                     result.getExpanded(),
                     ((SearchResultImpl) result).reopened};
             System.out.println(Arrays.toString(d));
-            //System.out.println(result.getSolutions().get(0).dumpSolution());
+            System.out.println(result.getSolutions().get(0).dumpSolution());
         } else {
             System.out.println("No solution :-(");
         }
