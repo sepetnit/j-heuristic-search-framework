@@ -178,6 +178,7 @@ public class WRAStar_General_Experiment {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     SearchAlgorithm alg = new WRAStar(weight);
+                    alg.setAdditionalParameter("w-admissibility-deviation-percentage", 20.0d + "");
                     System.out.println("[INFO] Algorithm: " + alg.getName() + ", Instance: " + i + ", Weight: " + weight);
                     try {
                         SearchResult result = alg.search(domain);

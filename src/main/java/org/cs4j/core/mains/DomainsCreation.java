@@ -33,6 +33,7 @@ public class DomainsCreation {
         //problem.setAdditionalParameter("heuristic", "dh-furthest");
         //problem.setAdditionalParameter("heuristic", "dh-md-average-md-if-dh-is-0");
         problem.setAdditionalParameter("heuristic", "dh-random-pivot");
+        //problem.setAdditionalParameter("heuristic", "random-dh-md");
         problem.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
         problem.setAdditionalParameter("pivots-count", pivotsCount + "");
         return problem;
