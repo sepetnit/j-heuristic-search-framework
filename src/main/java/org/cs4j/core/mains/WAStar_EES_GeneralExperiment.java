@@ -355,14 +355,14 @@ public class WAStar_EES_GeneralExperiment {
         SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
 
         // Create the first domain by reading the first instance
-        //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(firstInstance + ".in");
+        domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(firstInstance + ".in");
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
+            domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
             //domain = DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
-            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+            //domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
                 continue;
@@ -591,9 +591,9 @@ public class WAStar_EES_GeneralExperiment {
                     100,
                     // Output Path
                     //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
-                    "results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-80-md",
+                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-80-md",
                     //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended",
-                    //"results/fifteenpuzzle/korf100/pdb555/generated-wastar+extended",
+                    "results/fifteenpuzzle/korf100/pdb555/generated-wastar+extended",
                     //"results/vacuumrobot/generated+wastar+extended",
                     // Add header
                     true);
@@ -647,8 +647,8 @@ public class WAStar_EES_GeneralExperiment {
 
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
