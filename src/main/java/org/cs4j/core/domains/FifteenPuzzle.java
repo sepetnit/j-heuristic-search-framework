@@ -96,6 +96,10 @@ public final class FifteenPuzzle implements SearchDomain {
     // Size of the PDB for the 8 rest tiles
     private static final int TABLE_SIZE_PDB8 = 16 * 15 * 14 * 13 * 12 * 11 * 10 * 9;
 
+    // When reading some PDB create a map with the required size * PDB_ENTRIES_INCREASE
+    // (in order to disallow map copying)
+    private static double PDB_ENTRIES_INCREASE = 1.1d;
+
     // Declare the parameters that can be tunes before running the search
     static
     {
@@ -939,7 +943,7 @@ public final class FifteenPuzzle implements SearchDomain {
      * @throws IOException If something wrong occurred
      */
     private LongByteHashMap _readSinglePDB(String pdbFileName, int permutationsCount) throws IOException {
-        LongByteHashMap toReturn = new LongByteHashMap(permutationsCount);
+        LongByteHashMap toReturn = new LongByteHashMap((int)(permutationsCount * FifteenPuzzle.PDB_ENTRIES_INCREASE));
         // Each permutation index is stored as int
         DataInputStream inputStream = new DataInputStream(new FileInputStream(pdbFileName));
         for (long i = 0; i < permutationsCount; ++i) {
