@@ -44,8 +44,6 @@ public final class FifteenPuzzle implements SearchDomain {
     private final int tilesNumber = this.width * this.height;
     // TODO?
     private int init[] = new int[this.tilesNumber]; // 16
-    // Reflection via the diagonal
-    private int reflectedIndexes[] = new int[this.tilesNumber]; // 16
     // Pre-computed Manhattan distance between each pair of tiles
     private double md[][] = new double[this.tilesNumber][this.tilesNumber]; // 4x4 array
     // The difference in the Manhattan Distance when applying any kind of operator on any tile
@@ -99,6 +97,9 @@ public final class FifteenPuzzle implements SearchDomain {
     private LongByteHashMap pdb5_3;
 
     private boolean useReflection;
+    // Reflection via the diagonal
+    private int reflectedIndexes[] = new int[this.tilesNumber]; // 16
+
 
     private static final Map<String, Class> FifteenPuzzlePossibleParameters;
 
@@ -336,6 +337,8 @@ public final class FifteenPuzzle implements SearchDomain {
                     throw new IllegalArgumentException("Non-canonical goal positions");
                 }
             }
+            //System.out.println(Arrays.toString(this.init));
+            reader.close();
         } catch(IOException e) {
             e.printStackTrace();
             Utils.fatal("Error reading input file");
@@ -368,6 +371,7 @@ public final class FifteenPuzzle implements SearchDomain {
         // Copy heuristic related data
         this.heuristicType = other.heuristicType;
         this.useReflection = other.useReflection;
+        this.reflectedIndexes = other.reflectedIndexes;
         this.pdb5_1 = other.pdb5_1;
         this.pdb5_2 = other.pdb5_2;
         this.pdb5_3 = other.pdb5_3;
