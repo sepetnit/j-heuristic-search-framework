@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,15 +61,6 @@ public final class FifteenPuzzle implements SearchDomain {
     // The possible operators (each one is represented by the REACHED tile)
     private Operator possibleOperators[] = new Operator[this.tilesNumber];
 
-    private enum HeuristicType {
-        MD,
-        PDB78,
-        PDB555
-    }
-
-    private HeuristicType heuristicType;
-    private boolean useReflection;
-
     public enum COST_FUNCTION {
         UNIT,
         SQRT,
@@ -78,14 +70,35 @@ public final class FifteenPuzzle implements SearchDomain {
 
     private COST_FUNCTION costFunction;
 
+    private enum HeuristicType {
+        MD,
+        PDB78,
+        PDB555
+    }
+
+    private HeuristicType heuristicType;
+
+    private boolean pdbRemainsOnDisk;
+
+    // Used in case PDB remains cached on dist
+    private RandomAccessFile pdb7File;
+    private RandomAccessFile pdb8File;
+
     // PDBs for 7-8 partitioning
     private LongByteHashMap pdb7;
     private LongByteHashMap pdb8;
+
+    // Used in case PDB remains cached on dist
+    private RandomAccessFile pdb5_1File;
+    private RandomAccessFile pdb5_2File;
+    private RandomAccessFile pdb5_3File;
 
     // PDBs for 5-5-5 partitioning
     private LongByteHashMap pdb5_1;
     private LongByteHashMap pdb5_2;
     private LongByteHashMap pdb5_3;
+
+    private boolean useReflection;
 
     private static final Map<String, Class> FifteenPuzzlePossibleParameters;
 
@@ -98,13 +111,14 @@ public final class FifteenPuzzle implements SearchDomain {
 
     // When reading some PDB create a map with the required size * PDB_ENTRIES_INCREASE
     // (in order to disallow map copying)
-    private static double PDB_ENTRIES_INCREASE = 1.1d;
+    private static final double PDB_ENTRIES_INCREASE = 1.1d;
 
     // Declare the parameters that can be tunes before running the search
     static
     {
         FifteenPuzzlePossibleParameters = new HashMap<>();
         FifteenPuzzlePossibleParameters.put("heuristic", String.class);
+        FifteenPuzzlePossibleParameters.put("pdb-remains-on-disk", Boolean.class);
         FifteenPuzzlePossibleParameters.put("pdb-78-files", String.class);
         FifteenPuzzlePossibleParameters.put("pdb-555-files", String.class);
         FifteenPuzzlePossibleParameters.put("use-reflection", Boolean.class);
@@ -264,6 +278,8 @@ public final class FifteenPuzzle implements SearchDomain {
         this.pdb5_1 = null;
         this.pdb5_2 = null;
         this.pdb5_3 = null;
+        // By default PDB is stored on memory ...
+        this.pdbRemainsOnDisk = false;
     }
 
     @Override
@@ -352,11 +368,12 @@ public final class FifteenPuzzle implements SearchDomain {
         // Copy heuristic related data
         this.heuristicType = other.heuristicType;
         this.useReflection = other.useReflection;
-        this.pdb7 = other.pdb7;
-        this.pdb8 = other.pdb8;
         this.pdb5_1 = other.pdb5_1;
         this.pdb5_2 = other.pdb5_2;
         this.pdb5_3 = other.pdb5_3;
+        this.pdb7 = other.pdb7;
+        this.pdb8 = other.pdb8;
+        this.pdbRemainsOnDisk = other.pdbRemainsOnDisk;
     }
 
     /**
@@ -381,6 +398,10 @@ public final class FifteenPuzzle implements SearchDomain {
             sum += this.md[i][tiles[i]];
         }
         return sum;
+    }
+
+    private double[] _computeHDNoMDFromDisk(TileState state) {
+       throw new NotImplementedException();
     }
 
     /**
@@ -443,6 +464,9 @@ public final class FifteenPuzzle implements SearchDomain {
                 break;
             }
             default: {
+                if (this.pdbRemainsOnDisk) {
+                    return this._computeHDNoMDFromDisk(state);
+                }
                 return this._computeHDNoMD(state);
             }
         }
@@ -978,13 +1002,21 @@ public final class FifteenPuzzle implements SearchDomain {
 
     private void _readPDB78(String pdb7FileName, String pdb8FileName) throws IOException {
         // Read PDB 7
-        System.out.println("[INFO] Reading PDB from " + pdb7FileName);
-        this.pdb7 = this._readSinglePDB(pdb7FileName, FifteenPuzzle.TABLE_SIZE_PDB7);
-        System.out.println("[INFO] Finished reading PDB from " + pdb7FileName);
+        if (this.pdbRemainsOnDisk) {
+            this.pdb7File = new RandomAccessFile(pdb7FileName, "r");
+        } else {
+            System.out.println("[INFO] Reading PDB from " + pdb7FileName);
+            this.pdb7 = this._readSinglePDB(pdb7FileName, FifteenPuzzle.TABLE_SIZE_PDB7);
+            System.out.println("[INFO] Finished reading PDB from " + pdb7FileName);
+        }
         // Read PDB 8
-        System.out.println("[INFO] Reading PDB from " + pdb8FileName);
-        this.pdb8 = this._readSinglePDB(pdb8FileName, FifteenPuzzle.TABLE_SIZE_PDB8);
-        System.out.println("[INFO] Finished reading PDB from " + pdb8FileName);
+        if (this.pdbRemainsOnDisk) {
+            this.pdb8File = new RandomAccessFile(pdb8FileName, "r");
+        } else {
+            System.out.println("[INFO] Reading PDB from " + pdb8FileName);
+            this.pdb8 = this._readSinglePDB(pdb8FileName, FifteenPuzzle.TABLE_SIZE_PDB8);
+            System.out.println("[INFO] Finished reading PDB from " + pdb8FileName);
+        }
     }
 
 
@@ -1036,6 +1068,14 @@ public final class FifteenPuzzle implements SearchDomain {
                         throw new IllegalArgumentException();
                     }
                 }
+                break;
+            }
+            case "pdb-remains-on-disk": {
+                if (this.heuristicType == HeuristicType.MD) {
+                    System.out.println("[ERROR] The type of the heuristic function must involve PDB");
+                    throw new IllegalArgumentException();
+                }
+                this.pdbRemainsOnDisk = Boolean.parseBoolean(value);
                 break;
             }
             case "pdb-555-files": {
