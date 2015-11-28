@@ -85,14 +85,20 @@ public class DomainsCreation {
 
     public static SearchDomain create15PuzzleInstanceFromKorfInstances(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
-        FifteenPuzzle puzzle = new FifteenPuzzle(is);/*
-        String PDBsDir = "C:\\users\\user\\";
-        puzzle.setAdditionalParameter("heuristic", "pdb-555");
-        puzzle.setAdditionalParameter(
-                "pdb-555-files",
-                PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
-                        PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
-                        PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");*/
+        FifteenPuzzle puzzle = new FifteenPuzzle(is);
+        String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\"};
+        for (String PDBsDir : PDBsDirs) {
+            try {
+                puzzle.setAdditionalParameter("heuristic", "pdb-555");
+                puzzle.setAdditionalParameter(
+                        "pdb-555-files",
+                        PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
+                                PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
+                                PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");
+                break;
+            } catch (IllegalArgumentException e) { }
+        }
+        puzzle.setAdditionalParameter("use-reflection", true + "");
         return puzzle;
     }
 

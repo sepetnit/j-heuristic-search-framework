@@ -78,23 +78,40 @@ public class Main {
         return gridPathFindingInstance;
     }
 
-    public SearchDomain createFifteenPuzzleUnitWithPDB(String instance) throws FileNotFoundException {
+    public SearchDomain createFifteenPuzzleUnitWithPDB78(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/"+instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
-        String PDBsDir = "C:\\users\\user\\";
-        //puzzle.setAdditionalParameter("heuristic", "pdb-555");
+        String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\"};
         puzzle.setAdditionalParameter("heuristic", "pdb-78");
-        puzzle.setAdditionalParameter(
-                "pdb-78-files",
-                PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5_6_7,"+
-                        PDBsDir + "PDBs\\15-puzzle\\dis_8_9_10_11_12_13_14_15");
-       /*
-        puzzle.setAdditionalParameter(
-                "pdb-555-files",
-                PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
-                        PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
-                        PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");
-        */
+        for (String PDBsDir : PDBsDirs) {
+            try {
+                puzzle.setAdditionalParameter(
+                        "pdb-78-files",
+                        PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5_6_7," +
+                                PDBsDir + "PDBs\\15-puzzle\\dis_8_9_10_11_12_13_14_15");
+                break;
+            } catch (IllegalArgumentException e) { }
+        }
+        puzzle.setAdditionalParameter("use-reflection", true + "");
+        return puzzle;
+    }
+
+    public SearchDomain createFifteenPuzzleUnitWithPDB555(String instance) throws FileNotFoundException {
+        //InputStream is = new FileInputStream(new File("input/fifteenpuzzle/mine100-last-year/"+instance));
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/"+instance));
+        FifteenPuzzle puzzle = new FifteenPuzzle(is);
+        String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\"};
+        puzzle.setAdditionalParameter("heuristic", "pdb-555");
+        for (String PDBsDir : PDBsDirs) {
+            try {
+                puzzle.setAdditionalParameter(
+                        "pdb-555-files",
+                        PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5," +
+                                PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10," +
+                                PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");
+                break;
+            } catch (IllegalArgumentException e) { }
+        }
         puzzle.setAdditionalParameter("use-reflection", true + "");
         return puzzle;
     }
@@ -126,7 +143,7 @@ public class Main {
     public static void mainFifteenPuzzleDomain(String[] args) throws IOException {
         Main mainTest = new Main();
 
-        SearchDomain domain = mainTest.createFifteenPuzzleUnitWithPDB("1.in");
+        SearchDomain domain = mainTest.createFifteenPuzzleUnitWithPDB555("1.in");
         //SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
         SearchAlgorithm alg = new WAStar();
         SearchResult result = alg.search(domain);
