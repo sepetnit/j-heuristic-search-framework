@@ -17,19 +17,23 @@ public class DomainsCreation {
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/" + instance));
+        //InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/den400d.map/" + instance));
         return new GridPathFinding(is);
     }
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
             String instance, int pivotsCount) throws IOException {
-        //String mapFileName = "input/gridpathfinding/generated/brc202d.map";
-        String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
+        String mapFileName = "input/gridpathfinding/generated/brc202d.map";
+        //String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
         //String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
-        String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6-100.map.pivots.pdb";
+        //String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6-80.map.pivots.pdb";
+        String pivotsFileName = "input/gridpathfinding/raw/maps/brc202d.map.pivots.pdb";
         InputStream is = new FileInputStream(new File(mapFileName + "/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
-        problem.setAdditionalParameter("heuristic", "tdh-furthest");
-        //problem.setAdditionalParameter("heuristic", "tdh-furthest-md-prob-50");
+        //problem.setAdditionalParameter("heuristic", "dh-furthest");
+        //problem.setAdditionalParameter("heuristic", "dh-md-average-md-if-dh-is-0");
+        problem.setAdditionalParameter("heuristic", "dh-random-pivot");
+        //problem.setAdditionalParameter("heuristic", "random-dh-md");
         problem.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
         problem.setAdditionalParameter("pivots-count", pivotsCount + "");
         return problem;
@@ -39,8 +43,8 @@ public class DomainsCreation {
                                                                                               String instance,
                                                                                               int pivotsCount)
             throws IOException {
-        //String mapFileName = "input/gridpathfinding/generated/brc202d.map";
-        String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
+        String mapFileName = "input/gridpathfinding/generated/brc202d.map";
+        //String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
         InputStream is = new FileInputStream(new File(mapFileName, instance));
         GridPathFinding problem = new GridPathFinding((GridPathFinding)previous, is);
         // Change the number of pivots
@@ -75,19 +79,20 @@ public class DomainsCreation {
     }
 
     public static SearchDomain createVacuumRobotInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/vacuumrobot/generated/" + instance));
+        InputStream is = new FileInputStream(new File("input/vacuumrobot/generated-10-dirt/" + instance));
         return new VacuumRobot(is);
     }
 
     public static SearchDomain create15PuzzleInstanceFromKorfInstances(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
-        FifteenPuzzle puzzle = new FifteenPuzzle(is);
+        FifteenPuzzle puzzle = new FifteenPuzzle(is);/*
+        String PDBsDir = "C:\\users\\user\\";
         puzzle.setAdditionalParameter("heuristic", "pdb-555");
         puzzle.setAdditionalParameter(
                 "pdb-555-files",
-                "H:\\PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
-                        "H:\\PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
-                        "H:\\PDBs\\15-puzzle\\dis_11_12_13_14_15");
+                PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
+                        PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
+                        PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");*/
         return puzzle;
     }
 

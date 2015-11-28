@@ -32,6 +32,20 @@ public class PackedElement {
         return this.internal[index];
     }
 
+    /**
+     * Calculates the summary of the longs that the packed element holds
+     * (can be used for relying on the packed value, e.g. when randomizing heuristic calculation)
+     *
+     * @return The calculated sum
+     */
+    public long getLongsSum() {
+        long toReturn = 0;
+        for (long current : this.internal) {
+            toReturn += current;
+        }
+        return toReturn;
+    }
+
     @Override
     public int hashCode() {
         int result = 0;

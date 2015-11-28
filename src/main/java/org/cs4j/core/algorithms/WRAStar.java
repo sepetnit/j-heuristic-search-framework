@@ -47,6 +47,15 @@ public class WRAStar implements SearchAlgorithm {
 
     private static final int QID = 0;
 
+    private static final Map<String, Class> WRAStarPossibleParameters;
+
+    // Declare the parameters that can be tunes before running the search
+    static
+    {
+        WRAStarPossibleParameters = new HashMap<>();
+        WRAStar.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
+    }
+
     // The domain for the search
     private SearchDomain domain;
 
@@ -67,12 +76,15 @@ public class WRAStar implements SearchAlgorithm {
 
     // For weighted A*
     protected double weight;
+    private double wAdmissibilityDeviation;
 
     public enum HeapType {BIN, BUCKET}
 
     public WRAStar(double weight) {
         this.weight = weight;
         this.heapType = HeapType.BIN;
+        // By default - not deviation from the actual weight is permitted
+        this.wAdmissibilityDeviation = 1.0d;
     }
 
     @Override
@@ -95,12 +107,25 @@ public class WRAStar implements SearchAlgorithm {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
-        return null;
+        return WRAStar.WRAStarPossibleParameters;
     }
 
     @Override
     public void setAdditionalParameter(String parameterName, String value) {
-        throw new NotImplementedException();
+        switch (parameterName) {
+            case "w-admissibility-deviation-percentage": {
+                this.wAdmissibilityDeviation = Double.parseDouble(value);
+                if (this.wAdmissibilityDeviation < 0.0d || this.wAdmissibilityDeviation >= 100.0d) {
+                    System.out.println("[ERROR] The deviation percentage must be in [0, 100)");
+                    throw new IllegalArgumentException();
+                }
+                this.wAdmissibilityDeviation = 1.0d + (this.wAdmissibilityDeviation / 100.0d);
+                break;
+            }
+            default: {
+                throw new NotImplementedException();
+            }
+        }
     }
 
     private SearchResult.Solution createSolution(Node goal) {
@@ -191,6 +216,8 @@ public class WRAStar implements SearchAlgorithm {
                     ++result.duplicates;
                     // Get the previous copy of this node (and extract it)
                     Node dupChildNode = this.closed.get(childNode.packed);
+                    // Take the h value from the previous version of the node (for case of randomization of h values)
+                    childNode.computeHValues(dupChildNode.h);
                     // All this is relevant only if we reached the node via a cheaper path
                     if (dupChildNode.wF > childNode.wF) {
                         // If false - let's check it!
@@ -293,6 +320,11 @@ public class WRAStar implements SearchAlgorithm {
         int iterationIndex = 0;
         double bestF = 0;
         double suboptimalBoundSup = Double.MAX_VALUE;
+        double deviatedWeight = this.weight * this.wAdmissibilityDeviation;
+        if (this.weight != this.wAdmissibilityDeviation) {
+            System.out.println("[WARNING] Required weight can be deviated (weight: " + this.weight +
+                    ", deviation: " + this.wAdmissibilityDeviation + ", deviated: " + deviatedWeight + ")");
+        }
         while (true) {
             SearchResultImpl result = new SearchResultImpl();
             previousGoal = lastGoal;
@@ -321,12 +353,12 @@ public class WRAStar implements SearchAlgorithm {
                 maxPreviousCost = currentSolution.getCost();
                 suboptimalBoundSup = maxPreviousCost / bestF;
                 System.out.println("[INFO] Approximated suboptimal bound is " + suboptimalBoundSup);
-                if (suboptimalBoundSup <= this.weight) {
-                    System.out.println("[INFO] Bound is sufficient (required: " + this.weight + ", got: " +
+                if (suboptimalBoundSup <= deviatedWeight) {
+                    System.out.println("[INFO] Bound is sufficient (required: " + deviatedWeight + ", got: " +
                             suboptimalBoundSup + ")");
                     return result;
                 }
-                System.out.println("[INFO] Insufficient bound (" + suboptimalBoundSup + " > " + this.weight + "), expanded: " + prevExp);
+                System.out.println("[INFO] Insufficient bound (" + suboptimalBoundSup + " > " + deviatedWeight + "), expanded: " + prevExp);
                 // In case we don't have any state to re-open: let's continue
                 if (this.incons.isEmpty()) {
                     System.out.println("[INFO] No locally inconsistent states, returns current result");
@@ -347,12 +379,13 @@ public class WRAStar implements SearchAlgorithm {
                 //this.closed = new HashMap<>();
             } else {
                 suboptimalBoundSup = maxPreviousCost / bestF;
-                if (suboptimalBoundSup <= this.weight) {
-                    System.out.println("[INFO] Bound is sufficient (required: " + this.weight + ", got: " +
+                System.out.println("[INFO] (NoSolution) Iteration: " + (iterationIndex + 1) +
+                        ", bestF: " + bestF + ", sub: " + suboptimalBoundSup);
+                if (suboptimalBoundSup <= deviatedWeight) {
+                    System.out.println("[INFO] (NoSolution) Bound is sufficient (required: " + deviatedWeight + ", got: " +
                             suboptimalBoundSup + ")");
                     return previousResult;
                 }
-
                 if (this.incons.size() > 0) {
                     System.out.println("[INFO] Last search emptied the open list, but incons still contains " + this.incons.size() + " states");
                     // Now, let's continue the search
@@ -398,10 +431,10 @@ public class WRAStar implements SearchAlgorithm {
             // TODO: Why?
             this.secondaryIndex = new int[(heapType == HeapType.BUCKET) ? 2 : 1];
             double cost = (op != null) ? op.getCost(state, parentState) : 0;
-            this.h = state.getH();
-
             // If each operation costs something, we should add the cost to the g value of the parent
             this.g = (parent != null) ? parent.g + cost : cost;
+            // Update h and f values
+            this.computeHValues(state.getH());
 
             // Start of PathMax
             /*
@@ -411,14 +444,25 @@ public class WRAStar implements SearchAlgorithm {
             }
             */
             // End of PathMax
-            this.wF = this.g + (WRAStar.this.weight * this.h);
-            this.rF = this.g + this.h;
 
             // Parent node
             this.parent = parent;
             this.packed = WRAStar.this.domain.pack(state);
             this.pop = pop;
             this.op = op;
+        }
+
+        /**
+         * The function computes the F values according to the given heuristic value (which is computed externally)
+         *
+         * Also, all other values that depend on h are updated
+         *
+         * @param updatedHValue The updated heuristic value
+         */
+        public void computeHValues(double updatedHValue) {
+            this.h = updatedHValue;
+            this.wF = this.g + (WRAStar.this.weight * this.h);
+            this.rF = this.g + this.h;
         }
 
         /**
