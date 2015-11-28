@@ -83,11 +83,12 @@ public class DomainsCreation {
         return new VacuumRobot(is);
     }
 
-    public static SearchDomain create15PuzzleInstanceFromKorfInstances(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
+    public static SearchDomain create15PuzzleInstanceFromKorfInstancesPDB55(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100-real/" + instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
-        String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\"};
+        String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\", "C:\\"};
         puzzle.setAdditionalParameter("heuristic", "pdb-555");
+        boolean pdbFilesOK = false;
         for (String PDBsDir : PDBsDirs) {
             try {
                 puzzle.setAdditionalParameter(
@@ -95,15 +96,39 @@ public class DomainsCreation {
                         PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
                                 PDBsDir + "PDBs\\15-puzzle\\dis_6_7_8_9_10,"+
                                 PDBsDir + "PDBs\\15-puzzle\\dis_11_12_13_14_15");
+                pdbFilesOK = true;
                 break;
             } catch (IllegalArgumentException e) { }
         }
+        assert pdbFilesOK;
+        puzzle.setAdditionalParameter("use-reflection", true + "");
+        return puzzle;
+    }
+
+
+    public static SearchDomain create15PuzzleInstanceFromKorfInstancesPDB78(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100-real/" + instance));
+        FifteenPuzzle puzzle = new FifteenPuzzle(is);
+        String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\", "C:\\"};
+        puzzle.setAdditionalParameter("heuristic", "pdb-78");
+        boolean pdbFilesOK = false;
+        for (String PDBsDir : PDBsDirs) {
+            try {
+                puzzle.setAdditionalParameter(
+                        "pdb-78-files",
+                        PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5_6_7," +
+                                PDBsDir + "PDBs\\15-puzzle\\dis_8_9_10_11_12_13_14_15");
+                pdbFilesOK = true;
+                break;
+            } catch (IllegalArgumentException e) { }
+        }
+        assert pdbFilesOK;
         puzzle.setAdditionalParameter("use-reflection", true + "");
         return puzzle;
     }
 
     public static SearchDomain create15PuzzleInstanceFromKorfInstances(SearchDomain previous, String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100-real/" + instance));
         return new FifteenPuzzle((FifteenPuzzle)previous, is);
     }
 

@@ -352,10 +352,10 @@ public class WAStar_EES_GeneralExperiment {
 
         SearchDomain domain;
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
-        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
+        SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
 
         // Create the first domain by reading the first instance
-        domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(firstInstance + ".in");
+        domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB78(firstInstance + ".in");
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
@@ -593,7 +593,7 @@ public class WAStar_EES_GeneralExperiment {
                     //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-80-md",
                     //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended",
-                    "results/fifteenpuzzle/korf100/pdb555/generated-wastar+extended",
+                    "results/fifteenpuzzle/korf100-real/pdb78/generated-wastar+extended",
                     //"results/vacuumrobot/generated+wastar+extended",
                     // Add header
                     true);

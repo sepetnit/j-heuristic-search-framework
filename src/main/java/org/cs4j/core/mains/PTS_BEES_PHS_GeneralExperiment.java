@@ -473,7 +473,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     for (boolean reopen : this.reopenPossibilities) {
                         // Create the domain by reading the relevant instance file
                         SearchDomain domain =
-                                DomainsCreation.create15PuzzleInstanceFromKorfInstances(i + ".in");
+                                DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB55(i + ".in");
                         // Bypass not found files
                         if (domain == null) {
                             continue;
