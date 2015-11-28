@@ -87,9 +87,9 @@ public class DomainsCreation {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
         String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\"};
+        puzzle.setAdditionalParameter("heuristic", "pdb-555");
         for (String PDBsDir : PDBsDirs) {
             try {
-                puzzle.setAdditionalParameter("heuristic", "pdb-555");
                 puzzle.setAdditionalParameter(
                         "pdb-555-files",
                         PDBsDir + "PDBs\\15-puzzle\\dis_1_2_3_4_5,"+
