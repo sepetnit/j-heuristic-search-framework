@@ -47,6 +47,16 @@ public class WAStar implements SearchAlgorithm {
 
     private static final int QID = 0;
 
+    private static final Map<String, Class> WAStarPossibleParameters;
+
+    // Declare the parameters that can be tuned before running the search
+    static
+    {
+        WAStarPossibleParameters = new HashMap<>();
+        WAStar.WAStarPossibleParameters.put("weight", Double.class);
+        WAStar.WAStarPossibleParameters.put("reopen", Boolean.class);
+    }
+
     // The domain for the search
     private SearchDomain domain;
     // Open list (frontier)
@@ -57,57 +67,53 @@ public class WAStar implements SearchAlgorithm {
     // TODO ...
     private HeapType heapType;
 
-    // For weighted A*
-    protected double weight;
-
     // TODO ...
     protected double maxCost;
 
-    private List<Operator> path;
-    private List<State> statesPath;
-
     public enum HeapType {BIN, BUCKET}
 
+    // For weighted A*
+    protected double weight;
     // Whether to perform reopening of states
     private boolean reopen;
 
-    protected WAStar(double weight, double maxCost, HeapType heapType, boolean reopen) {
-        this.weight = weight;
-        this.maxCost = maxCost;
-        this.heapType = heapType;
-        this.reopen = reopen;
+    /**
+     * Sets the default values for the relevant fields of the algorithm
+     */
+    private void _initDefaultValues() {
+        // Default values
+        this.weight = 1.0;
+        this.reopen = true;
     }
 
-    public WAStar(double weight, boolean reopen) {
-        this.weight = weight;
-        this.maxCost = Double.MAX_VALUE;
-        this.heapType = HeapType.BIN;
-        this.reopen = reopen;
+    protected WAStar(double maxCost, HeapType heapType) {
+        this.maxCost = maxCost;
+        this.heapType = heapType;
+        this._initDefaultValues();
+    }
+
+    /**
+     * A constructor
+     *
+     * @param heapType the type of heap to use (BIN | BUCKET)
+     *
+     */
+    public WAStar(HeapType heapType) {
+        this(Double.MAX_VALUE, heapType);
+    }
+
+    /**
+     * A default constructor of the class (weight of 1.0, binary heap and AR)
+     *
+     */
+    public WAStar() {
+        this(Double.MAX_VALUE, HeapType.BIN);
     }
 
     @Override
     public String getName() {
         return "wastar";
     }
-
-    /**
-     * The Constructor
-     *
-     * @param heapType the type of heap to use (BIN | BUCKET)
-     *
-     * NOTE: Use weight of 1.0 by default and perform reopening of states (AR)
-     */
-    public WAStar(HeapType heapType) {
-        this(1.0, Double.MAX_VALUE, heapType, true);
-    }
-
-    /**
-     * The default Constructor of the class (weight of 1.0, binary heap and AR)
-     */
-    public WAStar() {
-        this(1.0, Double.MAX_VALUE, HeapType.BIN, true);
-    }
-
 
     /**
      * Creates a heap according to the required type (Builder design pattern)
@@ -134,18 +140,6 @@ public class WAStar implements SearchAlgorithm {
     private void _initDataStructures() {
         this.open = buildHeap(heapType, 100);
         this.closed = new HashMap<>();
-        this.path = new ArrayList<>();
-        this.statesPath = new ArrayList<>();
-    }
-
-    @Override
-    public Map<String, Class> getPossibleParameters() {
-        return null;
-    }
-
-    @Override
-    public void setAdditionalParameter(String parameterName, String value) {
-        throw new NotImplementedException();
     }
 
     @Override
@@ -299,6 +293,35 @@ public class WAStar implements SearchAlgorithm {
 
         return result;
     }
+
+    @Override
+    public Map<String, Class> getPossibleParameters() {
+        return WAStar.WAStarPossibleParameters;
+    }
+
+    @Override
+    public void setAdditionalParameter(String parameterName, String value) {
+        switch (parameterName) {
+            case "weight": {
+                this.weight = Double.parseDouble(value);
+                if (this.weight < 1.0d) {
+                    System.out.println("[ERROR] The weight must be >= 1.0");
+                    throw new IllegalArgumentException();
+                } else if (this.weight == 1.0d) {
+                    System.out.println("[WARNING] Weight of 1.0 is equivalent to A*");
+                }
+                break;
+            }
+            case "reopen": {
+                this.reopen = Boolean.parseBoolean(value);
+                break;
+            }
+            default: {
+                throw new NotImplementedException();
+            }
+        }
+    }
+
 
     /**
      * The node class

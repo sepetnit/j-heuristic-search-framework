@@ -167,7 +167,9 @@ public class Main {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createGridPathFinding("1.in");
         //SearchAlgorithm alg = new EES(1, true);
-        SearchAlgorithm alg = new WAStar(1.0, true);
+        SearchAlgorithm alg = new WAStar();
+        alg.setAdditionalParameter("weight", "1.0");
+        alg.setAdditionalParameter("reopen", "true");
         SearchResult result = alg.search(domain);
         assert result.getSolutions().size() == 1;
         if (result.hasSolution()) {
@@ -190,7 +192,9 @@ public class Main {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createGridPathFindingWithPivots("1.in");
         //SearchAlgorithm alg = new EES(1, true);
-        SearchAlgorithm alg = new WAStar(1.05, true);
+        SearchAlgorithm alg = new WAStar();
+        alg.setAdditionalParameter("weight", "1.05");
+        alg.setAdditionalParameter("reopen", "true");
         SearchResult result = alg.search(domain);
         assert result.getSolutions().size() == 1;
         if (result.hasSolution()) {
@@ -233,7 +237,9 @@ public class Main {
     public static void mainDockyardRobotDomain() throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createDockyardRobot("19.in");
-        SearchAlgorithm alg = new WAStar(1.0, true);
+        SearchAlgorithm alg = new WAStar();
+        alg.setAdditionalParameter("weight", "1.0");
+        alg.setAdditionalParameter("reopen", "true");
         SearchResult result = alg.search(domain);
         if (result.hasSolution()) {
             double d[] = new double[]{
@@ -310,7 +316,9 @@ public class Main {
                     output.writeln("InstanceID,Found,Depth,Generated, Expanded,Reopened");
                     for (int i = 1; i <= 100; ++i) {
                         SearchDomain domain = mainTest.createFifteenPuzzleKorf(i + "");
-                        SearchAlgorithm alg = new WAStar(totalWeight, reopen);
+                        SearchAlgorithm alg = new WAStar();
+                        alg.setAdditionalParameter("weight", totalWeight + "");
+                        alg.setAdditionalParameter("reopen", reopen + "");
                         System.out.println("Solving instance " + i + " For weight " + totalWeight + " reopen? " + reopen);
                         SearchResult result = alg.search(domain);
                         double d[];

@@ -131,7 +131,9 @@ public class WAStar_EES_Pancakes_GAPK_Experiment {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : this.reopenPossibilities) {
-                        SearchAlgorithm alg = new WAStar(weight, reopen);
+                        SearchAlgorithm alg = new WAStar();
+                        alg.setAdditionalParameter("weight", weight + "");
+                        alg.setAdditionalParameter("reopen", reopen + "");
                         //SearchAlgorithm alg = new EES(weight, reopen);
                         System.out.println("[INFO] Solving : " +
                                 "(Instance- " + i + ", Gap-" + currentGap + ", Weight- " + weight + ", Reopen- " + reopen + ")");

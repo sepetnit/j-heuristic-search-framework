@@ -304,7 +304,9 @@ public class WAStar_EES_GeneralExperiment {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                        SearchAlgorithm alg = new WAStar(weight, reopen);
+                        SearchAlgorithm alg = new WAStar();
+                        alg.setAdditionalParameter("weight", weight + "");
+                        alg.setAdditionalParameter("reopen", reopen + "");
                         //SearchAlgorithm alg = new EES(weight, reopen);
                         System.out.println(
                                 "[INFO] Alg: " + alg.getName() +
@@ -371,7 +373,9 @@ public class WAStar_EES_GeneralExperiment {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                 for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                    SearchAlgorithm alg = new WAStar(weight, reopen);
+                    SearchAlgorithm alg = new WAStar();
+                    alg.setAdditionalParameter("weight", weight + "");
+                    alg.setAdditionalParameter("reopen", reopen + "");
                     //SearchAlgorithm alg = new EES(weight, reopen);
                     System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
                     try {
@@ -436,7 +440,9 @@ public class WAStar_EES_GeneralExperiment {
                         if (domain == null) {
                             continue;
                         }
-                        SearchAlgorithm alg = new WAStar(weight, reopen);
+                        SearchAlgorithm alg = new WAStar();
+                        alg.setAdditionalParameter("weight", weight + "");
+                        alg.setAdditionalParameter("reopen", reopen + "");
                         Runnable worker = new WorkerThread(
                                 threadID++,
                                 domain, alg,
