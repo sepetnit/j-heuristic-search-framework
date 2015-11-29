@@ -83,7 +83,7 @@ public class DomainsCreation {
         return new VacuumRobot(is);
     }
 
-    public static SearchDomain create15PuzzleInstanceFromKorfInstancesPDB55(String instance) throws FileNotFoundException {
+    public static SearchDomain create15PuzzleInstanceFromKorfInstancesPDB555(String instance) throws FileNotFoundException {
         InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100-real/" + instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
         String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\", "C:\\"};
