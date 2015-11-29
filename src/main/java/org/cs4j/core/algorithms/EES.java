@@ -250,7 +250,7 @@ public class EES implements SearchAlgorithm {
 
                                 this._insertNode(childNode, oldBest);
 
-                            // The node is in the CLOSED list only
+                                // The node is in the CLOSED list only
                             } else {
                                 // If re-opening is allowed: insert the node back to lists (OPEN, FOCAL and CLEANUP)
                                 if (this.reopen) {
@@ -261,7 +261,7 @@ public class EES implements SearchAlgorithm {
 
                                     this._insertNode(childNode, oldBest);
 
-                                // Otherwise, just update the value of the node in CLOSED (without re-inserting it)
+                                    // Otherwise, just update the value of the node in CLOSED (without re-inserting it)
                                 } else {
 
                                     dupChildNode.f = childNode.f;
@@ -285,7 +285,7 @@ public class EES implements SearchAlgorithm {
                                 }
                             }
                         }
-                    // New node - not in CLOSED
+                        // New node - not in CLOSED
                     } else {
                         this._insertNode(childNode, oldBest);
                         bestNode.children.put(childNode.packed, childNode);
@@ -328,7 +328,7 @@ public class EES implements SearchAlgorithm {
             assert statesPath.size() <= goal.g + 1;
             if (statesPath.size() - goal.g < 1) {
                 System.out.println("[INFO] Goal G is higher that the actual path " +
-                    "(G: " + goal.g +  ", Actual: " + statesPath.size() + ")");
+                        "(G: " + goal.g +  ", Actual: " + statesPath.size() + ")");
             }
 
             Collections.reverse(path);
@@ -544,7 +544,9 @@ public class EES implements SearchAlgorithm {
             this.fHat = this.g + this.hHat;
 
             // This must be true assuming the heuristic is consistent (fHat may only overestimate the cost to the goal)
-            assert this.fHat >= this.f;
+            if (domain.isCurrentHeuristicConsistent()) {
+                assert this.fHat >= this.f;
+            }
             assert this.dHat >= 0;
         }
 
