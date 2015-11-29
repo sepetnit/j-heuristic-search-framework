@@ -321,7 +321,7 @@ public class WRAStar implements SearchAlgorithm {
         double bestF = 0;
         double suboptimalBoundSup = Double.MAX_VALUE;
         double deviatedWeight = this.weight * this.wAdmissibilityDeviation;
-        if (this.weight != this.wAdmissibilityDeviation) {
+        if (this.weight != deviatedWeight) {
             System.out.println("[WARNING] Required weight can be deviated (weight: " + this.weight +
                     ", deviation: " + this.wAdmissibilityDeviation + ", deviated: " + deviatedWeight + ")");
         }
