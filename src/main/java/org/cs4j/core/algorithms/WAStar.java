@@ -55,6 +55,7 @@ public class WAStar implements SearchAlgorithm {
         WAStarPossibleParameters = new HashMap<>();
         WAStar.WAStarPossibleParameters.put("weight", Double.class);
         WAStar.WAStarPossibleParameters.put("reopen", Boolean.class);
+        WAStar.WAStarPossibleParameters.put("max-cost", Double.class);
     }
 
     // The domain for the search
@@ -67,15 +68,14 @@ public class WAStar implements SearchAlgorithm {
     // TODO ...
     private HeapType heapType;
 
-    // TODO ...
-    protected double maxCost;
-
     public enum HeapType {BIN, BUCKET}
 
     // For weighted A*
     protected double weight;
     // Whether to perform reopening of states
     private boolean reopen;
+
+    protected double maxCost;
 
     /**
      * Sets the default values for the relevant fields of the algorithm
@@ -84,13 +84,9 @@ public class WAStar implements SearchAlgorithm {
         // Default values
         this.weight = 1.0;
         this.reopen = true;
+        this.maxCost = Double.MAX_VALUE;
     }
 
-    protected WAStar(double maxCost, HeapType heapType) {
-        this.maxCost = maxCost;
-        this.heapType = heapType;
-        this._initDefaultValues();
-    }
 
     /**
      * A constructor
@@ -98,8 +94,10 @@ public class WAStar implements SearchAlgorithm {
      * @param heapType the type of heap to use (BIN | BUCKET)
      *
      */
-    public WAStar(HeapType heapType) {
-        this(Double.MAX_VALUE, heapType);
+    protected WAStar(HeapType heapType) {
+        this.maxCost = maxCost;
+        this.heapType = heapType;
+        this._initDefaultValues();
     }
 
     /**
@@ -107,7 +105,7 @@ public class WAStar implements SearchAlgorithm {
      *
      */
     public WAStar() {
-        this(Double.MAX_VALUE, HeapType.BIN);
+        this(HeapType.BIN);
     }
 
     @Override
@@ -165,6 +163,12 @@ public class WAStar implements SearchAlgorithm {
         while (!this.open.isEmpty()) {
             // Take the first state (still don't remove it)
             Node currentNode = this.open.poll();
+
+            // Prune
+            if (currentNode.rF >= this.maxCost) {
+                continue;
+            }
+
             // Extract the state from the packed value of the node
             currentState = domain.unpack(currentNode.packed);
 
@@ -189,6 +193,11 @@ public class WAStar implements SearchAlgorithm {
                 State childState = domain.applyOperator(currentState, op);
                 Node childNode = new Node(childState, currentNode, currentState, op, op.reverse(currentState));
 
+                // Prune
+                if (childNode.rF >= this.maxCost) {
+                    continue;
+                }
+
                 // Treat duplicates
                 if (this.closed.containsKey(childNode.packed)) {
                     // Count the duplicates
@@ -198,14 +207,15 @@ public class WAStar implements SearchAlgorithm {
                     // Take the h value from the previous version of the node (for case of randomization of h values)
                     childNode.computeFValue(dupChildNode.h);
                     // All this is relevant only if we reached the node via a cheaper path
-                    if (dupChildNode.f > childNode.f) {
+                    if (dupChildNode.wF > childNode.wF) {
                         // If false - let's check it!
                         //assert dupChildNode.g > childNode.g;
                         if (dupChildNode.g > childNode.g) {
 
                             // Node in closed but we get duplicate
                             if (this.weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1 && this.domain.isCurrentHeuristicConsistent()) {
-                                System.out.println(dupChildNode.f + " " + childNode.f);
+                                System.out.println(dupChildNode.wF + " " + childNode.wF);
+                                System.out.println(dupChildNode.rF + " " + childNode.rF);
                                 System.out.println(dupChildNode.g + " " + childNode.g);
                                 System.out.println(dupChildNode.h + " " + childNode.h);
                                 //System.out.println(dupChildNode.parent.packed.getFirst());
@@ -216,14 +226,15 @@ public class WAStar implements SearchAlgorithm {
                             }
 
                             // In any case update the duplicate with the new values - we reached it via a shorter path
-                            dupChildNode.f = childNode.f;
+                            dupChildNode.wF = childNode.wF;
+                            dupChildNode.rF = childNode.rF;
                             dupChildNode.g = childNode.g;
                             dupChildNode.op = childNode.op;
                             dupChildNode.pop = childNode.pop;
                             dupChildNode.parent = childNode.parent;
 
                             // In case the duplicate is also in the open list - let's just update it there
-                            // (since we updated g and f)
+                            // (since we updated g and wF)
                             if (dupChildNode.getIndex(this.open.getKey()) != -1) {
                                 ++result.opupdated;
                                 this.open.update(dupChildNode);
@@ -316,18 +327,26 @@ public class WAStar implements SearchAlgorithm {
                 this.reopen = Boolean.parseBoolean(value);
                 break;
             }
+            case "max-cost": {
+                this.maxCost = Double.parseDouble(value);
+                if (this.maxCost <= 0) {
+                    System.out.println("[ERROR] The maximum possible cost must be >= 0");
+                    throw new IllegalArgumentException();
+                }
+                break;
+            }
             default: {
                 throw new NotImplementedException();
             }
         }
     }
 
-
     /**
      * The node class
      */
     protected final class Node extends SearchQueueElementImpl implements BucketHeapElement {
-        private double f;
+        private double wF;
+        private double rF;
         private double g;
         private double h;
 
@@ -375,7 +394,8 @@ public class WAStar implements SearchAlgorithm {
          */
         public void computeFValue(double updatedHValue) {
             this.h = updatedHValue;
-            this.f = this.g + (WAStar.this.weight * this.h);
+            this.wF = this.g + (WAStar.this.weight * this.h);
+            this.rF = this.g + this.h;
         }
 
         /**
@@ -400,7 +420,7 @@ public class WAStar implements SearchAlgorithm {
 
         @Override
         public double getRank(int level) {
-            return (level == 0) ? this.f : this.g;
+            return (level == 0) ? this.wF : this.g;
         }
     }
 
@@ -411,9 +431,9 @@ public class WAStar implements SearchAlgorithm {
 
         @Override
         public int compare(final Node a, final Node b) {
-            // First compare by f (smaller is preferred), then by g (bigger is preferred)
-            if (a.f < b.f) return -1;
-            if (a.f > b.f) return 1;
+            // First compare by wF (smaller is preferred), then by g (bigger is preferred)
+            if (a.wF < b.wF) return -1;
+            if (a.wF > b.wF) return 1;
             if (a.g > b.g) return -1;
             if (a.g < b.g) return 1;
             return 0;
