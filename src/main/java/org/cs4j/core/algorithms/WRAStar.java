@@ -57,22 +57,22 @@ public class WRAStar implements SearchAlgorithm {
     }
 
     // The domain for the search
-    private SearchDomain domain;
+    protected SearchDomain domain;
 
     // Open list (frontier)
-    private SearchQueue<Node> open;
+    protected SearchQueue<Node> open;
 
     // Open list (frontier)
-    private SearchQueue<Node> cleanup;
+    protected SearchQueue<Node> cleanup;
 
     // Inconsistent list
-    private Map<PackedElement, Node> incons;
+    protected Map<PackedElement, Node> incons;
 
     // Closed list (seen states)
-    private Map<PackedElement, Node> closed;
+    protected Map<PackedElement, Node> closed;
 
     // TODO ...
-    private HeapType heapType;
+    protected HeapType heapType;
 
     // For weighted A*
     protected double weight;
@@ -92,7 +92,7 @@ public class WRAStar implements SearchAlgorithm {
         return "wrastar";
     }
 
-    private void _initDataStructures() {
+    protected void _initDataStructures() {
         this.open =
                 new BinHeap<>(
                         new OpenNodeComparator(),
@@ -163,7 +163,7 @@ public class WRAStar implements SearchAlgorithm {
         return solution;
     }
 
-    public Node _search(SearchDomain domain, int iterationIndex, double maxPreviousCost, SearchResultImpl result) {
+    protected Node _search(SearchDomain domain, int iterationIndex, double maxPreviousCost, SearchResultImpl result) {
         Node goal = null;
         State currentState;
 
@@ -414,7 +414,7 @@ public class WRAStar implements SearchAlgorithm {
      */
     protected final class Node extends SearchQueueElementImpl implements BucketHeapElement {
         private double wF;
-        private double rF;
+        protected double rF;
         private double g;
         private double h;
 
@@ -422,7 +422,7 @@ public class WRAStar implements SearchAlgorithm {
         private Operator pop;
 
         private Node parent;
-        private PackedElement packed;
+        protected PackedElement packed;
         private int[] secondaryIndex;
 
         private Node(State state, Node parent, State parentState, Operator op, Operator pop) {
@@ -470,7 +470,7 @@ public class WRAStar implements SearchAlgorithm {
          *
          * @param state The state which this node represents
          */
-        private Node(State state) {
+        protected Node(State state) {
             this(state, null, null, null, null);
         }
 
