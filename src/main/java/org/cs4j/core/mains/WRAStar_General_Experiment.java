@@ -6,12 +6,20 @@ import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.WRAStar;
 import org.cs4j.core.data.Weights;
+import org.cs4j.core.domains.Utils;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by user on 20/11/2015.
@@ -141,6 +149,8 @@ public class WRAStar_General_Experiment {
      * @param firstInstance The id of the first instance to solve
      * @param instancesCount The number of instances to solve
      * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     * @param optimalCosts The optimal costs of the instances
+     * @param needHeader Whether to add the header line to list
      *
      * @return Name of all the created output files
      *
@@ -148,7 +158,9 @@ public class WRAStar_General_Experiment {
      */
     public String[] runGridPathFindingWithPivotsExperimentWRAStarSingleThreaded(
             SearchDomain domain, int firstInstance, int instancesCount,
-            String outputPath, boolean needHeader) throws IOException {
+            String outputPath,
+            Map<Integer, Double> optimalCosts,
+            boolean needHeader) throws IOException {
 
         Weights.SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
         int[] pivotsCounts = new int[]{10};
@@ -177,10 +189,18 @@ public class WRAStar_General_Experiment {
                 if (domain == null) {
                     continue;
                 }
+                // Set the optimal cost if required
+                if (optimalCosts != null) {
+                    double optimalCost = optimalCosts.get(i);
+                    domain.setOptimalSolutionCost(optimalCost);
+                    System.out.println("[INFO] Instance " + i + " optimal cost is " + optimalCost);
+                }
+
                 for (Weights.SingleWeight w : weights) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     SearchAlgorithm alg = new WRAStar(weight);
+                    alg.setAdditionalParameter("iteration-to-start-reopening", "1" + "");
                     //alg.setAdditionalParameter("w-admissibility-deviation-percentage", 20.0d + "");
                     System.out.println("[INFO] Algorithm: " + alg.getName() + ", Instance: " + i + ", Weight: " + weight);
                     try {
@@ -213,16 +233,53 @@ public class WRAStar_General_Experiment {
      * @param firstInstance The id of the first instance to solve
      * @param instancesCount The number of instances to solve
      * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     * @param optimalCosts The optimal costs of the instances
+     * @param needHeader Whether to add the header line to list
      *
      * @return Name of all the created output files
      *
      * @throws java.io.IOException
      */
     public String[] runGridPathFindingWithPivotsExperimentWRAStarSingleThreaded(
-            int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
+            int firstInstance, int instancesCount, String outputPath,
+            Map<Integer, Double> optimalCosts,
+            boolean needHeader) throws IOException {
         return this.runGridPathFindingWithPivotsExperimentWRAStarSingleThreaded(
                 null, firstInstance, instancesCount,
-                outputPath, needHeader);
+                outputPath,
+                optimalCosts,
+                needHeader);
+    }
+
+    /**
+     * The function reads the optimal costs of all the instances, stored in the input file
+     *
+     * @param path The path of the file that contains the optimal costs
+     *
+     * NOTE: The file must be of the following format:
+     *             <instance-i1-id>,<i1-optimal-cost>
+     *             <instance-i2-id>,<i2-optimal-cost>
+     *             ...
+     *             ...
+     * @return An mapping from instance id to the optimal cost of this instance
+     */
+    public static Map<Integer, Double> readOptimalCosts(String path) throws IOException {
+        System.out.println("[INFO] Reading optimal costs");
+        Map<Integer, Double> toReturn = new HashMap<>();
+        InputStream is = new FileInputStream(new File(path));
+        BufferedReader in = new BufferedReader(new InputStreamReader(is));
+        String currentLine;
+        while ((currentLine = in.readLine()) != null) {
+            String[] split = currentLine.split(",");
+            assert split.length == 2;
+            Integer instanceID = Integer.parseInt(split[0]);
+            assert !toReturn.containsKey(instanceID);
+            Double cost = Double.parseDouble(split[1]);
+            assert cost >= 0;
+            toReturn.put(instanceID, cost);
+        }
+        System.out.println("[INFO] Done reading optimal costs, read " + toReturn.size() + " costs in total");
+        return toReturn;
     }
 
     /*******************************************************************************************************************
@@ -242,8 +299,10 @@ public class WRAStar_General_Experiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-stop-after-2-iterations",
+                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/RANDOM_PIVOT_10/generated+wastar+extended-random-pivot-10-ar-at-iteration-1",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wrastar+extended",
+                    null,
+                    //WRAStar_General_Experiment.readOptimalCosts("input/gridpathfinding/generated/brc202d.map/optimal.raw"),
                     // Add header
                     true);
         } catch (IOException e) {
