@@ -288,6 +288,14 @@ public final class FifteenPuzzle implements SearchDomain {
         return (this.heuristicType == HeuristicType.MD);
     }
 
+    @Override
+    public void setOptimalSolutionCost(double cost) { }
+
+    @Override
+    public double getOptimalSolutionCost() {
+        return -1;
+    }
+
     /**
      * A default constructor of the class:
      *

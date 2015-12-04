@@ -348,6 +348,14 @@ public class DockyardRobot implements SearchDomain {
     }
 
     @Override
+    public void setOptimalSolutionCost(double cost) { }
+
+    @Override
+    public double getOptimalSolutionCost() {
+        return -1;
+    }
+
+    @Override
     public DRobotState initialState() {
         // Initialize the first state: The robot is currently on location 0 and no box is loaded
         DRobotState drs = new DRobotState(this, this.initialLocation, -1, 0);

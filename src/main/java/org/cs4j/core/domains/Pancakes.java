@@ -236,6 +236,14 @@ public class Pancakes implements SearchDomain {
     }
 
     @Override
+    public void setOptimalSolutionCost(double cost) { }
+
+    @Override
+    public double getOptimalSolutionCost() {
+        return -1;
+    }
+
+    @Override
     public boolean isGoal(State s) {
         PancakeState state = (PancakeState) s;
         return state.dNoGaps == 0;

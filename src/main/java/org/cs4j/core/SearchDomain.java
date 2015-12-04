@@ -111,6 +111,18 @@ public interface SearchDomain extends SearchConfigurable {
     boolean isCurrentHeuristicConsistent();
 
     /**
+     * For tests with oracles, set the optimal cost of the soltion
+     *
+     */
+    void setOptimalSolutionCost(double cost);
+
+    /**
+     *
+     * @return The cost of the optimal solution if defined (or -1 if the cost hasn't been set)
+     */
+    double getOptimalSolutionCost();
+
+    /**
      * The State interface.
      */
     interface State {

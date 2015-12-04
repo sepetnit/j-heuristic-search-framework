@@ -1282,6 +1282,14 @@ public class VacuumRobot implements SearchDomain {
         return true;
     }
 
+    @Override
+    public void setOptimalSolutionCost(double cost) { }
+
+    @Override
+    public double getOptimalSolutionCost() {
+        return -1;
+    }
+
     /**
      * Pack a state into a long number
      *
