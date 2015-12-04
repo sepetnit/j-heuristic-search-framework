@@ -14,9 +14,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.Vector;
 
 /**
@@ -38,11 +40,15 @@ public class GridPathFinding implements SearchDomain {
 
     private static final Map<String, Class> GridPathFindingPossibleParameters;
 
+    private static final int RANDOM_PIVOTS_INDEXES_COUNT = 5000000;
+
     // Declare the parameters that can be tunes before running the search
     static
     {
         GridPathFindingPossibleParameters = new HashMap<>();
         GridPathFinding.GridPathFindingPossibleParameters.put("heuristic", String.class);
+        // If the type of the heuristic is RANDOM_PIVOTS (note the S!), the number of random pivots to take over total
+        GridPathFinding.GridPathFindingPossibleParameters.put("random-pivots-count", String.class);
         GridPathFinding.GridPathFindingPossibleParameters.put("pivots-distances-db-file", String.class);
         GridPathFinding.GridPathFindingPossibleParameters.put("pivots-count", Integer.class);
     }
@@ -73,15 +79,22 @@ public class GridPathFinding implements SearchDomain {
         DH_MD_AVERAGE_MD_IF_DH_IS_0,
         // Take random pivot among the available (this is inconsistent heuristic if pvitosCount > 0!)
         DH_RANDOM_PIVOT,
+        // Take random number of pivots from the available
+        DH_RANDOM_PIVOTS,
         // Take random value between DH and MD
         RANDOM_DH_MD
     }
 
     private HeuristicType heuristicType;
+    private int randomPivotsCount;
+    private int[] randomPivotsIndexes;
+
+
     // The number of pivots in case DH_FURTHEST is used
     private int pivotsCount;
     // Required for the TDH heuristic
     private int[] orderedPivots;
+
     private Map<Integer, Map<Integer, Double>> distancesFromPivots;
 
     private GridPathFindingOperator[] reverseOperators;
@@ -324,6 +337,7 @@ public class GridPathFinding implements SearchDomain {
         this.pivotsCount = -1;
         this.orderedPivots = null;
         this.distancesFromPivots = null;
+        this.randomPivotsIndexes = null;
 
         // Compute bit masks for bit twiddling states in pack/unpack
 
@@ -706,6 +720,8 @@ public class GridPathFinding implements SearchDomain {
         this.pivotsCount = other.pivotsCount;
         this.orderedPivots = other.orderedPivots;
         this.distancesFromPivots = other.distancesFromPivots;
+        this.randomPivotsCount = other.randomPivotsCount;
+        this.randomPivotsIndexes = other.randomPivotsIndexes;
     }
 
     /**
@@ -741,6 +757,14 @@ public class GridPathFinding implements SearchDomain {
         }
         return Math.abs(distanceFromAgentToPivot - distanceFromPivotToGoal);
     }
+
+    /*
+    private int getRandomPivotIndex(int index, GridPathFindingState state) {
+        long longsSum = this.pack(state).getLongsSum();
+        System.out.println(PRIMARIES_FOR_RANDOMS[index] + " " + longsSum);
+        return (int)(Math.pow(PRIMARIES_FOR_RANDOMS[index], longsSum)) % this.pivotsCount;
+    }
+    */
 
     /**
      * Compute the heuristic value of a given state
@@ -814,6 +838,32 @@ public class GridPathFinding implements SearchDomain {
                         false);
                 // Take the maximum value (chose from MD and DH)
                 double maxValue = Math.max(diff, md);
+                return new double[]{maxValue, maxValue};
+            }
+            case DH_RANDOM_PIVOTS: {
+                maxDistance = 0.0d;
+                Set<Integer> usedIndexes = new HashSet<>();
+                int currentIndex = (int)(this.pack(s).getLongsSum() % GridPathFinding.RANDOM_PIVOTS_INDEXES_COUNT);
+                for (int i = 0; i < this.randomPivotsCount; ++i) {
+                    int value = this.randomPivotsIndexes[currentIndex];
+                    while (usedIndexes.contains(value)) {
+                        currentIndex = (currentIndex + 1) % GridPathFinding.RANDOM_PIVOTS_INDEXES_COUNT;
+                        value = this.randomPivotsIndexes[currentIndex];
+                    }
+                    usedIndexes.add(value);
+                    // Compute the heuristic value for this pivot, don't return -1 if the distance from one of the
+                    // pivots is 0
+                    double diff = this._computeDHForSinglePivot(
+                            s.agentLocation,
+                            value,
+                            currentGoal,
+                            false);
+                    if (diff > maxDistance) {
+                        maxDistance = diff;
+                    }
+                }
+                // Take the maximum value (chose from MD and DH)
+                double maxValue = Math.max(maxDistance, md);
                 return new double[]{maxValue, maxValue};
             }
             case RANDOM_DH_MD: {
@@ -1092,6 +1142,10 @@ public class GridPathFinding implements SearchDomain {
                         System.out.println("[WARNING] This heuristic is inconsistent if pivots-count > 1");
                         this.heuristicType = HeuristicType.DH_RANDOM_PIVOT;
                         break;
+                    case "dh-random-pivots":
+                        System.out.println("[WARNING] This heuristic is inconsistent if pivots-count != random-pivots-count");
+                        this.heuristicType = HeuristicType.DH_RANDOM_PIVOTS;
+                        break;
                     case "random-dh-md": {
                         System.out.println("[WARNING] This heuristic is inconsistent");
                         this.heuristicType = HeuristicType.RANDOM_DH_MD;
@@ -1105,6 +1159,30 @@ public class GridPathFinding implements SearchDomain {
                         System.err.println("Illegal heuristic type for GridPathfinding domain: " + value);
                         throw new IllegalArgumentException();
                     }
+                }
+                break;
+            }
+            case "random-pivots-count": {
+                if (this.heuristicType != HeuristicType.DH_RANDOM_PIVOTS) {
+                    System.out.println("[ERROR] Heuristic type isn't DH_RANDOM_PIVOTS - can't set random pivots count");
+                    throw new IllegalArgumentException();
+                }
+                this.randomPivotsCount = Integer.parseInt(value);
+                // Fail if too high number of random pivots (if pivots-count was set)
+                if (this.randomPivotsCount > this.pivotsCount && this.pivotsCount > -1) {
+                    System.out.println("[ERROR] Too high number of random pivots (must be at most " +
+                            this.pivotsCount + ")");
+                    throw new IllegalArgumentException();
+                }
+                if (this.randomPivotsCount < 1) {
+                    System.out.println("[ERROR] Illegal random pivots count (must be at least 1)");
+                    throw new IllegalArgumentException();
+                }
+                if (this.pivotsCount > 0) {
+                    this.randomPivotsIndexes = Utils.getRandomIntegerListArray(
+                            GridPathFinding.RANDOM_PIVOTS_INDEXES_COUNT,
+                            this.pivotsCount,
+                            null);
                 }
                 break;
             }
@@ -1128,6 +1206,7 @@ public class GridPathFinding implements SearchDomain {
                 if ((this.heuristicType != HeuristicType.DH_FURTHEST) &&
                         (this.heuristicType != HeuristicType.DH_MD_AVERAGE_MD_IF_DH_IS_0) &&
                         (this.heuristicType != HeuristicType.DH_RANDOM_PIVOT) &&
+                        (this.heuristicType != HeuristicType.DH_RANDOM_PIVOTS) &&
                         (this.heuristicType != HeuristicType.RANDOM_DH_MD)) {
                     System.out.println("[ERROR] Heuristic type isn't DH - can't set pivots count");
                     throw new IllegalArgumentException();
@@ -1141,7 +1220,18 @@ public class GridPathFinding implements SearchDomain {
                                 this.orderedPivots.length + " but required " + pivotsCount + ")");
                         throw new IllegalArgumentException();
                     }
+                    if (this.heuristicType == HeuristicType.DH_RANDOM_PIVOTS && pivotsCount < this.randomPivotsCount) {
+                        System.out.println("[ERROR] Random pivots count for DH_RANDOM_PIVOTS heuristic was set for " +
+                            this.randomPivotsCount + ", thus, at least " + this.randomPivotsCount + " must be set");
+                        throw new IllegalArgumentException();
+                    }
                     this.pivotsCount = pivotsCount;
+                    if (this.heuristicType == HeuristicType.DH_RANDOM_PIVOTS && this.randomPivotsIndexes == null) {
+                        this.randomPivotsIndexes = Utils.getRandomIntegerListArray(
+                                GridPathFinding.RANDOM_PIVOTS_INDEXES_COUNT,
+                                this.pivotsCount,
+                                null);
+                    }
                 }
                 break;
             } default: {
