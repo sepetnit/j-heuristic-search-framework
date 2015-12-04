@@ -65,6 +65,22 @@ public class Utils {
     }
 
     /**
+     * Converts a given list that contains Double objects, to an array of doubles
+     *
+     * @param list The input list
+     *
+     * @return An array of doubles (double) that contains all the elements in list
+     */
+    public static double[] doubleListToArray(List<Double> list) {
+        double[] toReturn = new double[list.size()];
+        int index = 0;
+        for (double element : list) {
+            toReturn[index++] = element;
+        }
+        return toReturn;
+    }
+
+    /**
      * An opposite function of {@see integerListToArray} - converts an array of integers to a list
      *
      * @param array The array to convert
