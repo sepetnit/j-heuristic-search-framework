@@ -137,6 +137,7 @@ public class WRAStar_General_Experiment {
     /**
      * Runs an experiment using the WRAStar and EES algorithms in a SINGLE THREAD!
      *
+     * @param domain The domain to run with (can be null)
      * @param firstInstance The id of the first instance to solve
      * @param instancesCount The number of instances to solve
      * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
@@ -146,17 +147,20 @@ public class WRAStar_General_Experiment {
      * @throws java.io.IOException
      */
     public String[] runGridPathFindingWithPivotsExperimentWRAStarSingleThreaded(
-            int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
+            SearchDomain domain, int firstInstance, int instancesCount,
+            String outputPath, boolean needHeader) throws IOException {
 
         Weights.SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
         int[] pivotsCounts = new int[]{10};
         List<String> allOutputFiles = new ArrayList<>(pivotsCounts.length);
 
-        // Create the domain by reading the first instance (the pivots DB is read once!)
-        SearchDomain domain =
-                DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
-                        firstInstance + ".in",
-                        10);
+        if (domain == null) {
+            // Create the domain by reading the first instance (the pivots DB is read once!)
+            domain =
+                    DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
+                            firstInstance + ".in",
+                            10);
+        }
 
         for (int pivotsCount : pivotsCounts) {
             System.out.println("[INFO] Runs experiment with " + pivotsCount + " pivots");
@@ -177,7 +181,7 @@ public class WRAStar_General_Experiment {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     SearchAlgorithm alg = new WRAStar(weight);
-                    alg.setAdditionalParameter("w-admissibility-deviation-percentage", 20.0d + "");
+                    //alg.setAdditionalParameter("w-admissibility-deviation-percentage", 20.0d + "");
                     System.out.println("[INFO] Algorithm: " + alg.getName() + ", Instance: " + i + ", Weight: " + weight);
                     try {
                         SearchResult result = alg.search(domain);
@@ -203,6 +207,24 @@ public class WRAStar_General_Experiment {
         return allOutputFiles.toArray(new String[allOutputFiles.size()]);
     }
 
+    /**
+     * Runs an experiment using the WRAStar and EES algorithms in a SINGLE THREAD!
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @return Name of all the created output files
+     *
+     * @throws java.io.IOException
+     */
+    public String[] runGridPathFindingWithPivotsExperimentWRAStarSingleThreaded(
+            int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
+        return this.runGridPathFindingWithPivotsExperimentWRAStarSingleThreaded(
+                null, firstInstance, instancesCount,
+                outputPath, needHeader);
+    }
+
     /*******************************************************************************************************************
      * Different Main definitions
      ******************************************************************************************************************/
@@ -220,7 +242,7 @@ public class WRAStar_General_Experiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/generated+wrastar+extended",
+                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-stop-after-2-iterations",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wrastar+extended",
                     // Add header
                     true);
