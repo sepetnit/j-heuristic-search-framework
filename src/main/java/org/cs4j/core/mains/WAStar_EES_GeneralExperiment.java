@@ -7,6 +7,7 @@ import org.cs4j.core.SearchResult;
 import org.cs4j.core.SearchResult.Solution;
 import org.cs4j.core.algorithms.EES;
 import org.cs4j.core.algorithms.WAStar;
+import org.cs4j.core.algorithms.WNARAStar;
 import org.cs4j.core.algorithms.WRAStar;
 import org.cs4j.core.data.Weights;
 import org.cs4j.core.data.Weights.SingleWeight;
@@ -304,6 +305,7 @@ public class WAStar_EES_GeneralExperiment {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
+                        //SearchAlgorithm alg = new WNARAStar();
                         SearchAlgorithm alg = new WAStar();
                         alg.setAdditionalParameter("weight", weight + "");
                         alg.setAdditionalParameter("reopen", reopen + "");
@@ -572,7 +574,7 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/generated+wastar+extended-average-md-pivots",
+                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-stop-after-2-iterations",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-average-md-pivots",
                     // Add header
                     true);
@@ -653,8 +655,8 @@ public class WAStar_EES_GeneralExperiment {
 
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
