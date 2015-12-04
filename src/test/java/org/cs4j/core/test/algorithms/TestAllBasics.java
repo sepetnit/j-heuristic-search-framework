@@ -41,17 +41,10 @@ public class TestAllBasics {
 	@Test
 	public void testAstarBinHeap() throws FileNotFoundException {
 		SearchDomain domain = createFifteenPuzzle("12");
-		SearchAlgorithm algo = new WAStar(HeapType.BIN);
+		SearchAlgorithm algo = new WAStar();
 		testSearchAlgorithm(domain, algo, 65271, 32470, 45);
 	}	
-	
-	@Test
-	public void testAstarBucketHeap() throws FileNotFoundException {
-		SearchDomain domain = createFifteenPuzzle("12");
-		SearchAlgorithm algo = new WAStar(HeapType.BUCKET);
-		testSearchAlgorithm(domain, algo, 64963, 32334, 45);
-	}		
-	
+
 	@Test
 	public void testRBFS() throws FileNotFoundException {
 		SearchDomain domain = createFifteenPuzzle("12");
