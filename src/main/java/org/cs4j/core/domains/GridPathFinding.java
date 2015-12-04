@@ -99,6 +99,9 @@ public class GridPathFinding implements SearchDomain {
 
     private GridPathFindingOperator[] reverseOperators;
 
+    // The cost of the optimal solution
+    private double optimalSolutionCost;
+
     /**
      * A specific Move performed on the grid
      */
@@ -380,6 +383,7 @@ public class GridPathFinding implements SearchDomain {
     private GridPathFinding(int width, int height, char[] map,
                             int start1Dim, PairInt start,
                             int goal1Dim, PairInt goal) {
+        this.optimalSolutionCost = -1;
         // Either 1-dimensional or 2-dimensional input can be given for start and goal locations
         assert (((start1Dim == -1) ^ (start == null)) && ((goal1Dim == -1) ^ (start == null)));
 
@@ -600,6 +604,7 @@ public class GridPathFinding implements SearchDomain {
      * @param costFunction The type of the cost function
      */
     public GridPathFinding(InputStream stream, COST_FUNCTION costFunction) {
+        this.optimalSolutionCost = -1;
         // TODO:
         // this.heavy = (cost == COST.HEAVY);
         // Initialize the input-reader to allow parsing the state
@@ -647,6 +652,7 @@ public class GridPathFinding implements SearchDomain {
      * @param goal The goal location
      */
     public GridPathFinding(InputStream stream, int start, int goal) {
+        this.optimalSolutionCost = -1;
         // TODO:
         // this.heavy = (cost == COST.HEAVY);
         // Initialize the input-reader to allow parsing the state
@@ -686,6 +692,7 @@ public class GridPathFinding implements SearchDomain {
      * @param stream The stream to read start and goal locations from
      */
     public GridPathFinding(GridPathFinding other, InputStream stream) {
+        this.optimalSolutionCost = -1;
         // TODO:
         // this.heavy = (cost == COST.HEAVY);
         // Initialize the input-reader to allow parsing the state
@@ -888,6 +895,16 @@ public class GridPathFinding implements SearchDomain {
                 // This heuristic is consistent only if the number of pivots is 1
                 (this.heuristicType != HeuristicType.DH_RANDOM_PIVOT || this.pivotsCount == 1) &&
                 (this.heuristicType != HeuristicType.RANDOM_DH_MD);
+    }
+
+    @Override
+    public void setOptimalSolutionCost(double cost) {
+        this.optimalSolutionCost = cost;
+    }
+
+    @Override
+    public double getOptimalSolutionCost() {
+        return this.optimalSolutionCost;
     }
 
     /**
