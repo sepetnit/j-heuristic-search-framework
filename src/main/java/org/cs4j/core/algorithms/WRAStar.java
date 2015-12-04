@@ -54,6 +54,7 @@ public class WRAStar implements SearchAlgorithm {
     {
         WRAStarPossibleParameters = new HashMap<>();
         WRAStar.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
+        WRAStar.WRAStarPossibleParameters.put("iteration-to-start-reopening", Integer.class);
     }
 
     // The domain for the search
@@ -78,6 +79,9 @@ public class WRAStar implements SearchAlgorithm {
     protected double weight;
     private double wAdmissibilityDeviation;
 
+    // The iteration of run, from which we start reopening
+    private int iterationToStartReopening;
+
     public enum HeapType {BIN, BUCKET}
 
     public WRAStar(double weight) {
@@ -85,6 +89,8 @@ public class WRAStar implements SearchAlgorithm {
         this.heapType = HeapType.BIN;
         // By default - not deviation from the actual weight is permitted
         this.wAdmissibilityDeviation = 1.0d;
+        // By default, we never reopen for any iteration
+        this.iterationToStartReopening = Integer.MAX_VALUE;
     }
 
     @Override
@@ -120,6 +126,14 @@ public class WRAStar implements SearchAlgorithm {
                     throw new IllegalArgumentException();
                 }
                 this.wAdmissibilityDeviation = 1.0d + (this.wAdmissibilityDeviation / 100.0d);
+                break;
+            }
+            case "iteration-to-start-reopening": {
+                this.iterationToStartReopening = Integer.parseInt(value);
+                if (this.iterationToStartReopening < 1) {
+                    System.out.println("[ERROR] We can start reopening at least after the first iteration");
+                    throw new IllegalArgumentException();
+                }
                 break;
             }
             default: {
@@ -163,11 +177,20 @@ public class WRAStar implements SearchAlgorithm {
         return solution;
     }
 
-    protected Node _search(SearchDomain domain, int iterationIndex, double maxPreviousCost, SearchResultImpl result) {
+    protected Node _search(SearchDomain domain, int iterationIndex,
+                           double maxPreviousCost, SearchResultImpl result) {
         Node goal = null;
         State currentState;
 
         result.startTimer();
+
+        // Default value
+        boolean reopen = false;
+        // Check if we need to change the default value
+        if (iterationIndex >= this.iterationToStartReopening) {
+            System.out.println("[WARNING] Iteration " + iterationIndex + " implies reopening");
+            reopen = true;
+        }
 
         // Loop over the frontier
         while (!this.open.isEmpty()) {
@@ -253,7 +276,15 @@ public class WRAStar implements SearchAlgorithm {
                                 this.closed.put(dupChildNode.packed, dupChildNode);
                                 // Otherwise, consider to reopen the node
                             } else {
-                                this.incons.put(dupChildNode.packed, dupChildNode);
+                                // Never Reopen: Use Incons
+                                if (!reopen) {
+                                    this.incons.put(dupChildNode.packed, dupChildNode);
+                                // Always Reopen: Perform standard reopening
+                                } else {
+                                    ++result.reopened;
+                                    this.open.add(dupChildNode);
+                                }
+                                // Update cleanup
                                 if (dupChildNode.getIndex(this.cleanup.getKey()) != -1) {
                                     this.cleanup.update(dupChildNode);
                                 } else {
@@ -325,6 +356,7 @@ public class WRAStar implements SearchAlgorithm {
             System.out.println("[WARNING] Required weight can be deviated (weight: " + this.weight +
                     ", deviation: " + this.wAdmissibilityDeviation + ", deviated: " + deviatedWeight + ")");
         }
+        double optimalCost = domain.getOptimalSolutionCost();
         while (true) {
             SearchResultImpl result = new SearchResultImpl();
             previousGoal = lastGoal;
@@ -351,7 +383,7 @@ public class WRAStar implements SearchAlgorithm {
                 previousResult = result;
                 // Update the maximum cost (if the search continues, all the nodes with g+h > maxCost will be pruned)
                 maxPreviousCost = currentSolution.getCost();
-                suboptimalBoundSup = maxPreviousCost / bestF;
+                suboptimalBoundSup = (optimalCost != -1)? (maxPreviousCost / optimalCost) : (maxPreviousCost / bestF);
                 System.out.println("[INFO] Approximated suboptimal bound is " + suboptimalBoundSup);
                 if (suboptimalBoundSup <= deviatedWeight) {
                     System.out.println("[INFO] Bound is sufficient (required: " + deviatedWeight + ", got: " +
@@ -378,7 +410,7 @@ public class WRAStar implements SearchAlgorithm {
                 System.out.println("[INFO] Calling another search iteration (maxCost = " + maxPreviousCost + ", bestF: " + bestF + ")");
                 //this.closed = new HashMap<>();
             } else {
-                suboptimalBoundSup = maxPreviousCost / bestF;
+                suboptimalBoundSup = (optimalCost != -1)? (maxPreviousCost / optimalCost) : (maxPreviousCost / bestF);
                 System.out.println("[INFO] (NoSolution) Iteration: " + (iterationIndex + 1) +
                         ", bestF: " + bestF + ", sub: " + suboptimalBoundSup);
                 if (suboptimalBoundSup <= deviatedWeight) {
@@ -391,6 +423,7 @@ public class WRAStar implements SearchAlgorithm {
                     // Now, let's continue the search
                     for (Node current : this.incons.values()) {
                         this.open.add(current);
+                        ++previousResult.reopened;
                     }
                     this.incons.clear();
                     this.closed = new HashMap<>();
