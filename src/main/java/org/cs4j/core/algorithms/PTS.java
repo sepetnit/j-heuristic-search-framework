@@ -145,7 +145,7 @@ public class PTS implements SearchAlgorithm {
                 Node childNode = new Node(childState, currentNode, currentState, op, op.reverse(currentState));
 
                 // Prune nodes over the bound
-                if (childNode.f > this.maxCost) {
+                if (childNode.getF() > this.maxCost) {
                     continue;
                 }
 
@@ -166,12 +166,11 @@ public class PTS implements SearchAlgorithm {
                     ++result.duplicates;
                     // Take the duplicate node
                     Node dupChildNode = this.closed.get(childNode.packed);
-                    if (dupChildNode.f > childNode.f) {
+                    if (dupChildNode.getF() > childNode.getF()) {
                         // Consider only duplicates with higher G value
                         if (dupChildNode.g > childNode.g) {
 
                             // Make the duplicate to be successor of the current parent node
-                            dupChildNode.f = childNode.f;
                             dupChildNode.g = childNode.g;
                             dupChildNode.op = childNode.op;
                             dupChildNode.pop = childNode.pop;
@@ -267,7 +266,6 @@ public class PTS implements SearchAlgorithm {
      * OPEN and CLOSED lists contain nodes which are created from the domain states
      */
     private final class Node extends SearchQueueElementImpl implements BucketHeap.BucketHeapElement {
-        private double f;
         private double g;
         private double h;
 
@@ -303,11 +301,17 @@ public class PTS implements SearchAlgorithm {
             double cost = (op != null) ? op.getCost(state, parentState) : 0;
             this.h = state.getH();
             this.g = (parent != null)? parent.g + cost : cost;
-            this.f = this.g + this.h;
             this.parent = parent;
             this.packed = domain.pack(state);
             this.pop = pop;
             this.op = op;
+        }
+
+        /**
+         * @return The computed (on the fly) value of f
+         */
+        public double getF() {
+            return this.g + this.h;
         }
 
         /**
@@ -333,7 +337,7 @@ public class PTS implements SearchAlgorithm {
 
         @Override
         public double getRank(int level) {
-            return (level == 0) ? this.f : this.g;
+            return (level == 0) ? this.getF() : this.g;
         }
     }
 
