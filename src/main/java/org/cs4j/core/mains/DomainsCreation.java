@@ -16,25 +16,29 @@ public class DomainsCreation {
      ******************************************************************************************************************/
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGenerated(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/" + instance));
-        //InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/den400d.map/" + instance));
+        //InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/" + instance));
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/" + instance));
         return new GridPathFinding(is);
     }
 
     public static SearchDomain createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
             String instance, int pivotsCount) throws IOException {
         String mapFileName = "input/gridpathfinding/generated/brc202d.map";
+        //String mapFileName = "input/gridpathfinding/generated/ost003d.map";
+        //String mapFileName = "input/gridpathfinding/generated/den400d.map";
         //String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
         //String pivotsFileName = "input/gridpathfinding/raw/maps/" + new File(mapFileName).getName() + ".pivots.pdb";
         //String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6-80.map.pivots.pdb";
+        //String pivotsFileName = "input/gridpathfinding/raw/maps/den400d.map.pivots.pdb";
+        //String pivotsFileName = "input/gridpathfinding/raw/maps/ost003d.map.pivots.pdb";
         String pivotsFileName = "input/gridpathfinding/raw/maps/brc202d.map.pivots.pdb";
         InputStream is = new FileInputStream(new File(mapFileName + "/" + instance));
         GridPathFinding problem = new GridPathFinding(is);
         //problem.setAdditionalParameter("heuristic", "dh-furthest");
         //problem.setAdditionalParameter("heuristic", "dh-md-average-md-if-dh-is-0");
-        //problem.setAdditionalParameter("heuristic", "dh-random-pivot");
-        problem.setAdditionalParameter("heuristic", "dh-random-pivots");
-        problem.setAdditionalParameter("random-pivots-count", 9 + "");
+        problem.setAdditionalParameter("heuristic", "dh-random-pivot");
+        //problem.setAdditionalParameter("heuristic", "dh-random-pivots");
+        //problem.setAdditionalParameter("random-pivots-count", 5 + "");
         //problem.setAdditionalParameter("heuristic", "random-dh-md");
         problem.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
         problem.setAdditionalParameter("pivots-count", pivotsCount + "");
@@ -45,6 +49,8 @@ public class DomainsCreation {
                                                                                               String instance,
                                                                                               int pivotsCount)
             throws IOException {
+        //String mapFileName = "input/gridpathfinding/generated/den400d.map";
+        //String mapFileName = "input/gridpathfinding/generated/ost003d.map";
         String mapFileName = "input/gridpathfinding/generated/brc202d.map";
         //String mapFileName = "input/gridpathfinding/generated/maze512-1-6.map";
         InputStream is = new FileInputStream(new File(mapFileName, instance));

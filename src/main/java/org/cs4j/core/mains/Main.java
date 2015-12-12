@@ -140,6 +140,11 @@ public class Main {
         return new VacuumRobot(is, VacuumRobot.COST_FUNCTION.HEAVY);
     }
 
+    public SearchDomain createRawGraph() throws FileNotFoundException {
+        // TODO: Read the graph from file
+        return new RawGraph();
+    }
+
     public static void mainFifteenPuzzleDomain(String[] args) throws IOException {
         Main mainTest = new Main();
 
@@ -277,6 +282,39 @@ public class Main {
         }
     }
 
+    public static void mainRawGraphDomain(String[] args) throws IOException {
+        Main mainTest = new Main();
+        SearchDomain domain = mainTest.createRawGraph();
+        SearchAlgorithm alg = new WAStar();
+        alg.setAdditionalParameter("bpmx", true + "");
+
+        SearchResult result1 = alg.search(domain);
+        if (result1.getSolutions().size() > 0) {
+            double d[] = new double[]{
+                    result1.getSolutions().get(0).getLength(),
+                    result1.getSolutions().get(0).getCost(),
+                    result1.getExpanded(),
+                    ((SearchResultImpl) result1).reopened};
+            System.out.println(Arrays.toString(d));
+        } else {
+            System.out.println("No solution :-(");
+        }
+
+        alg.setAdditionalParameter("reopen", false + "");
+        SearchResult result2 = alg.search(domain);
+        if (result2.getSolutions().size() > 0) {
+            double d[] = new double[]{
+                    result2.getSolutions().get(0).getLength(),
+                    result2.getSolutions().get(0).getCost(),
+                    result2.getExpanded(),
+                    ((SearchResultImpl) result2).reopened};
+            System.out.println(Arrays.toString(d));
+        } else {
+            System.out.println("No solution :-(");
+        }
+
+    }
+
     public static void mainPTS(String[] args) throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createFifteenPuzzleKorf("2.in");
@@ -349,7 +387,8 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        Main.mainFifteenPuzzleDomain(args);
+        Main.mainRawGraphDomain(args);
+        //Main.mainFifteenPuzzleDomain(args);
         //Main.mainGridPathFindingWithPivotsDomain(args);
         //Main.mainGridPathFindingDomain(args);
         //Main.mainPancakesDomain(args);
