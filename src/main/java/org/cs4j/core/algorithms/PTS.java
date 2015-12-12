@@ -32,12 +32,26 @@ public class PTS implements SearchAlgorithm {
     private SearchQueue<Node> open;
     private Map<PackedElement, Node> closed;
 
+    // Inconsistent list
+    protected Map<PackedElement, Node> incons;
+
     // The maximum cost of the search C
     protected double maxCost;
     // Whether reopening is allowed
     private boolean reopen;
-    // Whether to re-run the algorithm with AR if solution not found and currently NR
-    private boolean rerun;
+
+    // Defines the available types of reruning the search if searching with NR failed
+    private enum RERUN_TYPES {
+        // Stop the search (no rerun is available)
+        NO_RERUN,
+        // Rerun the search but now, run with AR
+        NEW_AR,
+        // Continue the search - expand all the nodes that were not expanded previously
+        CONTINUE_AR
+    }
+
+    // The type of re-runing to apply if the search failed to run with NR (no solution of the required cost was found)
+    private RERUN_TYPES rerun;
 
     private static final Map<String, Class> PTSPossibleParameters;
 
@@ -47,14 +61,14 @@ public class PTS implements SearchAlgorithm {
         PTSPossibleParameters = new HashMap<>();
         PTS.PTSPossibleParameters.put("max-cost", Double.class);
         PTS.PTSPossibleParameters.put("reopen", Boolean.class);
-        PTS.PTSPossibleParameters.put("rerun-if-not-found-and-nr", Boolean.class);
+        PTS.PTSPossibleParameters.put("rerun-type-if-not-found", String.class);
     }
 
     public PTS() {
         // Initial values (afterwards they can be set independently)
         this.maxCost = Double.MAX_VALUE;
         this.reopen = true;
-        this.rerun = false;
+        this.rerun = RERUN_TYPES.NO_RERUN;
     }
 
     @Override
@@ -62,9 +76,30 @@ public class PTS implements SearchAlgorithm {
         return "pts";
     }
 
+    /**
+     * Initializes the data structures of the search
+     *
+     * @param clearOpen Whether to initialize the open list
+     * @param clearIncons Whether to initialize the local inconsistency list
+     * @param clearClosed Whether to initialize the closed list
+     */
+    private void _initDataStructures(boolean clearOpen, boolean clearIncons, boolean clearClosed) {
+        if (clearOpen) {
+            this.open = new BinHeap<>(new PTS.NodeComparator(), 0);
+        }
+        if (clearIncons) {
+            this.incons = new HashMap<>();
+        }
+        if (clearClosed) {
+            this.closed = new HashMap<>();
+        }
+    }
+
+    /**
+     * Initializes all the data structures of the search (by default: clears all the data structures)
+     */
     private void _initDataStructures() {
-        this.open = new BinHeap<>(new PTS.NodeComparator(), 0);
-        this.closed = new HashMap<>();
+        this._initDataStructures(true, true, true);
     }
 
     @Override
@@ -81,8 +116,25 @@ public class PTS implements SearchAlgorithm {
             } case "max-cost": {
                 this.maxCost = Double.parseDouble(value);
                 break;
-            } case "rerun-if-not-found-and-nr": {
-                this.rerun = Boolean.parseBoolean(value);
+            } case "rerun-type-if-not-found": {
+                if (this.reopen) {
+                    System.out.println("[ERROR] Can define type of rerun only if reopen is not permitted");
+                    throw new IllegalArgumentException();
+                }
+                switch (value) {
+                    case "new-ar": {
+                        this.rerun = RERUN_TYPES.NEW_AR;
+                        break;
+                    }
+                    case "continue-ar": {
+                        this.rerun = RERUN_TYPES.CONTINUE_AR;
+                        break;
+                    }
+                    default: {
+                        System.out.println("[ERROR] The available rerun types are 'new-ar' and 'continue-ar'");
+                        throw new IllegalArgumentException();
+                    }
+                }
                 break;
             }
             default: {
@@ -92,13 +144,20 @@ public class PTS implements SearchAlgorithm {
         }
     }
 
-    private SearchResult _search(SearchDomain domain) {
+    /**
+     * The internal main search procedure
+     *
+     * @param domain The domain to work on
+     * @param clearOpenList Whether to clear the open list
+     *
+     * @return The search result filled by all the results of the search
+     */
+    private SearchResult _search(SearchDomain domain, boolean clearOpenList) {
         this.domain = domain;
         // The result will be stored here
         Node goal = null;
-        double goalCost = Double.MAX_VALUE;
-        // Initialize all the data structures required for the search
-        this._initDataStructures();
+        // Initialize all the data structures required for the search (CLOSED list is always cleared)
+        this._initDataStructures(clearOpenList, true, true);
 
         SearchResultImpl result = new SearchResultImpl();
         result.startTimer();
@@ -186,6 +245,9 @@ public class PTS implements SearchAlgorithm {
                                 if (this.reopen) {
                                     ++result.reopened;
                                     this.open.add(dupChildNode);
+                                } else {
+                                    // Maybe, we will want to expand these states later
+                                    this.incons.put(dupChildNode.packed, dupChildNode);
                                 }
                                 // In any case, update the duplicate node in CLOSED
                                 this.closed.put(dupChildNode.packed, dupChildNode);
@@ -245,18 +307,48 @@ public class PTS implements SearchAlgorithm {
     }
 
     public SearchResult search(SearchDomain domain) {
-        SearchResult toReturn = this._search(domain);
-        if (!toReturn.hasSolution() && (!this.reopen && this.rerun)) {
-            System.out.println("[INFO] PTS Failed with NR, tries again with AR");
-            this.reopen = true;
-            SearchResult toReturnAR = this._search(domain);
-            toReturnAR.increase(toReturn);
-            // Revert to base state
-            this.reopen = false;
-            if (toReturnAR.hasSolution()) {
-                System.out.println("[INFO] PTS with NR failed but PTS with AR succeeded.");
+        // Initially all the data structures are cleaned
+        SearchResult toReturn = this._search(domain, true);
+        if (!toReturn.hasSolution()) {
+            switch (this.rerun) {
+                case NO_RERUN:
+                    break;
+                case NEW_AR:
+                    System.out.println("[INFO] PTS Failed with NR, tries again with AR from scratch");
+                    this.reopen = true;
+                    SearchResult toReturnARNew = this._search(domain, true);
+                    toReturnARNew.increase(toReturn);
+                    // Revert to base state
+                    this.reopen = false;
+                    if (toReturnARNew.hasSolution()) {
+                        System.out.println("[INFO] PTS with NR failed but PTS with AR from scratch succeeded.");
+                    }
+                    return toReturnARNew;
+                case CONTINUE_AR:
+                    System.out.println("[INFO] PTS Failed with NR, tries again with AR with the current OPEN");
+                    SearchResultImpl localSearchResult = new SearchResultImpl();
+                    localSearchResult.reopened = incons.size();
+                    System.out.println("[INFO] Local inconsistency list contains " + incons.size() + " states");
+                    for (PackedElement current : this.incons.keySet()) {
+                        this.open.add(this.incons.get(current));
+                    }
+                    this.incons.clear();
+                    System.out.println("[INFO] All states moved from incons to open, open now contains " +
+                            open.size() + " states, runs again");
+                    this.reopen = true;
+                    SearchResult toReturnARContinued = this._search(domain, false);
+                    toReturnARContinued.increase(toReturn);
+                    // Add the number of locally inconsistent states from the previous search
+                    toReturnARContinued.increase(localSearchResult);
+                    // Revert to base state
+                    this.reopen = false;
+                    if (toReturnARContinued.hasSolution()) {
+                        System.out.println("[INFO] PTS with NR failed but PTS with AR from scratch succeeded.");
+                    }
+                    return toReturnARContinued;
+                default:
+                    break;
             }
-            return  toReturnAR;
         }
         return toReturn;
     }
