@@ -25,6 +25,7 @@ import org.cs4j.core.algorithms.SearchResultImpl.SolutionImpl;
 import org.cs4j.core.collections.BinHeap;
 import org.cs4j.core.collections.BucketHeap.BucketHeapElement;
 import org.cs4j.core.collections.PackedElement;
+import org.cs4j.core.collections.Pair;
 import org.cs4j.core.collections.SearchQueue;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -53,8 +54,11 @@ public class WRAStar implements SearchAlgorithm {
     static
     {
         WRAStarPossibleParameters = new HashMap<>();
+        WRAStar.WRAStarPossibleParameters.put("weight", Double.class);
         WRAStar.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
         WRAStar.WRAStarPossibleParameters.put("iteration-to-start-reopening", Integer.class);
+        WRAStar.WRAStarPossibleParameters.put("bpmx", Boolean.class);
+        WRAStar.WRAStarPossibleParameters.put("restart-closed-list", Boolean.class);
     }
 
     // The domain for the search
@@ -84,13 +88,22 @@ public class WRAStar implements SearchAlgorithm {
 
     public enum HeapType {BIN, BUCKET}
 
-    public WRAStar(double weight) {
-        this.weight = weight;
+    private boolean useBPMX;
+
+    // Whether to empty the closed list after each iteration
+    private boolean restartClosedList;
+
+    public WRAStar() {
+        // Default values
+        this.weight = 1.0;
+        this.useBPMX = false;
         this.heapType = HeapType.BIN;
         // By default - not deviation from the actual weight is permitted
         this.wAdmissibilityDeviation = 1.0d;
         // By default, we never reopen for any iteration
         this.iterationToStartReopening = Integer.MAX_VALUE;
+        // By default, empty the closed list after each iteration
+        this.restartClosedList = true;
     }
 
     @Override
@@ -119,6 +132,16 @@ public class WRAStar implements SearchAlgorithm {
     @Override
     public void setAdditionalParameter(String parameterName, String value) {
         switch (parameterName) {
+            case "weight": {
+                this.weight = Double.parseDouble(value);
+                if (this.weight < 1.0d) {
+                    System.out.println("[ERROR] The weight must be >= 1.0");
+                    throw new IllegalArgumentException();
+                } else if (this.weight == 1.0d) {
+                    System.out.println("[WARNING] Weight of 1.0 is equivalent to A*");
+                }
+                break;
+            }
             case "w-admissibility-deviation-percentage": {
                 this.wAdmissibilityDeviation = Double.parseDouble(value);
                 if (this.wAdmissibilityDeviation < 0.0d || this.wAdmissibilityDeviation >= 100.0d) {
@@ -134,6 +157,17 @@ public class WRAStar implements SearchAlgorithm {
                     System.out.println("[ERROR] We can start reopening at least after the first iteration");
                     throw new IllegalArgumentException();
                 }
+                break;
+            }
+            case "bpmx": {
+                this.useBPMX = Boolean.parseBoolean(value);
+                if (this.useBPMX) {
+                    System.out.println("[INFO] WRAStar will be ran with BPMX");
+                }
+                break;
+            }
+            case "restart-closed-list": {
+                this.restartClosedList = Boolean.parseBoolean(value);
                 break;
             }
             default: {
@@ -200,7 +234,7 @@ public class WRAStar implements SearchAlgorithm {
             assert this.cleanup.remove(currentNode) != null;
 
             // Prune
-            if (currentNode.rF >= maxPreviousCost) {
+            if (currentNode.getRf() >= maxPreviousCost) {
                 continue;
             }
 
@@ -214,8 +248,13 @@ public class WRAStar implements SearchAlgorithm {
                 break;
             }
 
+            List<Pair<State, Node>> children = new ArrayList<>();
+
             // Expand the current node
             ++result.expanded;
+            // Stores parent h-cost (from path-max)
+            double bestHValue = 0.0d;
+            // First, let's generate all the children
             // Go over all the possible operators and apply them
             for (int i = 0; i < domain.getNumOperators(currentState); ++i) {
                 Operator op = domain.getOperator(currentState, i);
@@ -223,13 +262,38 @@ public class WRAStar implements SearchAlgorithm {
                 if (op.equals(currentNode.pop)) {
                     continue;
                 }
-                // Here we actually generate a new state
-                ++result.generated;
                 State childState = domain.applyOperator(currentState, op);
                 Node childNode = new Node(childState, currentNode, currentState, op, op.reverse(currentState));
+                // Prune
+                if (childNode.getRf() >= maxPreviousCost) {
+                    continue;
+                }
+                // Here we actually generated a new state
+                ++result.generated;
+                // Perform only if BPMX is required
+                if (this.useBPMX) {
+                    bestHValue = Math.max(bestHValue, childNode.h - op.getCost(childState, currentState));
+                }
+                children.add(new Pair<>(childState, childNode));
+            }
+
+            // Update the H Value of the parent in case of BPMX
+            if (this.useBPMX) {
+                currentNode.h = Math.max(currentNode.h, bestHValue);
+                // Prune
+                if (currentNode.getRf() >= maxPreviousCost) {
+                    continue;
+                }
+            }
+
+            // Go over all the possible operators and apply them
+            for (Pair<State, Node> currentChild : children) {
+                State childState = currentChild.getKey();
+                Node childNode = currentChild.getValue();
+                double edgeCost = childNode.op.getCost(childState, currentState);
 
                 // Prune
-                if (childNode.rF >= maxPreviousCost) {
+                if (childNode.getRf() >= maxPreviousCost) {
                     continue;
                 }
 
@@ -239,63 +303,79 @@ public class WRAStar implements SearchAlgorithm {
                     ++result.duplicates;
                     // Get the previous copy of this node (and extract it)
                     Node dupChildNode = this.closed.get(childNode.packed);
-                    // Take the h value from the previous version of the node (for case of randomization of h values)
-                    childNode.computeHValues(dupChildNode.h);
-                    // All this is relevant only if we reached the node via a cheaper path
-                    if (dupChildNode.wF > childNode.wF) {
-                        // If false - let's check it!
-                        //assert dupChildNode.g > childNode.g;
-                        if (dupChildNode.g > childNode.g) {
 
-                            // Node in closed but we get duplicate
-                            if (this.weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1 && this.domain.isCurrentHeuristicConsistent()) {
-                                System.out.println(dupChildNode.wF + " " + childNode.wF);
-                                System.out.println(dupChildNode.g + " " + childNode.g);
-                                System.out.println(dupChildNode.h + " " + childNode.h);
-                                //System.out.println(dupChildNode.parent.packed.getFirst());
-                                //System.out.println(dupChildNode.packed.getFirst());
-                                //System.out.println(domain.unpack(dupChildNode.parent.packed).dumpState());
-                                //System.out.println(domain.unpack(childNode.parent.packed).dumpState());
-                                assert false;
-                            }
+                    // Propagate the H value to child (in case of BPMX)
+                    if (this.useBPMX) {
+                        dupChildNode.h = Math.max(dupChildNode.h, currentNode.h - edgeCost);
+                    }
 
-                            // In any case update the duplicate with the new values - we reached it via a shorter path
-                            dupChildNode.wF = childNode.wF;
-                            dupChildNode.rF = childNode.rF;
-                            dupChildNode.g = childNode.g;
-                            dupChildNode.op = childNode.op;
-                            dupChildNode.pop = childNode.pop;
-                            dupChildNode.parent = childNode.parent;
+                    if (dupChildNode.g > childNode.g) {
+                        // Check that the f actually decreases
+                        if (dupChildNode.getWf() > childNode.getWf()) {
+                            // Do nothing
+                        } else {
+                            assert false;
+                            continue;
+                        }
 
-                            // In case the duplicate is also in the open list - let's just update it there
-                            // (since we updated g and wF)
-                            if (dupChildNode.getIndex(this.open.getKey()) != -1) {
-                                ++result.opupdated;
-                                this.open.update(dupChildNode);
-                                this.cleanup.update(dupChildNode);
-                                this.closed.put(dupChildNode.packed, dupChildNode);
-                                // Otherwise, consider to reopen the node
-                            } else {
-                                // Never Reopen: Use Incons
-                                if (!reopen) {
-                                    this.incons.put(dupChildNode.packed, dupChildNode);
+                        // Node in closed but we get duplicate
+                        if (this.weight == 1.0 && dupChildNode.getIndex(this.open.getKey()) == -1 && this.domain.isCurrentHeuristicConsistent()) {
+                            System.out.println(dupChildNode.getWf() + " " + childNode.getWf());
+                            System.out.println(dupChildNode.g + " " + childNode.g);
+                            System.out.println(dupChildNode.h + " " + childNode.h);
+                            //System.out.println(dupChildNode.parent.packed.getFirst());
+                            //System.out.println(dupChildNode.packed.getFirst());
+                            //System.out.println(domain.unpack(dupChildNode.parent.packed).dumpState());
+                            //System.out.println(domain.unpack(childNode.parent.packed).dumpState());
+                            assert false;
+                        }
+
+                        // In any case update the duplicate with the new values - we reached it via a shorter path
+                        dupChildNode.g = childNode.g;
+                        dupChildNode.op = childNode.op;
+                        dupChildNode.pop = childNode.pop;
+                        dupChildNode.parent = childNode.parent;
+
+                        // In case the duplicate is also in the open list - let's just update it there
+                        // (since we updated g)
+                        if (dupChildNode.getIndex(this.open.getKey()) != -1) {
+                            ++result.opupdated;
+                            this.open.update(dupChildNode);
+                            this.cleanup.update(dupChildNode);
+                            // Otherwise, consider to reopen the node
+                        } else {
+                            // Never Reopen: Use Incons
+                            if (!reopen) {
+                                this.incons.put(dupChildNode.packed, dupChildNode);
                                 // Always Reopen: Perform standard reopening
-                                } else {
-                                    ++result.reopened;
-                                    this.open.add(dupChildNode);
-                                }
-                                // Update cleanup
-                                if (dupChildNode.getIndex(this.cleanup.getKey()) != -1) {
-                                    this.cleanup.update(dupChildNode);
-                                } else {
-                                    this.cleanup.add(dupChildNode);
-                                }
-                                this.closed.put(dupChildNode.packed, dupChildNode);
+                            } else {
+                                ++result.reopened;
+                                this.open.add(dupChildNode);
+                            }
+                            // Update cleanup
+                            if (dupChildNode.getIndex(this.cleanup.getKey()) != -1) {
+                                this.cleanup.update(dupChildNode);
+                            } else {
+                                this.cleanup.add(dupChildNode);
+                            }
+                        }
+                    } else {
+                        // A shorter path has not been found, but let's update the node in open if its h increased
+                        if (this.useBPMX) {
+                            if (dupChildNode.getIndex(this.open.getKey()) != -1) {
+                                this.open.update(dupChildNode);
+                            }
+                            if (dupChildNode.getIndex(this.cleanup.getKey()) != -1) {
+                                this.cleanup.update(dupChildNode);
                             }
                         }
                     }
                     // Otherwise, the node is new (hasn't been reached yet)
                 } else {
+                    // Propagate the H value to child (in case of BPMX)
+                    if (this.useBPMX) {
+                        childNode.h = Math.max(childNode.h, currentNode.h - edgeCost);
+                    }
                     this.open.add(childNode);
                     this.cleanup.add(childNode);
                     this.closed.put(childNode.packed, childNode);
@@ -326,7 +406,7 @@ public class WRAStar implements SearchAlgorithm {
     public SearchResult search(SearchDomain domain) {
 
         this.domain = domain;
-        // TODO ...
+
         double maxPreviousCost = Double.MAX_VALUE;
 
         // Initialize all the data structures required for the search
@@ -362,11 +442,11 @@ public class WRAStar implements SearchAlgorithm {
             previousGoal = lastGoal;
             Node foundGoal = this._search(domain, iterationIndex++, maxPreviousCost, result);
             if (this.cleanup.size() > 0) {
-                double currentBestF = this.cleanup.peek().rF;
+                double currentBestF = this.cleanup.peek().getRf();
                 if (bestF < currentBestF) {
                     bestF = currentBestF;
 
-                    System.out.println("[INFO] Iteration: " + (iterationIndex+1) + ", bestF: " + bestF + ", sub: " + suboptimalBoundSup);
+                    System.out.println("[INFO] Iteration: " + (iterationIndex + 1) + ", bestF: " + bestF + ", sub: " + suboptimalBoundSup);
                 }
             }
             if (result.hasSolution()) {
@@ -405,10 +485,10 @@ public class WRAStar implements SearchAlgorithm {
                     this.open.add(current);
                 }
                 this.incons.clear();
-                this.closed = new HashMap<>();
-                // Continue searching (don't empty CLOSED)
+                if (this.restartClosedList) {
+                    this.closed = new HashMap<>();
+                }
                 System.out.println("[INFO] Calling another search iteration (maxCost = " + maxPreviousCost + ", bestF: " + bestF + ")");
-                //this.closed = new HashMap<>();
             } else {
                 suboptimalBoundSup = (optimalCost != -1)? (maxPreviousCost / optimalCost) : (maxPreviousCost / bestF);
                 System.out.println("[INFO] (NoSolution) Iteration: " + (iterationIndex + 1) +
@@ -423,10 +503,14 @@ public class WRAStar implements SearchAlgorithm {
                     // Now, let's continue the search
                     for (Node current : this.incons.values()) {
                         this.open.add(current);
-                        ++previousResult.reopened;
+                        if (previousResult != null) {
+                            ++previousResult.reopened;
+                        }
                     }
                     this.incons.clear();
-                    this.closed = new HashMap<>();
+                    if (this.restartClosedList) {
+                        this.closed = new HashMap<>();
+                    }
                     continue;
                 }
                 assert this.cleanup.isEmpty();
@@ -446,8 +530,6 @@ public class WRAStar implements SearchAlgorithm {
      * The node class
      */
     protected final class Node extends SearchQueueElementImpl implements BucketHeapElement {
-        private double wF;
-        protected double rF;
         private double g;
         private double h;
 
@@ -464,19 +546,10 @@ public class WRAStar implements SearchAlgorithm {
             // TODO: Why?
             this.secondaryIndex = new int[(heapType == HeapType.BUCKET) ? 2 : 1];
             double cost = (op != null) ? op.getCost(state, parentState) : 0;
+
+            this.h = state.getH();
             // If each operation costs something, we should add the cost to the g value of the parent
             this.g = (parent != null) ? parent.g + cost : cost;
-            // Update h and f values
-            this.computeHValues(state.getH());
-
-            // Start of PathMax
-            /*
-            if (parent != null) {
-                double costsDiff = this.g - parent.g;
-                this.h = Math.max(this.h, (parent.h - costsDiff));
-            }
-            */
-            // End of PathMax
 
             // Parent node
             this.parent = parent;
@@ -486,16 +559,17 @@ public class WRAStar implements SearchAlgorithm {
         }
 
         /**
-         * The function computes the F values according to the given heuristic value (which is computed externally)
-         *
-         * Also, all other values that depend on h are updated
-         *
-         * @param updatedHValue The updated heuristic value
+         * @return The value of the weighted evaluation function
          */
-        public void computeHValues(double updatedHValue) {
-            this.h = updatedHValue;
-            this.wF = this.g + (WRAStar.this.weight * this.h);
-            this.rF = this.g + this.h;
+        public double getWf() {
+            return this.g + (WRAStar.this.weight * this.h);
+        }
+
+        /**
+         * @return The value of the regular evaluation function
+         */
+        public double getRf() {
+            return this.g + this.h;
         }
 
         /**
@@ -520,7 +594,7 @@ public class WRAStar implements SearchAlgorithm {
 
         @Override
         public double getRank(int level) {
-            return (level == 0) ? this.wF : this.g;
+            return (level == 0) ? this.getWf() : this.g;
         }
     }
 
@@ -532,10 +606,10 @@ public class WRAStar implements SearchAlgorithm {
         @Override
         public int compare(final Node a, final Node b) {
             // First compare by wF (smaller is preferred), then by g (bigger is preferred)
-            if (a.wF < b.wF) {
+            if (a.getWf() < b.getWf()) {
                 return -1;
             }
-            if (a.wF > b.wF) {
+            if (a.getWf() > b.getWf()) {
                 return 1;
             }
             if (a.g > b.g) {
@@ -555,10 +629,10 @@ public class WRAStar implements SearchAlgorithm {
 
         @Override
         public int compare(final Node a, final Node b) {
-            if (a.rF < b.rF) {
+            if (a.getRf() < b.getRf()) {
                 return -1;
             }
-            if (a.rF > b.rF) {
+            if (a.getRf() > b.getRf()) {
                 return 1;
             }
             if (a.g > b.g) {
