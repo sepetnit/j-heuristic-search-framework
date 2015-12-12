@@ -309,6 +309,7 @@ public class WAStar_EES_GeneralExperiment {
                         SearchAlgorithm alg = new WAStar();
                         alg.setAdditionalParameter("weight", weight + "");
                         alg.setAdditionalParameter("reopen", reopen + "");
+                        //alg.setAdditionalParameter("bpmx", true + "");
                         //SearchAlgorithm alg = new EES(weight, reopen);
                         System.out.println(
                                 "[INFO] Alg: " + alg.getName() +
@@ -574,7 +575,8 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-stop-after-2-iterations",
+                    "results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wastar+extended-random-pivot-10",
+                    //"results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-average-md-pivots",
                     // Add header
                     true);

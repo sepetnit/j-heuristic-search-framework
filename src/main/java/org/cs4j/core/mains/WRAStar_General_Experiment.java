@@ -6,7 +6,6 @@ import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
 import org.cs4j.core.algorithms.WRAStar;
 import org.cs4j.core.data.Weights;
-import org.cs4j.core.domains.Utils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -199,9 +198,12 @@ public class WRAStar_General_Experiment {
                 for (Weights.SingleWeight w : weights) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
-                    SearchAlgorithm alg = new WRAStar(weight);
-                    alg.setAdditionalParameter("iteration-to-start-reopening", "1" + "");
+                    SearchAlgorithm alg = new WRAStar();
+                    alg.setAdditionalParameter("weight", weight + "");
+                    alg.setAdditionalParameter("bpmx", true + "");
+                    alg.setAdditionalParameter("iteration-to-start-reopening", "300" + "");
                     //alg.setAdditionalParameter("w-admissibility-deviation-percentage", 20.0d + "");
+                    alg.setAdditionalParameter("restart-closed-list", false + "");
                     System.out.println("[INFO] Algorithm: " + alg.getName() + ", Instance: " + i + ", Weight: " + weight);
                     try {
                         SearchResult result = alg.search(domain);
@@ -299,10 +301,15 @@ public class WRAStar_General_Experiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/RANDOM_PIVOT_10/generated+wastar+extended-random-pivot-10-ar-at-iteration-1",
+                    //"results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wrastar+extended-random-pivot-10",
+                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wrastar+extended-random-pivot-10",
+                    //"results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wrastar+extended-random-pivot-10-bpmx",
+                    //"results/gridpathfinding/generated/brc202d.map/Inconsistent/RANDOM_PIVOT_10/generated+wastar+extended-random-pivot-10-ar-at-iteration-1",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wrastar+extended",
                     null,
                     //WRAStar_General_Experiment.readOptimalCosts("input/gridpathfinding/generated/brc202d.map/optimal.raw"),
+                    //WRAStar_General_Experiment.readOptimalCosts("input/gridpathfinding/generated/ost003d.map/optimal.raw"),
+                    //WRAStar_General_Experiment.readOptimalCosts("input/gridpathfinding/generated/den400d.map/optimal.raw"),
                     // Add header
                     true);
         } catch (IOException e) {
