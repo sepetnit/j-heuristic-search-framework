@@ -17,48 +17,16 @@ import java.util.Map;
  */
 public class WNARAStar extends WRAStar {
 
-    private static final Map<String, Class> WNARAStarPossibleParameters;
-
-    // Declare the parameters that can be tuned before running the search
-    static {
-        WNARAStarPossibleParameters = new HashMap<>();
-        WNARAStar.WNARAStarPossibleParameters.put("weight", Double.class);
-    }
-
     /**
      * A default constructor of the class
      */
     public WNARAStar() {
-        super(1.0);
+        super();
     }
 
     @Override
     public String getName() {
         return "wnarastar";
-    }
-
-    @Override
-    public Map<String, Class> getPossibleParameters() {
-        return WNARAStar.WNARAStarPossibleParameters;
-    }
-
-    @Override
-    public void setAdditionalParameter(String parameterName, String value) {
-        switch (parameterName) {
-            case "weight": {
-                this.weight = Double.parseDouble(value);
-                if (this.weight < 1.0d) {
-                    System.out.println("[ERROR] The weight must be >= 1.0");
-                    throw new IllegalArgumentException();
-                } else if (this.weight == 1.0d) {
-                    System.out.println("[WARNING] Weight of 1.0 is equivalent to A*");
-                }
-                break;
-            }
-            default: {
-                throw new NotImplementedException();
-            }
-        }
     }
 
     @Override
@@ -86,7 +54,7 @@ public class WNARAStar extends WRAStar {
         this._search(domain, 0, maxPreviousCost, nrResult);
         // If now solution - run with AR
         if (nrResult.hasSolution()) {
-            double bestF = this.cleanup.peek().rF;
+            double bestF = this.cleanup.peek().getRf();
             // Get current solution
             SearchResult.Solution currentSolution = nrResult.getSolutions().get(0);
             // Update the maximum cost (if the search continues with AR, all the nodes with g+h > maxCost will be pruned)
