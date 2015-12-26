@@ -14,6 +14,7 @@ import java.security.InvalidKeyException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 
 /**
@@ -41,7 +42,6 @@ public class TopSpin implements SearchDomain {
     private int[] tokensForGoalCheck;
     private int[] reflectedTokens;
 
-
     private enum HeuristicType {
         //LOCATION_BASED,
         MAXING,
@@ -50,6 +50,12 @@ public class TopSpin implements SearchDomain {
     }
 
     private HeuristicType heuristicType;
+
+    // The maximum available number of PDBs to deal with
+    private static final int MAX_PDBS_COUNT = 100;
+    // Rerquired for calculating random heuristic
+    private double[] allHeuristicValues;
+    private int actualPDBsCount;
 
     private static final Map<String, Class> TopSpinPossibleParameters;
 
@@ -75,6 +81,15 @@ public class TopSpin implements SearchDomain {
                         this.heuristicType = HeuristicType.MAXING;
                         break;
                     }
+                    case "random-pdb": {
+                        if (this.pdbs == null || this.pdbs.size() <= 1) {
+                            System.out.println("[ERROR] Required more than a single PDB in order to " +
+                                    "allow random heuristic");
+                            throw new IllegalArgumentException();
+                        }
+                        this.heuristicType = HeuristicType.RANDOM;
+                        break;
+                    }
                     default: {
                         System.err.println("Illegal heuristic type for TopSpin domain: " + value);
                         throw new IllegalArgumentException();
@@ -82,50 +97,50 @@ public class TopSpin implements SearchDomain {
                 }
                 break;
             }
-                /*
-                case "pdbs-count": {
-                    this.pdbsCount = Integer.parseInt(value);
-                    if (this.pdbsCount <= 0 || this.pdbsCount > 2) {
-                        System.out.println("[ERROR] Invalid PDBs count: must be between 1 and 2");
-                        throw new IllegalArgumentException();
-                    }
-                    break;
-                }
-                */
-                // The data for a single PDB in the following format: "<index>|<entries-count>|<tokens-array>|<filename>"
-                case "pdb-data": {
-                    if (this.pdbs == null) {
-                        this.pdbs = new HashMap<>();
-                    }
-                    String[] splittedPDBData = value.split("-");
-                    assert splittedPDBData.length == 4;
-                    int index = Integer.parseInt(splittedPDBData[TopSpin.INDEX_OF_PDB_INDEX]);
-                    // Check if a PDB for the given index was already read
-                    if (this.pdbs.containsKey(index)) {
-                        SinglePDB previous = this.pdbs.get(index);
-                        System.out.println("[WARNING] A PDB with index " + index + " was already read from " +
-                                previous.getPdbFileName());
-                    }
-                    long entriesCount = Long.parseLong(splittedPDBData[TopSpin.INDEX_OF_PDB_ENTRIES_COUNT]);
-                    int[] tokensArray = Utils.stringToIntegerArray(splittedPDBData[TopSpin.INDEX_OF_PDB_TOKENS_ARRAY]);
-                    String pdbFileName = splittedPDBData[TopSpin.INDEX_OF_PDB_FILENAME];
-                    SinglePDB currentPDB = new SinglePDB(entriesCount, tokensArray, pdbFileName, true);
-                    this.pdbs.put(index, currentPDB);
-                    break;
-                }
-                default: {
-                    System.out.println("No such parameter: " + parameterName + " (value: " + value + ")");
+            /*
+            case "pdbs-count": {
+                this.pdbsCount = Integer.parseInt(value);
+                if (this.pdbsCount <= 0 || this.pdbsCount > 2) {
+                    System.out.println("[ERROR] Invalid PDBs count: must be between 1 and 2");
                     throw new IllegalArgumentException();
                 }
+                break;
+            }
+            */
+            // The data for a single PDB in the following format: "<index>|<entries-count>|<tokens-array>|<filename>"
+            case "pdb-data": {
+                if (this.actualPDBsCount >= TopSpin.MAX_PDBS_COUNT) {
+                    System.out.println("[ERROR] Can't deal with more than " + TopSpin.MAX_PDBS_COUNT + " pdbs");
+                    throw new IllegalArgumentException();
+                }
+                ++this.actualPDBsCount;
+                String[] splittedPDBData = value.split("-");
+                assert splittedPDBData.length == 4;
+                int index = Integer.parseInt(splittedPDBData[TopSpin.INDEX_OF_PDB_INDEX]);
+                // Check if a PDB for the given index was already read
+                if (this.pdbs.containsKey(index)) {
+                    SinglePDB previous = this.pdbs.get(index);
+                    System.out.println("[WARNING] A PDB with index " + index + " was already read from " +
+                            previous.getPdbFileName());
+                }
+                long entriesCount = Long.parseLong(splittedPDBData[TopSpin.INDEX_OF_PDB_ENTRIES_COUNT]);
+                int[] tokensArray = Utils.stringToIntegerArray(splittedPDBData[TopSpin.INDEX_OF_PDB_TOKENS_ARRAY]);
+                String pdbFileName = splittedPDBData[TopSpin.INDEX_OF_PDB_FILENAME];
+                SinglePDB currentPDB = new SinglePDB(entriesCount, tokensArray, pdbFileName, true);
+                this.pdbs.put(index, currentPDB);
+                break;
+            }
+            default: {
+                System.out.println("No such parameter: " + parameterName + " (value: " + value + ")");
+                throw new IllegalArgumentException();
             }
         }
-
     }
 
-        /**
-         * Initialize an auxiliary data structure intended for avoidance of duplicate or unnecessary operators applying
-         * (which lead to nothing)
-         */
+    /**
+     * Initialize an auxiliary data structure intended for avoidance of duplicate or unnecessary operators applying
+     * (which lead to nothing)
+     */
     /*
     private void __initShouldSkipOperatorsMatrix() {
         this.operatorsMatrix = new boolean[this.tokensNumber][this.tokensNumber];
@@ -148,9 +163,9 @@ public class TopSpin implements SearchDomain {
     }
     */
 
-        /**
-         * Initialize all the data structures relevant to the domain
-         */
+    /**
+     * Initialize all the data structures relevant to the domain
+     */
     private void _initDataStructures() {
         this.pdbs = new HashMap<>();
         this.possibleOperators = new Operator[this.tokensNumber];
@@ -182,7 +197,6 @@ public class TopSpin implements SearchDomain {
             // Read the text line
             reader.readLine();
 
-
             this.init = new int[this.tokensNumber];
 
             // Now, start reading the ring itself (Each token in a single line)
@@ -192,6 +206,9 @@ public class TopSpin implements SearchDomain {
                 // Insert the tile value into the storage
                 this.init[i] = t;
             }
+            // Initialize fields relevant for heuristic calculation
+            this.allHeuristicValues = new double[TopSpin.MAX_PDBS_COUNT];
+            this.actualPDBsCount = 0;
             reader.close();
         } catch(IOException e) {
             e.printStackTrace();
@@ -205,15 +222,27 @@ public class TopSpin implements SearchDomain {
 
     }
 
+    /**
+     * This constructor initializes a TopSpin problem by copying the PDBs from the previous instance
+     *
+     * @param other The TopSpin problem to copy from
+     * @param stream The stream to read start and goal locations from
+     */
+    public TopSpin(TopSpin other, InputStream stream) {
+        this(stream);
+        this.pdbs = other.pdbs;
+        this.actualPDBsCount = other.actualPDBsCount;
+        this.heuristicType = other.heuristicType;
+    }
+
     @Override
     public State copy(State state) {
         return new TopSpinState(state);
     }
 
-
     @Override
     public boolean isCurrentHeuristicConsistent() {
-        return true;
+        return this.heuristicType != heuristicType.RANDOM;
     }
 
     @Override
@@ -266,6 +295,7 @@ public class TopSpin implements SearchDomain {
 
         double hMax = 0;
 
+        int index = 0;
         for (Map.Entry<Integer, SinglePDB> currentPDBEntry : this.pdbs.entrySet()) {
             SinglePDB currentPDB = currentPDBEntry.getValue();
             int zeroToken = currentPDB.getFirstTokenInPattern();
@@ -273,7 +303,9 @@ public class TopSpin implements SearchDomain {
             if (zeroToken >= 0) {
                 this._calculateReflection(this.tokensNumber - zeroToken, state.tokens);
                 try {
-                    hMax = Math.max(hMax, currentPDB.getH(this.reflectedTokens));
+                    double currentHValue = currentPDB.getH(this.reflectedTokens);
+                    this.allHeuristicValues[index++] = currentHValue;
+                    hMax = Math.max(hMax, currentHValue);
                 } catch (InvalidKeyException e) {
                     // Bypass
                 }
@@ -283,13 +315,19 @@ public class TopSpin implements SearchDomain {
         switch (this.heuristicType) {
             case MAXING: {
                 h = hMax;
-                d = hMax;
+                break;
+            }
+            case RANDOM: {
+                int hIndex = Utils.sumOfArrayValues(state.tokens) % this.actualPDBsCount;
+                h = this.allHeuristicValues[hIndex];
                 break;
             }
             default: {
                 System.out.println("[ERROR] Unsupported heuristic type for TopSpin puzzle: " + this.heuristicType);
             }
         }
+        // Currently:
+        d = h;
         return new double[]{h, d};
     }
 
@@ -420,6 +458,7 @@ public class TopSpin implements SearchDomain {
     public String dumpStatesCollection(State[] states) {
         return null;
     }
+
 
     private class TopSpinState implements State {
         private int tokens[] = new int[TopSpin.this.tokensNumber];
@@ -714,4 +753,5 @@ public class TopSpin implements SearchDomain {
             }
         }
     }
+
 }
