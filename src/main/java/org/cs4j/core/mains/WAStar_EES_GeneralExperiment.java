@@ -260,6 +260,71 @@ public class WAStar_EES_GeneralExperiment {
      * Public member definitions
      ******************************************************************************************************************/
 
+    /**
+     * Runs an experiment with TopSpin instances using the WAStar and EES algorithms in a SINGLE THREAD!
+     *
+     * @param firstInstance The id of the first instance to solve
+     * @param instancesCount The number of instances to solve
+     * @param outputPath The name of the output file (can be null : in this case a random path will be chosen)
+     *
+     * @throws java.io.IOException
+     */
+    public void runTopSpinExperimentSingleThreaded(
+            int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
+
+        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
+
+        // Create the domain by reading the first instance (the PDBs are read once)
+        SearchDomain domain =
+                DomainsCreation.createTopSpin12InstanceWithPDBs(
+                        firstInstance + ".in");
+
+        OutputResult output = this.getOutputResult(outputPath, null, needHeader);
+        // Go over all the possible combinations and solve!
+        for (int i = firstInstance; i <= instancesCount; ++i) {
+            // Create the domain by reading the relevant instance file
+            //SearchDomain domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
+            domain =
+                    DomainsCreation.createTopSpin12InstanceWithPDBs(
+                            domain,
+                            i + ".in");
+            // Bypass not found files
+            if (domain == null) {
+                continue;
+            }
+            for (Weights.SingleWeight w : weights) {
+                double weight = w.getWeight();
+                output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
+                SearchAlgorithm alg = new WNARAStar();
+                //SearchAlgorithm alg = new WAStar();
+                alg.setAdditionalParameter("weight", weight + "");
+                //alg.setAdditionalParameter("reopen", reopen + "");
+                //alg.setAdditionalParameter("bpmx", true + "");
+                //SearchAlgorithm alg = new EES(weight, reopen);
+                System.out.println(
+                        "[INFO] Alg: " + alg.getName() +
+                                ", Instance: " + i +
+                                ", Weight: " + weight);
+                try {
+                    SearchResult result = alg.search(domain);
+                    // No solution
+                    if (!result.hasSolution()) {
+                        output.appendNewResult(this._getNoSolutionResult(result));
+                        System.out.println("[INFO] Done: NoSolution");
+                    } else {
+                        double[] resultData = this._getSolutionResult(result);
+                        System.out.println("[INFO] Done: " + Arrays.toString(resultData));
+                        output.appendNewResult(resultData);
+                    }
+                    output.newline();
+                } catch (OutOfMemoryError e) {
+                    System.out.println("[INFO] Done: OutOfMemory");
+                    output.appendNewResult(this._getOutOfMemoryResult());
+                }
+            }
+        }
+        output.close();
+    }
 
     /**
      * Runs an experiment using the WAStar and EES algorithms in a SINGLE THREAD!
@@ -565,6 +630,29 @@ public class WAStar_EES_GeneralExperiment {
     /**
      * For GridPathFinding with pivots
      */
+    public static void mainTopSpinExperimentSingleThreaded() {
+        // Solve with 1000 instances
+        try {
+            WAStar_EES_GeneralExperiment experiment = new WAStar_EES_GeneralExperiment();
+            experiment.runTopSpinExperimentSingleThreaded(
+                    // First instance ID
+                    1,
+                    // Instances Count
+                    1000,
+                    // Output Path
+                    "results/topspin/topspin12/wnarstar+extended-optimal",
+                    // Add header
+                    true);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            System.exit(-1);
+        }
+    }
+
+
+    /**
+     * For GridPathFinding with pivots
+     */
     public static void mainGridPathFindingExperimentWithPivotsSingleThreaded() {
         // Solve with 100 instances
         try {
@@ -658,7 +746,8 @@ public class WAStar_EES_GeneralExperiment {
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainTopSpinExperimentSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
