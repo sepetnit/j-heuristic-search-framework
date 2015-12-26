@@ -15,6 +15,7 @@ import java.util.Map;
  */
 public class RawGraph implements SearchDomain {
 
+    /*
     RawGraphNode a = new RawGraphNode('A', 105);
     RawGraphNode c = new RawGraphNode('C', 99);
     RawGraphNode b = new RawGraphNode('B', 110);
@@ -32,6 +33,32 @@ public class RawGraph implements SearchDomain {
     RawGraphEdge cc1 = new RawGraphEdge(c, c1, 1);
     RawGraphEdge cc2 = new RawGraphEdge(c, c2, 1);
     RawGraphEdge cc3 = new RawGraphEdge(c, c3, 1);
+    */
+
+    RawGraphNode a0 = new RawGraphNode('A', 0);
+    RawGraphNode a1 = new RawGraphNode('B', 0);
+    RawGraphNode a2 = new RawGraphNode('C', 3);
+    RawGraphNode a3 = new RawGraphNode('D', 7);
+    RawGraphNode a4 = new RawGraphNode('E', 13);
+    RawGraphNode a5 = new RawGraphNode('F', 23);
+
+    RawGraphEdge a5a4 = new RawGraphEdge(a5, a4, 1);
+    RawGraphEdge a5a3 = new RawGraphEdge(a5, a3, 6);
+    RawGraphEdge a5a2 = new RawGraphEdge(a5, a2, 9);
+    RawGraphEdge a5a1 = new RawGraphEdge(a5, a1, 11);
+
+    RawGraphEdge a4a3 = new RawGraphEdge(a4, a3, 1);
+    RawGraphEdge a4a2 = new RawGraphEdge(a4, a2, 4);
+    RawGraphEdge a4a1 = new RawGraphEdge(a4, a1, 6);
+
+    RawGraphEdge a3a2 = new RawGraphEdge(a3, a2, 1);
+    RawGraphEdge a3a1 = new RawGraphEdge(a3, a1, 3);
+
+    RawGraphEdge a2a1 = new RawGraphEdge(a2, a1, 1);
+
+    RawGraphEdge a1a0 = new RawGraphEdge(a1, a0, 19);
+
+
 
     Map<Integer, RawGraphNode> nodes;
     Map<RawGraphNode, RawGraphEdge[]> transitions;
@@ -40,7 +67,8 @@ public class RawGraph implements SearchDomain {
     /**
      * The constructor of the class
      */
-    public RawGraph() {
+    /*
+    public RawGraph1() {
         nodes = new HashMap<>();
         nodes.put(a.hashCode(), a);
         nodes.put(b.hashCode(), b);
@@ -62,18 +90,38 @@ public class RawGraph implements SearchDomain {
         transitions.put(c3, new RawGraphEdge[]{});
 
         transitions.put(g, new RawGraphEdge[]{});
-
     }
+    */
+
+    public RawGraph() {
+        nodes = new HashMap<>();
+        nodes.put(a0.hashCode(), a0);
+        nodes.put(a1.hashCode(), a1);
+        nodes.put(a2.hashCode(), a2);
+        nodes.put(a3.hashCode(), a3);
+        nodes.put(a4.hashCode(), a4);
+        nodes.put(a5.hashCode(), a5);
+
+        transitions = new HashMap<>();
+        transitions.put(a5, new RawGraphEdge[]{a5a4, a5a3, a5a2, a5a1});
+        transitions.put(a4, new RawGraphEdge[]{a4a3, a4a2, a4a1});
+        transitions.put(a3, new RawGraphEdge[]{a3a2, a3a1});
+        transitions.put(a2, new RawGraphEdge[]{a2a1});
+        transitions.put(a1, new RawGraphEdge[]{a1a0});
+    }
+
 
 
     @Override
     public State initialState() {
-        return a;
+        //return a;
+        return a5;
     }
 
     @Override
     public boolean isGoal(State state) {
-        return state.getH() == 0;
+        RawGraphNode n = (RawGraphNode)state;
+        return n.name == 'A';
     }
 
     @Override
