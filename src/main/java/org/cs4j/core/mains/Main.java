@@ -140,6 +140,11 @@ public class Main {
         return new VacuumRobot(is, VacuumRobot.COST_FUNCTION.HEAVY);
     }
 
+    public SearchDomain createTopSpin(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/topspin/topspin-10/" + instance));
+        return new TopSpin(is);
+    }
+
     public SearchDomain createRawGraph() throws FileNotFoundException {
         // TODO: Read the graph from file
         return new RawGraph();
@@ -282,11 +287,33 @@ public class Main {
         }
     }
 
+    public static void mainTopSpinDomain(String[] args) throws IOException {
+        Main mainTest = new Main();
+        SearchDomain domain = mainTest.createTopSpin("1.in");
+        SearchAlgorithm alg = new WAStar();
+        SearchResult result = alg.search(domain);
+        if (result.getSolutions().size() > 0) {
+            double d[] = new double[]{
+                    1,
+                    1,
+                    result.getSolutions().get(0).getLength(),
+                    result.getSolutions().get(0).getCost(),
+                    result.getGenerated(),
+                    result.getExpanded(),
+                    ((SearchResultImpl) result).reopened};
+            SearchResult.Solution s = result.getSolutions().get(0);
+            System.out.println(s.dumpSolution());
+            System.out.println(Arrays.toString(d));
+        } else {
+            System.out.println("No solution :-(");
+        }
+    }
+
     public static void mainRawGraphDomain(String[] args) throws IOException {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createRawGraph();
         SearchAlgorithm alg = new WAStar();
-        alg.setAdditionalParameter("bpmx", true + "");
+        //alg.setAdditionalParameter("bpmx", true + "");
 
         SearchResult result1 = alg.search(domain);
         if (result1.getSolutions().size() > 0) {
@@ -296,6 +323,9 @@ public class Main {
                     result1.getExpanded(),
                     ((SearchResultImpl) result1).reopened};
             System.out.println(Arrays.toString(d));
+            System.out.println(
+                    result1.getSolutions().get(0).getStates().size()
+            );
         } else {
             System.out.println("No solution :-(");
         }
@@ -309,10 +339,28 @@ public class Main {
                     result2.getExpanded(),
                     ((SearchResultImpl) result2).reopened};
             System.out.println(Arrays.toString(d));
+            System.out.println(result2.getSolutions().get(0).getStates().size());
+
         } else {
             System.out.println("No solution :-(");
         }
 
+        SearchAlgorithm alg2 = new WRAStar();
+
+        SearchResult result3 = alg2.search(domain);
+        if (result3.getSolutions().size() > 0) {
+            double d[] = new double[]{
+                    result3.getSolutions().get(0).getLength(),
+                    result3.getSolutions().get(0).getCost(),
+                    result3.getExpanded(),
+                    ((SearchResultImpl) result3).reopened};
+            System.out.println(Arrays.toString(d));
+            System.out.println(
+                    result3.getSolutions().get(0).getStates().size()
+            );
+        } else {
+            System.out.println("No solution :-(");
+        }
     }
 
     public static void mainPTS(String[] args) throws IOException {
@@ -387,7 +435,8 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        Main.mainRawGraphDomain(args);
+        Main.mainTopSpinDomain(args);
+        //Main.mainRawGraphDomain(args);
         //Main.mainFifteenPuzzleDomain(args);
         //Main.mainGridPathFindingWithPivotsDomain(args);
         //Main.mainGridPathFindingDomain(args);
