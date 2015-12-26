@@ -78,7 +78,12 @@ public class WNARAStar extends WRAStar {
         alg.setAdditionalParameter("reopen", true + "");
         alg.setAdditionalParameter("max-cost", maxCost + "");
         SearchResult arResult = alg.search(domain);
-        arResult.increase(nrResult);
-        return arResult;
+        if (arResult.hasSolution()) {
+            arResult.increase(nrResult);
+            return arResult;
+        }
+        // Otherwise, we ran AR but failed to find a solution, so return NR-result ...
+        nrResult.increase(arResult);
+        return nrResult;
     }
 }
