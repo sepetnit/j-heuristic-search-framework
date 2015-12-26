@@ -143,6 +143,21 @@ public class Utils {
     }
 
     /**
+     * Summarizes the values of the given array
+     *
+     * @param array The array whose values should be summarized
+     *
+     * @return The total sum
+     */
+    public static int sumOfArrayValues(int[] array) {
+        int sum = 0;
+        for (int val : array) {
+            sum += val;
+        }
+        return sum;
+    }
+
+    /**
      * An auxiliary function for throwing some fatal error and exit
      *
      * @param msg The message to print before exiting
@@ -191,12 +206,12 @@ public class Utils {
      * @return The result array
      */
     public static int[] stringToIntegerArray(String input) {
-        if (!input.startsWith("(") || !input.startsWith("{") || !input.startsWith("[")) {
-            System.out.println("[ERROR] Illegal end (" + input.charAt(0) + ") of integer array: " + input);
+        if (!input.startsWith("(") && !input.startsWith("{") && !input.startsWith("[")) {
+            System.out.println("[ERROR] Illegal start (" + input.charAt(0) + ") of integer array: " + input);
             throw new IllegalArgumentException();
         }
         input = input.substring(1);
-        if (!input.endsWith("(") || !input.endsWith("{") || !input.endsWith("[")) {
+        if (!input.endsWith(")") && !input.endsWith("}") && !input.endsWith("]")) {
             System.out.println("[ERROR] Illegal end (" + input.charAt(input.length() - 1) + ") of integer array: " + input);
             throw new IllegalArgumentException();
         }
