@@ -140,8 +140,13 @@ public class Main {
         return new VacuumRobot(is, VacuumRobot.COST_FUNCTION.HEAVY);
     }
 
-    public SearchDomain createTopSpin(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/topspin/topspin-10/" + instance));
+    public SearchDomain createTopSpin10(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/topspin/topspin10/" + instance));
+        return new TopSpin(is);
+    }
+
+    public SearchDomain createTopSpin12(String instance) throws FileNotFoundException {
+        InputStream is = new FileInputStream(new File("input/topspin/topspin12/" + instance));
         return new TopSpin(is);
     }
 
@@ -287,10 +292,57 @@ public class Main {
         }
     }
 
-    public static void mainTopSpinDomain(String[] args) throws IOException {
+    public static void mainTopSpin10Domain(String[] args) throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createTopSpin("1.in");
+        SearchDomain domain = mainTest.createTopSpin10("1.in");
+
+        //domain.setAdditionalParameter("pdb-data",
+        //        "0-" + (9*8*7*6) + "-{0,1,2,3,4}-input\\topspin\\topspin10\\Size10Spin4Pattern_0_1_2_3_4");
+        //domain.setAdditionalParameter("pdb-data",
+        //        "1-" + (9*8*7*6) + "-{3,4,5,6,7}-input\\topspin\\topspin10\\Size10Spin4Pattern_3_4_5_6_7");
+        //domain.setAdditionalParameter("pdb-data",
+        //        "2-" + (9*8*7*6) + "-{5,6,7,8,9}-input\\topspin\\topspin10\\Size10Spin4Pattern_5_6_7_8_9");
+
+        domain.setAdditionalParameter("pdb-data",
+                "0-" + (9*8) + "-{0,1,2}-input\\topspin\\topspin10\\Size10Spin4Pattern_0_1_2");
         SearchAlgorithm alg = new WAStar();
+        alg.setAdditionalParameter("weight", 5 + "");
+        alg.setAdditionalParameter("reopen", true + "");
+        SearchResult result = alg.search(domain);
+        if (result.getSolutions().size() > 0) {
+            double d[] = new double[]{
+                    1,
+                    1,
+                    result.getSolutions().get(0).getLength(),
+                    result.getSolutions().get(0).getCost(),
+                    result.getGenerated(),
+                    result.getExpanded(),
+                    ((SearchResultImpl) result).reopened};
+            SearchResult.Solution s = result.getSolutions().get(0);
+            System.out.println(s.dumpSolution());
+            System.out.println(Arrays.toString(d));
+        } else {
+            System.out.println("No solution :-(");
+        }
+    }
+
+    public static void mainTopSpin12Domain(String[] args) throws IOException {
+        Main mainTest = new Main();
+        SearchDomain domain = mainTest.createTopSpin12("1.in");
+
+        domain.setAdditionalParameter("pdb-data",
+                "0-" + (11*10) + "-{0,1,2}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2");
+        domain.setAdditionalParameter("pdb-data",
+                "1-" + (11*10*9) + "-{0,1,2,3}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2_3");
+
+        /*
+        domain.setAdditionalParameter("pdb-data",
+                "2-" + (11*10*9*8*7) + "-{0,1,2,3,4,5}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2_3_4_5");
+        */
+        domain.setAdditionalParameter("heuristic", "random-pdb");
+        SearchAlgorithm alg = new WAStar();
+        alg.setAdditionalParameter("weight", 6 + "");
+        alg.setAdditionalParameter("reopen", true + "");
         SearchResult result = alg.search(domain);
         if (result.getSolutions().size() > 0) {
             double d[] = new double[]{
@@ -435,7 +487,7 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        Main.mainTopSpinDomain(args);
+        Main.mainTopSpin12Domain(args);
         //Main.mainRawGraphDomain(args);
         //Main.mainFifteenPuzzleDomain(args);
         //Main.mainGridPathFindingWithPivotsDomain(args);

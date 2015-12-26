@@ -60,6 +60,30 @@ public class DomainsCreation {
         return problem;
     }
 
+    public static SearchDomain createTopSpin12InstanceWithPDBs(SearchDomain previous, String instance)
+            throws IOException {
+        String topSpinDirectory = "input/topspin/topspin12";
+        InputStream is = new FileInputStream(new File(topSpinDirectory, instance));
+        return new TopSpin((TopSpin)previous, is);
+    }
+
+    public static SearchDomain createTopSpin12InstanceWithPDBs(String instance) throws FileNotFoundException {
+        String topSpinDirectory = "input/topspin/topspin12";
+        InputStream is = new FileInputStream(new File(topSpinDirectory, instance));
+        TopSpin problem = new TopSpin(is);
+
+
+        problem.setAdditionalParameter("pdb-data",
+                "0-" + (11*10) + "-{0,1,2}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2");
+        problem.setAdditionalParameter("pdb-data",
+                "1-" + (11*10*9) + "-{0,1,2,3}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2_3");
+        /*problem.setAdditionalParameter("pdb-data",
+                "2-" + (11*10*9*8*7) + "-{0,1,2,3,4,5}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2_3_4_5");
+        */
+        problem.setAdditionalParameter("heuristic", "random-pdb");
+        return problem;
+    }
+
     // The k is for GAP-k heuristic setting
     public static SearchDomain createPancakesInstanceFromAutomaticallyGenerated(int size, String instance, int k) throws FileNotFoundException {
         Pancakes toReturn = null;
