@@ -4,6 +4,7 @@ import org.cs4j.core.collections.PairInt;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -180,5 +181,36 @@ public class Utils {
      */
     public static String fileToString(String filename) throws IOException {
         return Utils.fileToString(new File(filename));
+    }
+
+    /**
+     * The function parses an array given as string, to integer array
+     *
+     * @param input The input string (which represents an array)
+     *
+     * @return The result array
+     */
+    public static int[] stringToIntegerArray(String input) {
+        if (!input.startsWith("(") || !input.startsWith("{") || !input.startsWith("[")) {
+            System.out.println("[ERROR] Illegal end (" + input.charAt(0) + ") of integer array: " + input);
+            throw new IllegalArgumentException();
+        }
+        input = input.substring(1);
+        if (!input.endsWith("(") || !input.endsWith("{") || !input.endsWith("[")) {
+            System.out.println("[ERROR] Illegal end (" + input.charAt(input.length() - 1) + ") of integer array: " + input);
+            throw new IllegalArgumentException();
+        }
+        input = input.substring(0, input.length() - 1);
+        String[] split = input.split(",");
+        List<Integer> toReturn = new ArrayList<>(split.length);
+        for (String current : split) {
+            try {
+                toReturn.add(Integer.parseInt(current));
+            } catch (NumberFormatException e) {
+                System.out.println("[ERROR] Illegal value (" + current + ") in integer array: " + input);
+                throw new IllegalArgumentException();
+            }
+        }
+        return Utils.integerListToArray(toReturn);
     }
 }

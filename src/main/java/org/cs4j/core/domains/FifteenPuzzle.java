@@ -100,7 +100,6 @@ public final class FifteenPuzzle implements SearchDomain {
     // Reflection via the diagonal
     private int reflectedIndexes[] = new int[this.tilesNumber]; // 16
 
-
     private static final Map<String, Class> FifteenPuzzlePossibleParameters;
 
     // Size of the PDB for 5 tiles
