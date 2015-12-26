@@ -246,7 +246,9 @@ public class WAStar implements SearchAlgorithm {
                         if (dupChildNode.getWf() > childNode.getWf()) {
                             // Do nothing
                         } else {
-                            assert false;
+                            if (this.domain.isCurrentHeuristicConsistent()) {
+                                assert false;
+                            }
                             continue;
                         }
 
