@@ -340,7 +340,7 @@ public class WAStar_EES_GeneralExperiment {
     public String[] runGridPathFindingWithPivotsExperimentSingleThreaded(
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
-        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
+        SingleWeight[] weights = this.weights.PAPER_ADDITIONAL_WEIGHTS;
         int[] pivotsCounts = new int[]{10};
         List<String> allOutputFiles = new ArrayList<>(pivotsCounts.length);
 
@@ -370,11 +370,11 @@ public class WAStar_EES_GeneralExperiment {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                        SearchAlgorithm alg = new WNARAStar();
-                        //SearchAlgorithm alg = new WAStar();
+                        //SearchAlgorithm alg = new WNARAStar();
+                        SearchAlgorithm alg = new WAStar();
                         alg.setAdditionalParameter("weight", weight + "");
-                        //alg.setAdditionalParameter("reopen", reopen + "");
-                        //alg.setAdditionalParameter("bpmx", true + "");
+                        alg.setAdditionalParameter("reopen", reopen + "");
+                        alg.setAdditionalParameter("bpmx", true + "");
                         //SearchAlgorithm alg = new EES(weight, reopen);
                         System.out.println(
                                 "[INFO] Alg: " + alg.getName() +
@@ -444,6 +444,7 @@ public class WAStar_EES_GeneralExperiment {
                     SearchAlgorithm alg = new WAStar();
                     alg.setAdditionalParameter("weight", weight + "");
                     alg.setAdditionalParameter("reopen", reopen + "");
+                    alg.setAdditionalParameter("bpmx", true + "");
                     //SearchAlgorithm alg = new EES(weight, reopen);
                     System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
                     try {
@@ -663,8 +664,9 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wnarstar+extended-random-pivot-10",
-                    //"results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx",
+                    //"results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wnarstar+extended-random-pivot-10",
+                    //"results/gridpathfinding/generated/ost003d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx-fixed",
+                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx-specific-weights",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-average-md-pivots",
                     // Add header
                     true);
@@ -746,8 +748,8 @@ public class WAStar_EES_GeneralExperiment {
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
-        WAStar_EES_GeneralExperiment.mainTopSpinExperimentSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainTopSpinExperimentSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }

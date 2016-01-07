@@ -19,6 +19,13 @@ public class Weights {
             new SingleWeight(1.0d)
     };
 
+    public final SingleWeight[] PAPER_ADDITIONAL_WEIGHTS = {
+            new SingleWeight(1.1d),
+            new SingleWeight(1.3d),
+            new SingleWeight(1.5d),
+            new SingleWeight(2.0d),
+    };
+
     public final SingleWeight[] VERY_LOW_WEIGHTS = {
             new SingleWeight(1.000001d),
             new SingleWeight(1.00001d),

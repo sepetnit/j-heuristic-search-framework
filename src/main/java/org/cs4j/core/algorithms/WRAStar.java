@@ -88,7 +88,7 @@ public class WRAStar implements SearchAlgorithm {
 
     public enum HeapType {BIN, BUCKET}
 
-    private boolean useBPMX;
+    protected boolean useBPMX;
 
     // Whether to empty the closed list after each iteration
     private boolean restartClosedList;

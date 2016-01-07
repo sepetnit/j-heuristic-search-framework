@@ -35,30 +35,24 @@ public class RawGraph implements SearchDomain {
     RawGraphEdge cc3 = new RawGraphEdge(c, c3, 1);
     */
 
-    RawGraphNode a0 = new RawGraphNode('A', 0);
-    RawGraphNode a1 = new RawGraphNode('B', 0);
-    RawGraphNode a2 = new RawGraphNode('C', 3);
-    RawGraphNode a3 = new RawGraphNode('D', 7);
-    RawGraphNode a4 = new RawGraphNode('E', 13);
-    RawGraphNode a5 = new RawGraphNode('F', 23);
+    RawGraphNode a0 = new RawGraphNode('A', 6);
+    RawGraphNode a1 = new RawGraphNode('B', 5);
+    RawGraphNode a2 = new RawGraphNode('C', 0);
+    RawGraphNode a3 = new RawGraphNode('D', 3);
+    RawGraphNode a4 = new RawGraphNode('E', 0);
+    RawGraphNode a5 = new RawGraphNode('F', 1);
+    RawGraphNode a6 = new RawGraphNode('G', 0);
 
-    RawGraphEdge a5a4 = new RawGraphEdge(a5, a4, 1);
-    RawGraphEdge a5a3 = new RawGraphEdge(a5, a3, 6);
-    RawGraphEdge a5a2 = new RawGraphEdge(a5, a2, 9);
-    RawGraphEdge a5a1 = new RawGraphEdge(a5, a1, 11);
+    RawGraphEdge a0a1 = new RawGraphEdge(a0, a1, 1);
+    RawGraphEdge a1a2 = new RawGraphEdge(a1, a2, 1);
+    RawGraphEdge a2a3 = new RawGraphEdge(a2, a3, 1);
+    RawGraphEdge a3a4 = new RawGraphEdge(a3, a4, 1);
+    RawGraphEdge a4a5 = new RawGraphEdge(a4, a5, 1);
+    RawGraphEdge a5a6 = new RawGraphEdge(a5, a6, 1);
 
-    RawGraphEdge a4a3 = new RawGraphEdge(a4, a3, 1);
-    RawGraphEdge a4a2 = new RawGraphEdge(a4, a2, 4);
-    RawGraphEdge a4a1 = new RawGraphEdge(a4, a1, 6);
-
-    RawGraphEdge a3a2 = new RawGraphEdge(a3, a2, 1);
-    RawGraphEdge a3a1 = new RawGraphEdge(a3, a1, 3);
-
-    RawGraphEdge a2a1 = new RawGraphEdge(a2, a1, 1);
-
-    RawGraphEdge a1a0 = new RawGraphEdge(a1, a0, 19);
-
-
+    RawGraphEdge a0a2 = new RawGraphEdge(a0, a2, 5.9);
+    RawGraphEdge a2a4 = new RawGraphEdge(a2, a4, 3.9);
+    RawGraphEdge a0a6 = new RawGraphEdge(a0, a6, 11.8);
 
     Map<Integer, RawGraphNode> nodes;
     Map<RawGraphNode, RawGraphEdge[]> transitions;
@@ -101,13 +95,16 @@ public class RawGraph implements SearchDomain {
         nodes.put(a3.hashCode(), a3);
         nodes.put(a4.hashCode(), a4);
         nodes.put(a5.hashCode(), a5);
+        nodes.put(a6.hashCode(), a6);
 
         transitions = new HashMap<>();
-        transitions.put(a5, new RawGraphEdge[]{a5a4, a5a3, a5a2, a5a1});
-        transitions.put(a4, new RawGraphEdge[]{a4a3, a4a2, a4a1});
-        transitions.put(a3, new RawGraphEdge[]{a3a2, a3a1});
-        transitions.put(a2, new RawGraphEdge[]{a2a1});
-        transitions.put(a1, new RawGraphEdge[]{a1a0});
+        transitions.put(a6, new RawGraphEdge[]{a5a6, a0a6});
+        transitions.put(a5, new RawGraphEdge[]{a5a6, a4a5});
+        transitions.put(a4, new RawGraphEdge[]{a3a4, a4a5, a2a4});
+        transitions.put(a3, new RawGraphEdge[]{a2a3, a3a4});
+        transitions.put(a2, new RawGraphEdge[]{a1a2, a2a3, a2a4, a0a2});
+        transitions.put(a1, new RawGraphEdge[]{a0a1, a1a2});
+        transitions.put(a0, new RawGraphEdge[]{a0a1, a0a2, a0a6});
     }
 
 

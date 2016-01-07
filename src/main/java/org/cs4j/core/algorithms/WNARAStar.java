@@ -76,6 +76,8 @@ public class WNARAStar extends WRAStar {
         SearchAlgorithm alg = new WAStar();
         alg.setAdditionalParameter("weight", this.weight + "");
         alg.setAdditionalParameter("reopen", true + "");
+        alg.setAdditionalParameter("bpmx", this.useBPMX + "");
+        // Now, the cost is bounded to the previous cost
         alg.setAdditionalParameter("max-cost", maxCost + "");
         SearchResult arResult = alg.search(domain);
         if (arResult.hasSolution()) {

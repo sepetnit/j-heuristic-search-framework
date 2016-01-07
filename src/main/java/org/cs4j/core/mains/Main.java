@@ -365,6 +365,7 @@ public class Main {
         Main mainTest = new Main();
         SearchDomain domain = mainTest.createRawGraph();
         SearchAlgorithm alg = new WAStar();
+        //alg.setAdditionalParameter("weight", "1.5");
         //alg.setAdditionalParameter("bpmx", true + "");
 
         SearchResult result1 = alg.search(domain);
@@ -397,6 +398,7 @@ public class Main {
             System.out.println("No solution :-(");
         }
 
+        /*
         SearchAlgorithm alg2 = new WRAStar();
 
         SearchResult result3 = alg2.search(domain);
@@ -413,6 +415,7 @@ public class Main {
         } else {
             System.out.println("No solution :-(");
         }
+        */
     }
 
     public static void mainPTS(String[] args) throws IOException {
@@ -487,8 +490,8 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        Main.mainTopSpin12Domain(args);
-        //Main.mainRawGraphDomain(args);
+        //Main.mainTopSpin12Domain(args);
+        Main.mainRawGraphDomain(args);
         //Main.mainFifteenPuzzleDomain(args);
         //Main.mainGridPathFindingWithPivotsDomain(args);
         //Main.mainGridPathFindingDomain(args);

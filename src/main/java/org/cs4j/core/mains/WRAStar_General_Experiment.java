@@ -4,6 +4,7 @@ import org.cs4j.core.OutputResult;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
+import org.cs4j.core.algorithms.WNARAStar;
 import org.cs4j.core.algorithms.WRAStar;
 import org.cs4j.core.data.Weights;
 
@@ -198,10 +199,11 @@ public class WRAStar_General_Experiment {
                 for (Weights.SingleWeight w : weights) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
-                    SearchAlgorithm alg = new WRAStar();
+                    //SearchAlgorithm alg = new WRAStar();
+                    SearchAlgorithm alg = new WNARAStar();
                     alg.setAdditionalParameter("weight", weight + "");
-                    //alg.setAdditionalParameter("bpmx", true + "");
-                    alg.setAdditionalParameter("iteration-to-start-reopening", "1" + "");
+                    alg.setAdditionalParameter("bpmx", true + "");
+                    //alg.setAdditionalParameter("iteration-to-start-reopening", "1" + "");
                     //alg.setAdditionalParameter("w-admissibility-deviation-percentage", 20.0d + "");
                     alg.setAdditionalParameter("restart-closed-list", false + "");
                     System.out.println("[INFO] Algorithm: " + alg.getName() + ", Instance: " + i + ", Weight: " + weight);
@@ -301,8 +303,9 @@ public class WRAStar_General_Experiment {
                     // Instances Count
                     100,
                     // Output Path
-                    "results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wrastar+extended-random-pivot-10",
-                    //"results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wrastar+extended-random-pivot-10",
+                    //"results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wrastar+extended-random-pivot-10",
+                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wrastar+extended-random-pivot-10+additional-weights",
+                    //"results/gridpathfinding/generated/ost003d.map/Inconsistent/generated+wrastar+extended-random-pivot-10-fixed",
                     //"results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wrastar+extended-random-pivot-10-bpmx",
                     //"results/gridpathfinding/generated/brc202d.map/Inconsistent/RANDOM_PIVOT_10/generated+wastar+extended-random-pivot-10-ar-at-iteration-1",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wrastar+extended",
