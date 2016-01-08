@@ -164,5 +164,10 @@ public class DFS implements SearchAlgorithm {
         private Node(SearchDomain.State state) {
             this(state, null, null, null);
         }
+
+        @Override
+        public double getF() {
+            return 0;
+        }
     }
 }

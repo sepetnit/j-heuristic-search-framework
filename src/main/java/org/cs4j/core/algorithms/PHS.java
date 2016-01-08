@@ -357,6 +357,11 @@ public class PHS implements SearchAlgorithm {
         public double getRank(int level) {
             return (level == 0) ? this.h : this.g;
         }
+
+        @Override
+        public double getF() {
+            return this.f;
+        }
     }
 
     /**

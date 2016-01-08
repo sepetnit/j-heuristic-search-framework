@@ -176,4 +176,7 @@ public class BinHeap<E extends SearchQueueElement> implements SearchQueue<E> {
 		return 2 * i + 2;
 	}
 
+	public E getElementAt(int i){
+		return heap.get(i);
+	}
 }

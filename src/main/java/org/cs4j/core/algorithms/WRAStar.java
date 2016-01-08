@@ -596,6 +596,11 @@ public class WRAStar implements SearchAlgorithm {
         public double getRank(int level) {
             return (level == 0) ? this.getWf() : this.g;
         }
+
+        @Override
+        public double getF() {
+            return this.g + this.h;
+        }
     }
 
     /**
