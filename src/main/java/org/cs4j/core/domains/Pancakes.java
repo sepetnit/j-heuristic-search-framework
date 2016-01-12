@@ -75,8 +75,12 @@ public class Pancakes implements SearchDomain {
         // calculate the bits and bitmask to store single pancake
         this.bitsForSinglePancake = Utils.bits(this.numCakes);
         this.maskForSinglePancake = Utils.mask(this.bitsForSinglePancake);
+        //System.out.println("mask: " + this.maskForSinglePancake);
         this.packedCakesInSingleLong = Math.min(this.numCakes, (int)Math.floor(64.0d / this.bitsForSinglePancake));
+        //System.out.println("packedCakesInSingleLong: " + this.packedCakesInSingleLong);
         this.packedLongsCount = (int)Math.ceil(this.numCakes * this.bitsForSinglePancake / 64.0d);
+        //System.out.println("packedLongsCount: " + this.packedLongsCount);
+
         // Current debugs ..
         //assert(this.bitsForSinglePancake == 5);
         //assert this.packedLongsCount == 2;
@@ -317,11 +321,11 @@ public class Pancakes implements SearchDomain {
         /**
          * Debug
          */
-        //if  (!Arrays.equals(ps.cakes, ((PancakeState)this.unpack(toReturn)).cakes)) {
-        //    System.out.println(Arrays.toString(ps.cakes));
-        //    System.out.println(Arrays.toString(((PancakeState)this.unpack(toReturn)).cakes));
-        //    assert false;
-        //}
+        if  (!Arrays.equals(ps.cakes, ((PancakeState)this.unpack(toReturn)).cakes)) {
+            System.out.println(Arrays.toString(ps.cakes));
+            System.out.println(Arrays.toString(((PancakeState)this.unpack(toReturn)).cakes));
+            assert false;
+        }
         return toReturn;
     }
 
@@ -331,7 +335,19 @@ public class Pancakes implements SearchDomain {
         int index = this.numCakes - 1;
         for (int i = packed.getLongsCount() - 1; i >= 0; --i) {
             long current = packed.getLong(i);
-            for (int j = 0; j < this.packedCakesInSingleLong && index >= 0; ++j) {
+            int maxIterationIndex = this.packedCakesInSingleLong;
+            // In case of first iteration (starting from the end, maybe only part of the full coverage of pancakes is
+            // included inside the packed long - let's calculate this count
+            if (i == packed.getLongsCount() - 1) {
+                // E.g. if (numCakes=20; packedCakesInSingleLong=12 => maxIterationIndex=8)
+                //      if (numCakes=15; packedCakesInSingleLong=15 => maxIterationIndex=0)
+                //      if (numCakes=10; packedCakesInSingleLong=10 => maxIterationIndex=0)
+                int specificMaxIterationIndex = this.numCakes % this.packedCakesInSingleLong;
+                if (specificMaxIterationIndex > 0) {
+                    maxIterationIndex = specificMaxIterationIndex;
+                }
+            }
+            for (int j = 0; j < maxIterationIndex && index >= 0; ++j) {
                 int p = (int) (current & (int)this.maskForSinglePancake);
                 current >>= this.bitsForSinglePancake;
                 state.cakes[index--] = p;
