@@ -340,7 +340,7 @@ public class WAStar_EES_GeneralExperiment {
     public String[] runGridPathFindingWithPivotsExperimentSingleThreaded(
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
-        SingleWeight[] weights = this.weights.PAPER_ADDITIONAL_WEIGHTS;
+        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
         int[] pivotsCounts = new int[]{10};
         List<String> allOutputFiles = new ArrayList<>(pivotsCounts.length);
 
@@ -374,7 +374,7 @@ public class WAStar_EES_GeneralExperiment {
                         SearchAlgorithm alg = new WAStar();
                         alg.setAdditionalParameter("weight", weight + "");
                         alg.setAdditionalParameter("reopen", reopen + "");
-                        alg.setAdditionalParameter("bpmx", true + "");
+                        //alg.setAdditionalParameter("bpmx", true + "");
                         //SearchAlgorithm alg = new EES(weight, reopen);
                         System.out.println(
                                 "[INFO] Alg: " + alg.getName() +
@@ -666,7 +666,8 @@ public class WAStar_EES_GeneralExperiment {
                     // Output Path
                     //"results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wnarstar+extended-random-pivot-10",
                     //"results/gridpathfinding/generated/ost003d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx-fixed",
-                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx-specific-weights",
+                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10",
+                    //"results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx-specific-weights",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-average-md-pivots",
                     // Add header
                     true);

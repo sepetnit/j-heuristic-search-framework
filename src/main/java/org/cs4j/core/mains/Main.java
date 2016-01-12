@@ -68,13 +68,15 @@ public class Main {
     }
 
     public SearchDomain createGridPathFindingWithPivots(String instance) throws FileNotFoundException {
-        String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6.map.pivots.pdb";
-        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/"+instance));
+        String pivotsFileName = "input/gridpathfinding/raw/maps/brc202d.map.pivots.pdb";
+        //String pivotsFileName = "input/gridpathfinding/raw/mazes/maze1/_maze512-1-6.map.pivots.pdb";
+        InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/brc202d.map/" + instance));
+        //InputStream is = new FileInputStream(new File("input/gridpathfinding/generated/maze512-1-6.map/"+instance));
         GridPathFinding gridPathFindingInstance = new GridPathFinding(is);
-        gridPathFindingInstance.setAdditionalParameter("heuristic", "dh-furthest");
+        gridPathFindingInstance.setAdditionalParameter("heuristic", "dh-random-pivot");
         //problem.setAdditionalParameter("heuristic", "dh-md-average-md-if-dh-is-0");
         gridPathFindingInstance.setAdditionalParameter("pivots-distances-db-file", pivotsFileName);
-        gridPathFindingInstance.setAdditionalParameter("pivots-count", 1 + "");
+        gridPathFindingInstance.setAdditionalParameter("pivots-count", 10 + "");
         return gridPathFindingInstance;
     }
 
@@ -123,9 +125,9 @@ public class Main {
     }
 
     public SearchDomain createPancakesUnit(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/pancakes/generated/"+instance));
+        InputStream is = new FileInputStream(new File("input/pancakes/generated-40/"+instance));
         Pancakes puzzle = new Pancakes(is);
-        Pancakes.MIN_PANCAKE_FOR_PDB = 10;
+        //Pancakes.MIN_PANCAKE_FOR_PDB = 10;
         return puzzle;
     }
 
@@ -204,12 +206,18 @@ public class Main {
     }
 
     public static void mainGridPathFindingWithPivotsDomain(String[] args) throws IOException {
-        Main mainTest = new Main();
-        SearchDomain domain = mainTest.createGridPathFindingWithPivots("1.in");
+            Main mainTest = new Main();
+        SearchDomain domain = mainTest.createGridPathFindingWithPivots("44.in");
         //SearchAlgorithm alg = new EES(1, true);
+        SearchAlgorithm alg = new WRAStar();
+        alg.setAdditionalParameter("restart-closed-list", false + "");
+        alg.setAdditionalParameter("weight", "1.000001");
+        /*
         SearchAlgorithm alg = new WAStar();
-        alg.setAdditionalParameter("weight", "1.05");
-        alg.setAdditionalParameter("reopen", "true");
+        alg.setAdditionalParameter("weight", "1.000001");
+        alg.setAdditionalParameter("reopen", "false");
+        alg.setAdditionalParameter("bpmx", "false");
+        */
         SearchResult result = alg.search(domain);
         assert result.getSolutions().size() == 1;
         if (result.hasSolution()) {
@@ -230,7 +238,7 @@ public class Main {
 
     public static void mainPancakesDomain(String[] args) throws IOException {
         Main mainTest = new Main();
-        SearchDomain domain = mainTest.createPancakesUnit("1.in");
+        SearchDomain domain = mainTest.createPancakesUnit("2.in");
         SearchAlgorithm alg = new WAStar();
         SearchResult result = alg.search(domain);
         if (result.hasSolution()) {
@@ -491,11 +499,11 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         //Main.mainTopSpin12Domain(args);
-        Main.mainRawGraphDomain(args);
+        //Main.mainRawGraphDomain(args);
         //Main.mainFifteenPuzzleDomain(args);
         //Main.mainGridPathFindingWithPivotsDomain(args);
         //Main.mainGridPathFindingDomain(args);
-        //Main.mainPancakesDomain(args);
+        Main.mainPancakesDomain(args);
         //Main.mainVacuumRobotDomain(args);
         //Main.mainDockyardRobotDomain();
 
