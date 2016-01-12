@@ -496,8 +496,65 @@ public class Main {
         }
     }
 
+    public static void mainDP(String[] args, int num, SearchAlgorithm alg) throws IOException {
+        Main mainTest = new Main();
+        Weights weights = new Weights();
+        boolean reopen = true;
+        boolean overwriteFile = true;
+        String relPath = "C:\\Users\\Daniel\\Documents\\thesis\\Research Data\\";
+        OutputResult summary = new OutputResult(relPath+"results\\pancakes\\"+num+"\\Summary_"+alg.getName(),num+"_", -1, -1, "", reopen, overwriteFile);
+        summary.writeln("WG,WH,"+alg.getName()+" Solved,"+alg.getName()+" Generated,"+alg.getName()+" Depth");
+        for (Weights.SingleWeight w : weights.NATURAL_WEIGHTS) {
+            double totalWeight = w.wh / w.wg;
+            System.out.println("Solving for weight: wg : " + w.wg + " wh: " + w.wh);
+            double resultSummary[] = new double[5];
+            resultSummary[0] = w.wg;   resultSummary[1] = w.wh;
+            try {
+                OutputResult output = new OutputResult(relPath+"results\\pancakes\\"+num+"\\"+alg.getName()+"_",num+"_", w.wg, w.wh, num+"", reopen, overwriteFile);
+                output.writeln("InstanceID,Found,Depth,Generated, Expanded,Reopened");
+                for (int i = 1; i <= 100; ++i) {
+                    InputStream is = new FileInputStream(new File(relPath+"input/pancakes/generated-"+num+"/" + i+".in"));
+                    SearchDomain domain = new Pancakes(is);
+                    alg.setAdditionalParameter("weight", totalWeight + "");
+                    System.out.println("Solving instance " + i + " For weight " + totalWeight + " reopen? " + reopen);
+                    SearchResult result = alg.search(domain);
+                    double d[];
+                    if (result.hasSolution()) {
+                        d = new double[]{
+                                i,
+                                1,
+                                result.getSolutions().get(0).getLength(),
+                                //result.getSolutions().get(0).getLength(),
+                                result.getGenerated(),
+                                result.getExpanded(),
+                                ((SearchResultImpl) result).reopened};
+                        resultSummary[2] += 1;
+                        resultSummary[3] += result.getGenerated();
+                        resultSummary[4] += result.getSolutions().get(0).getLength();
+                    } else {
+                        d = new double[]{
+                                i, 0, 0, 0, 0, 0
+                        };
+                    }
+                    output.appendNewResult(d);
+                    output.newline();
+                }
+                output.close();
+                summary.appendNewResult(resultSummary);
+                summary.newline();
+            } catch (FileAlreadyExistsException e) {
+                System.out.println("File already found for wg " + w.wg + " wh " + w.wh);
+            }
+        }
+        summary.close();
+    }
+
 
     public static void main(String[] args) throws IOException {
+//        SearchAlgorithm alg = new DP();
+        SearchAlgorithm alg = new WAStar();
+//        SearchAlgorithm alg = new EES(1);
+        Main.mainDP(args,10,alg);
         //Main.mainTopSpin12Domain(args);
         //Main.mainRawGraphDomain(args);
         //Main.mainFifteenPuzzleDomain(args);

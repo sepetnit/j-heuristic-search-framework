@@ -37,5 +37,11 @@ public interface SearchQueueElement {
    * @return
    */
   public int getIndex(int key);
+
+  /**
+   *
+   * @return Elements F value;
+     */
+    public double getF();
   
 }

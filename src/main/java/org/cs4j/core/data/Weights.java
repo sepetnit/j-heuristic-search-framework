@@ -214,4 +214,17 @@ public class Weights {
         new SingleWeight(19, 31),
     */
     };
+
+    public SingleWeight[] NATURAL_WEIGHTS = {
+            new SingleWeight(1, 24),
+            new SingleWeight(1, 9),
+            new SingleWeight(1, 6),
+            new SingleWeight(1, 3),
+            new SingleWeight(3, 7),
+            new SingleWeight(1, 2),
+            new SingleWeight(9, 16),
+            new SingleWeight(2, 3),
+            new SingleWeight(3, 4),
+            new SingleWeight(4, 5),
+    };
 }
