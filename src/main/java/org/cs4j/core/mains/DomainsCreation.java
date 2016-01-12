@@ -77,9 +77,9 @@ public class DomainsCreation {
                 "0-" + (11*10) + "-{0,1,2}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2");
         problem.setAdditionalParameter("pdb-data",
                 "1-" + (11*10*9) + "-{0,1,2,3}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2_3");
-        /*problem.setAdditionalParameter("pdb-data",
+        problem.setAdditionalParameter("pdb-data",
                 "2-" + (11*10*9*8*7) + "-{0,1,2,3,4,5}-input\\topspin\\topspin12\\Size12Spin4Pattern_0_1_2_3_4_5");
-        */
+
         problem.setAdditionalParameter("heuristic", "random-pdb");
         return problem;
     }

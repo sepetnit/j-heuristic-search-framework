@@ -272,7 +272,7 @@ public class WAStar_EES_GeneralExperiment {
     public void runTopSpinExperimentSingleThreaded(
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
-        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
+        SingleWeight[] weights = this.weights.BASIC_WEIGHTS_STARTS_AT_3;
 
         // Create the domain by reading the first instance (the PDBs are read once)
         SearchDomain domain =
@@ -283,7 +283,6 @@ public class WAStar_EES_GeneralExperiment {
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            //SearchDomain domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
             domain =
                     DomainsCreation.createTopSpin12InstanceWithPDBs(
                             domain,
@@ -295,32 +294,36 @@ public class WAStar_EES_GeneralExperiment {
             for (Weights.SingleWeight w : weights) {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
-                SearchAlgorithm alg = new WNARAStar();
-                //SearchAlgorithm alg = new WAStar();
-                alg.setAdditionalParameter("weight", weight + "");
-                //alg.setAdditionalParameter("reopen", reopen + "");
-                //alg.setAdditionalParameter("bpmx", true + "");
-                //SearchAlgorithm alg = new EES(weight, reopen);
-                System.out.println(
-                        "[INFO] Alg: " + alg.getName() +
-                                ", Instance: " + i +
-                                ", Weight: " + weight);
-                try {
-                    SearchResult result = alg.search(domain);
-                    // No solution
-                    if (!result.hasSolution()) {
-                        output.appendNewResult(this._getNoSolutionResult(result));
-                        System.out.println("[INFO] Done: NoSolution");
-                    } else {
-                        double[] resultData = this._getSolutionResult(result);
-                        System.out.println("[INFO] Done: " + Arrays.toString(resultData));
-                        output.appendNewResult(resultData);
+                for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
+                    //SearchAlgorithm alg = new WNARAStar();
+                    SearchAlgorithm alg = new WAStar();
+                    alg.setAdditionalParameter("weight", weight + "");
+                    alg.setAdditionalParameter("reopen", reopen + "");
+                    //alg.setAdditionalParameter("bpmx", true + "");
+                    //SearchAlgorithm alg = new EES(weight, reopen);
+                    System.out.println(
+                            "[INFO] Alg: " + alg.getName() +
+                                    ", Instance: " + i +
+                                    ", Weight: " + weight +
+                                    ", Reopen: " + reopen);
+                    try {
+                        SearchResult result = alg.search(domain);
+                        // No solution
+                        if (!result.hasSolution()) {
+                            output.appendNewResult(this._getNoSolutionResult(result));
+                            System.out.println("[INFO] Done: NoSolution");
+                        } else {
+                            double[] resultData = this._getSolutionResult(result);
+                            System.out.println("[INFO] Done: " + Arrays.toString(resultData));
+                            output.appendNewResult(resultData);
+                        }
+                        output.newline();
+                    } catch (OutOfMemoryError e) {
+                        System.out.println("[INFO] Done: OutOfMemory");
+                        output.appendNewResult(this._getOutOfMemoryResult());
                     }
-                    output.newline();
-                } catch (OutOfMemoryError e) {
-                    System.out.println("[INFO] Done: OutOfMemory");
-                    output.appendNewResult(this._getOutOfMemoryResult());
                 }
+                output.newline();
             }
         }
         output.close();
@@ -641,7 +644,7 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     1000,
                     // Output Path
-                    "results/topspin/topspin12/wnarstar+extended-optimal",
+                    "results/topspin/topspin12-3pdbs/wastar-basic-weights-start-at-3",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -749,8 +752,8 @@ public class WAStar_EES_GeneralExperiment {
     public static void main(String[] args) {
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
-        //WAStar_EES_GeneralExperiment.mainTopSpinExperimentSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainTopSpinExperimentSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
