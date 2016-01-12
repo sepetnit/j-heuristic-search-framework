@@ -519,5 +519,9 @@ public class BEES implements SearchAlgorithm {
             this._computePathHats(this.parent, cost);
         }
 
+        @Override
+        public double getF() {
+            return this.f;
+        }
     }
 }

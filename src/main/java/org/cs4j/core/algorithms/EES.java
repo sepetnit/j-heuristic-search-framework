@@ -633,5 +633,10 @@ public class EES implements SearchAlgorithm {
         public void setNode(RBTreeNode<Node, Node> node) {
             this.rbnode = node;
         }
+
+        @Override
+        public double getF() {
+            return this.f;
+        }
     }
 }
