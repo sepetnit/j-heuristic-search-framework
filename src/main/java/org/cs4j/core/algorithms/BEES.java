@@ -126,8 +126,21 @@ public class BEES implements SearchAlgorithm {
             } case "max-cost": {
                 this.maxCost = Double.parseDouble(value);
                 break;
-            } case "rerun-if-not-found-and-nr": {
-                this.rerun = Boolean.parseBoolean(value);
+            } case "rerun-type-if-not-found": {
+                if (this.reopen) {
+                    System.out.println("[ERROR] Can define type of rerun only if reopen is not permitted");
+                    throw new IllegalArgumentException();
+                }
+                switch (value) {
+                    case "continue-ar": {
+                        this.rerun = true;
+                        break;
+                    }
+                    default: {
+                        System.out.println("[ERROR] The available rerun type is (currently) 'continue-ar'");
+                        throw new IllegalArgumentException();
+                    }
+                }
                 break;
             } default: {
                 System.err.println("No such parameter: " + parameterName + " (value: " + value + ")");
@@ -456,7 +469,7 @@ public class BEES implements SearchAlgorithm {
             this.fHat = this.g + this.hHat;
 
             // This must be true assuming the heuristic is admissible (fHat may only overestimate the cost to the goal)
-            assert this.fHat >= this.f;
+            //assert this.fHat >= this.f;
             assert this.dHat >= 0;
         }
 
