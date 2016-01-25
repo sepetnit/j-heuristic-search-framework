@@ -49,12 +49,22 @@ public class SearchResultImpl implements SearchResult {
     private long stopWallTimeMillis;
     private long stopCpuTimeMillis;
 
+    private long previousWallTimeMillis = 0;
+
     public List<Iteration> iterations = new ArrayList<>();
     private List<Solution> solutions = new ArrayList<>();
 
     @Override
     public long getExpanded() {
         return this.expanded;
+    }
+
+    @Override
+    public long getIterationsCount() {
+        if (this.iterations == null) {
+            return 0;
+        }
+        return this.iterations.size();
     }
 
     @Override
@@ -98,7 +108,7 @@ public class SearchResultImpl implements SearchResult {
 
     @Override
     public long getWallTimeMillis() {
-        return stopWallTimeMillis - startWallTimeMillis;
+        return this.previousWallTimeMillis + (this.stopWallTimeMillis - this.startWallTimeMillis) ;
     }
 
     @Override
@@ -132,6 +142,7 @@ public class SearchResultImpl implements SearchResult {
         this.generated += previous.getGenerated();
         this.reopened += previous.getReopened();
         this.opupdated += previous.getUpdatedInOpen();
+        this.previousWallTimeMillis += previous.getWallTimeMillis();
     }
 
     public void startTimer() {
@@ -206,11 +217,13 @@ public class SearchResultImpl implements SearchResult {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("Nodes Generated: ");sb.append(generated);sb.append("\n");
-        sb.append("Nodes Expanded: ");sb.append(expanded);sb.append("\n");
+        sb.append("Nodes Generated: ");sb.append(this.generated);sb.append("\n");
+        sb.append("Nodes Expanded: ");sb.append(this.expanded);sb.append("\n");
         sb.append("Total Wall Time: "+this.getWallTimeMillis());sb.append("\n");
         sb.append("Total CPU Time: "+this.getCpuTimeMillis());sb.append("\n");
-        sb.append(solutions.get(0));
+        if (this.solutions.size() > 0) {
+            sb.append(this.solutions.get(0));
+        }
         return sb.toString();
     }
 

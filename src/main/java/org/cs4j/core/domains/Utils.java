@@ -228,4 +228,15 @@ public class Utils {
         }
         return Utils.integerListToArray(toReturn);
     }
+
+    /**
+     * The function disables all prints for case of time measuring (prints take a lot of CPU time)
+     */
+    public static void disablePrints() {
+        System.out.println("[WARNING] Disables all prints from now");
+        PrintStream dummyStream = new PrintStream(new OutputStream(){
+            public void write(int b) { }
+        });
+        System.setOut(dummyStream);
+    }
 }

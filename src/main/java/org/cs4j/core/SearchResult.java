@@ -43,6 +43,13 @@ public interface SearchResult {
     public List<Solution> getSolutions();
 
     /**
+     * Returns how many iterations were performed
+     *
+     * @return The number of performed iterations
+     */
+    public long getIterationsCount();
+
+    /**
      * Returns expanded count in the first iteration of running
      *
      * @return The expanded count in the first iteration of running
