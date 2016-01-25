@@ -45,9 +45,11 @@ public class PTS implements SearchAlgorithm {
         // Stop the search (no rerun is available)
         NO_RERUN,
         // Rerun the search but now, run with AR
-        NEW_AR,
+        NRR1,
         // Continue the search - expand all the nodes that were not expanded previously
-        CONTINUE_AR
+        NRR1dot5,
+        // Perform the reopening in iterations (NR+ICL, move ICL to OPEN, NR+ICL again, etc.)
+        NRR2
     }
 
     // The type of re-runing to apply if the search failed to run with NR (no solution of the required cost was found)
@@ -84,13 +86,13 @@ public class PTS implements SearchAlgorithm {
      * @param clearClosed Whether to initialize the closed list
      */
     private void _initDataStructures(boolean clearOpen, boolean clearIncons, boolean clearClosed) {
-        if (clearOpen) {
+        if (clearOpen || this.open == null) {
             this.open = new BinHeap<>(new PTS.NodeComparator(), 0);
         }
-        if (clearIncons) {
+        if (clearIncons || this.incons == null) {
             this.incons = new HashMap<>();
         }
-        if (clearClosed) {
+        if (clearClosed || this.closed == null) {
             this.closed = new HashMap<>();
         }
     }
@@ -116,22 +118,26 @@ public class PTS implements SearchAlgorithm {
             } case "max-cost": {
                 this.maxCost = Double.parseDouble(value);
                 break;
-            } case "rerun-type-if-not-found": {
+            } case "nrr-type": {
                 if (this.reopen) {
                     System.out.println("[ERROR] Can define type of rerun only if reopen is not permitted");
                     throw new IllegalArgumentException();
                 }
                 switch (value) {
-                    case "new-ar": {
-                        this.rerun = RERUN_TYPES.NEW_AR;
+                    case "nrr1": {
+                        this.rerun = RERUN_TYPES.NRR1;
                         break;
                     }
-                    case "continue-ar": {
-                        this.rerun = RERUN_TYPES.CONTINUE_AR;
+                    case "nrr1.5": {
+                        this.rerun = RERUN_TYPES.NRR1dot5;
+                        break;
+                    }
+                    case "nrr2": {
+                        this.rerun = RERUN_TYPES.NRR2;
                         break;
                     }
                     default: {
-                        System.out.println("[ERROR] The available rerun types are 'new-ar' and 'continue-ar'");
+                        System.out.println("[ERROR] The available rerun types are 'nrr1' and 'nrr1.5' and 'nrr2'");
                         throw new IllegalArgumentException();
                     }
                 }
@@ -154,13 +160,15 @@ public class PTS implements SearchAlgorithm {
      */
     private SearchResult _search(SearchDomain domain, boolean clearOpenList) {
         this.domain = domain;
-        // The result will be stored here
-        Node goal = null;
-        // Initialize all the data structures required for the search (CLOSED list is always cleared)
-        this._initDataStructures(clearOpenList, true, true);
 
         SearchResultImpl result = new SearchResultImpl();
         result.startTimer();
+
+        // The result will be stored here
+        Node goal = null;
+
+        // Initialize all the data structures required for the search (CLOSED list is always cleared)
+        this._initDataStructures(clearOpenList, true, clearOpenList);
 
         // Extract the initial state from the domain
         State currentState = domain.initialState();
@@ -306,51 +314,102 @@ public class PTS implements SearchAlgorithm {
         return result;
     }
 
+
+    /**
+     * The function performs NRR for PTS - some iterations with NR (and putting the states that should be reopened
+     * into inconsistency list) are performed. Then, the algorithm continues solving using AR.
+     *
+     * @param domain The domain to use for search (actually an instance of the domain)
+     * @param nrIterationsCount The number of iterations of NR
+     *
+     * @return The found solution
+     */
+    private SearchResult iterativeSearch(SearchDomain domain, int nrIterationsCount) {
+        SearchResult accumulatorResult = new SearchResultImpl();
+        boolean previousReopenValue = this.reopen;
+        SearchResult currentResult;
+        this.reopen = false;
+        while (true) {
+            // Decrease the NR iterations
+            --nrIterationsCount;
+            // In case reopening should be stopped - assure this here
+            if (nrIterationsCount < 0) {
+                this.reopen = true;
+            }
+            currentResult = this._search(domain, false);
+            // Add current iteration
+            ((SearchResultImpl) accumulatorResult).addIteration(1, this.maxCost,
+                    currentResult.getExpanded(), currentResult.getGenerated());
+            // We will break here if we found a valid solution, or if AR was performed and there is no solution ...
+            if (currentResult.hasSolution() || this.reopen) {
+                ((SearchResultImpl)currentResult).addIterations((SearchResultImpl)accumulatorResult);
+                // Note that the finalResult is still based on only the previous counters, thus, adding to local will
+                // reveal to the total value of counters
+                currentResult.increase(accumulatorResult);
+                break;
+            }
+            // Update the total result
+            accumulatorResult.increase(currentResult);
+            assert nrIterationsCount >= 0;
+            System.out.println("[INFO] PTS Failed with NR, moves " + incons.size() + " states to open and tries again");
+            for (PackedElement current : this.incons.keySet()) {
+                this.open.add(this.incons.get(current));
+            }
+            this.incons.clear();
+            System.out.println("[INFO] Open now contains " + this.open.size() + " states; runs again");
+            // No option to continue looking for solution ...
+            if (this.open.isEmpty()) {
+                // Note that the finalResult is still based on only the previous counters, thus, adding to local
+                // will reveal to the total value of counters
+                currentResult.increase(accumulatorResult);
+                break;
+            }
+            // Back to start of the loop
+        }
+        this.reopen = previousReopenValue;
+        return currentResult;
+    }
+
+
     public SearchResult search(SearchDomain domain) {
-        // Initially all the data structures are cleaned
-        SearchResult toReturn = this._search(domain, true);
-        if (!toReturn.hasSolution()) {
-            switch (this.rerun) {
-                case NO_RERUN:
-                    break;
-                case NEW_AR:
+        // Perform initialization of all the data structures used during the search
+        this._initDataStructures(true, true, true);
+        switch (this.rerun) {
+            case NO_RERUN: {
+                // Run a single iteration and stop
+                return this._search(domain, true);
+            }
+            case NRR1: {
+                SearchResult nrResult = this._search(domain, true);
+                // Run from scratch if required
+                if (!nrResult.hasSolution()) {
                     System.out.println("[INFO] PTS Failed with NR, tries again with AR from scratch");
                     this.reopen = true;
-                    SearchResult toReturnARNew = this._search(domain, true);
-                    toReturnARNew.increase(toReturn);
+                    SearchResult arResult = this._search(domain, true);
+                    // Add current iteration
+                    ((SearchResultImpl) arResult).addIteration(1, this.maxCost,
+                            nrResult.getExpanded(), nrResult.getGenerated());
+                    arResult.increase(nrResult);
                     // Revert to base state
                     this.reopen = false;
-                    if (toReturnARNew.hasSolution()) {
+                    if (arResult.hasSolution()) {
                         System.out.println("[INFO] PTS with NR failed but PTS with AR from scratch succeeded.");
                     }
-                    return toReturnARNew;
-                case CONTINUE_AR:
-                    System.out.println("[INFO] PTS Failed with NR, tries again with AR with the current OPEN");
-                    SearchResultImpl localSearchResult = new SearchResultImpl();
-                    localSearchResult.reopened = incons.size();
-                    System.out.println("[INFO] Local inconsistency list contains " + incons.size() + " states");
-                    for (PackedElement current : this.incons.keySet()) {
-                        this.open.add(this.incons.get(current));
-                    }
-                    this.incons.clear();
-                    System.out.println("[INFO] All states moved from incons to open, open now contains " +
-                            open.size() + " states, runs again");
-                    this.reopen = true;
-                    SearchResult toReturnARContinued = this._search(domain, false);
-                    toReturnARContinued.increase(toReturn);
-                    // Add the number of locally inconsistent states from the previous search
-                    toReturnARContinued.increase(localSearchResult);
-                    // Revert to base state
-                    this.reopen = false;
-                    if (toReturnARContinued.hasSolution()) {
-                        System.out.println("[INFO] PTS with NR failed but PTS with AR from scratch succeeded.");
-                    }
-                    return toReturnARContinued;
-                default:
-                    break;
+                    // In any case return the arResult
+                    return arResult;
+                }
+                // Return the first result
+                return nrResult;
+            }
+            case NRR1dot5: {
+                return this.iterativeSearch(domain, 1);
+            }
+            case NRR2: {
+                return this.iterativeSearch(domain, Integer.MAX_VALUE);
             }
         }
-        return toReturn;
+        // We should not go here!
+        return null;
     }
 
     /**
