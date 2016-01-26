@@ -65,8 +65,8 @@ public class WAStar_EES_GeneralExperiment {
      */
     private String _getHeader() {
         return "InstanceID,Wg,Wh,Weight," +
-                "AR-Slv,AR-Dep,AR-Cst,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
-                "NR-Slv,NR-Dep,NR-Cst,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,";
+                "AR-Slv,AR-Dep,AR-Cst,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep,AR-Tme," +
+                "NR-Slv,NR-Dep,NR-Cst,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,NR-Tme";
     }
 
     /***
@@ -99,6 +99,7 @@ public class WAStar_EES_GeneralExperiment {
                 result.getDuplicates(),
                 result.getUpdatedInOpen(),
                 result.getReopened(),
+                result.getWallTimeMillis()
         };
     }
 
@@ -120,6 +121,7 @@ public class WAStar_EES_GeneralExperiment {
                 result.getDuplicates(),
                 result.getUpdatedInOpen(),
                 result.getReopened(),
+                result.getWallTimeMillis()
         };
     }
 
@@ -129,7 +131,7 @@ public class WAStar_EES_GeneralExperiment {
      * @return A double array which contains default values to write in case there is no memory for solution
      */
     private double[] _getOutOfMemoryResult() {
-        return new double[]{-1, -1, -1, 0, 0, 0, 0, 0};
+        return new double[]{-1, -1, -1, 0, 0, 0, 0, 0, 0};
     }
 
     /**
@@ -272,11 +274,11 @@ public class WAStar_EES_GeneralExperiment {
     public void runTopSpinExperimentSingleThreaded(
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
-        SingleWeight[] weights = this.weights.BASIC_WEIGHTS_STARTS_AT_3;
+        SingleWeight[] weights = this.weights.PAPER_2016_WEIGHTS;
 
         // Create the domain by reading the first instance (the PDBs are read once)
         SearchDomain domain =
-                DomainsCreation.createTopSpin12InstanceWithPDBs(
+                DomainsCreation.createTopSpin16InstanceWithPDBs(
                         firstInstance + ".in");
 
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
@@ -284,7 +286,7 @@ public class WAStar_EES_GeneralExperiment {
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             domain =
-                    DomainsCreation.createTopSpin12InstanceWithPDBs(
+                    DomainsCreation.createTopSpin16InstanceWithPDBs(
                             domain,
                             i + ".in");
             // Bypass not found files
@@ -295,7 +297,6 @@ public class WAStar_EES_GeneralExperiment {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                 for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                    //SearchAlgorithm alg = new WNARAStar();
                     SearchAlgorithm alg = new WAStar();
                     alg.setAdditionalParameter("weight", weight + "");
                     alg.setAdditionalParameter("reopen", reopen + "");
@@ -341,15 +342,22 @@ public class WAStar_EES_GeneralExperiment {
      * @throws java.io.IOException
      */
     public String[] runGridPathFindingWithPivotsExperimentSingleThreaded(
+            String gridName,
             int firstInstance, int instancesCount, String outputPath, boolean needHeader) throws IOException {
 
-        SingleWeight[] weights = this.weights.VERY_LOW_WEIGHTS;
+        // Prepare the weights
+        Weights.SingleWeight[] weights = Utils.concatenate(
+                this.weights.VERY_LOW_WEIGHTS,
+                this.weights.PAPER_ADDITIONAL_WEIGHTS);
+        Arrays.sort(weights);
+
         int[] pivotsCounts = new int[]{10};
         List<String> allOutputFiles = new ArrayList<>(pivotsCounts.length);
 
         // Create the domain by reading the first instance (the pivots DB is read once!)
         SearchDomain domain =
                 DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
+                        gridName,
                         firstInstance + ".in",
                         10);
 
@@ -362,6 +370,7 @@ public class WAStar_EES_GeneralExperiment {
                 //SearchDomain domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
                 domain =
                         DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGeneratedWithTDH(
+                                gridName,
                                 domain,
                                 i + ".in",
                                 pivotsCount);
@@ -373,7 +382,6 @@ public class WAStar_EES_GeneralExperiment {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                     for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                        //SearchAlgorithm alg = new WNARAStar();
                         SearchAlgorithm alg = new WAStar();
                         alg.setAdditionalParameter("weight", weight + "");
                         alg.setAdditionalParameter("reopen", reopen + "");
@@ -425,15 +433,17 @@ public class WAStar_EES_GeneralExperiment {
 
         SearchDomain domain;
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
-        SingleWeight[] weights = this.weights.EXTENDED_WEIGHTS;
+        SingleWeight[] weights = this.weights.OPTIMAL_WEIGHTS;
 
         // Create the first domain by reading the first instance
-        domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB78(firstInstance + ".in");
+        //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB78(firstInstance + ".in");
+        domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB555(firstInstance + ".in");
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
+            //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
             //domain = DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
             //domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
@@ -447,7 +457,7 @@ public class WAStar_EES_GeneralExperiment {
                     SearchAlgorithm alg = new WAStar();
                     alg.setAdditionalParameter("weight", weight + "");
                     alg.setAdditionalParameter("reopen", reopen + "");
-                    alg.setAdditionalParameter("bpmx", true + "");
+                    //alg.setAdditionalParameter("bpmx", true + "");
                     //SearchAlgorithm alg = new EES(weight, reopen);
                     System.out.println("[INFO] Instance: " + i + ", Weight: " + weight + ", Reopen: " + reopen);
                     try {
@@ -644,7 +654,7 @@ public class WAStar_EES_GeneralExperiment {
                     // Instances Count
                     1000,
                     // Output Path
-                    "results/topspin/topspin12-3pdbs/wastar-basic-weights-start-at-3",
+                    "results/topspin/topspin16-9pdbs/nrr-paper2016weights",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -659,19 +669,18 @@ public class WAStar_EES_GeneralExperiment {
      */
     public static void mainGridPathFindingExperimentWithPivotsSingleThreaded() {
         // Solve with 100 instances
+        String gridName = "ost003d.map"; // den400d.map;ost003d.map
+
         try {
             WAStar_EES_GeneralExperiment experiment = new WAStar_EES_GeneralExperiment();
             experiment.runGridPathFindingWithPivotsExperimentSingleThreaded(
+                    gridName,
                     // First instance ID
                     1,
                     // Instances Count
                     100,
                     // Output Path
-                    //"results/gridpathfinding/generated/den400d.map/Inconsistent/generated+wnarstar+extended-random-pivot-10",
-                    //"results/gridpathfinding/generated/ost003d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx-fixed",
-                    "results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10",
-                    //"results/gridpathfinding/generated/brc202d.map/Inconsistent/generated+wastar+extended-random-pivot-10-bpmx-specific-weights",
-                    //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-average-md-pivots",
+                    "results/gridpathfinding/generated/" + gridName + "/Inconsistent/generated+wastar+extended-random-pivot-10",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -679,7 +688,6 @@ public class WAStar_EES_GeneralExperiment {
             System.exit(-1);
         }
     }
-
 
     /**
      * For single thread
@@ -697,8 +705,10 @@ public class WAStar_EES_GeneralExperiment {
                     //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-80-md",
                     //"results/gridpathfinding/generated/brc202d.map/generated+wastar+extended",
-                    "results/fifteenpuzzle/korf100-real/pdb78/generated-wastar+extended",
+                    //"results/fifteenpuzzle/korf100-real/pdb78/generated-wastar+extended",
+                    "results/fifteenpuzzle/korf100/pdb555/generated-wastar+optimal",
                     //"results/vacuumrobot/generated+wastar+extended",
+                    //"results/pancakes/generated-40/generated+wastar+optimal",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -750,6 +760,7 @@ public class WAStar_EES_GeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
+        Utils.disablePrints();
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
