@@ -32,7 +32,7 @@ public class TopSpin implements SearchDomain {
     private Operator[] possibleOperators;
 
     // TODO: Make configurable
-    private int tokensNumber = 12;
+    private int tokensNumber = 16;
     private int spinSize = 4;
 
     //private boolean operatorsMatrix[][];
@@ -318,7 +318,13 @@ public class TopSpin implements SearchDomain {
                 break;
             }
             case RANDOM: {
-                int hIndex = Utils.sumOfArrayValues(state.tokens) % this.actualPDBsCount;
+                // Insert some randomness into the calculation ...
+                int hIndex = (Utils.sumOfArrayValues(state.tokens)
+                        - state.tokens[0]
+                        - state.tokens[3]
+                        - state.tokens[5]
+                        - state.tokens[7]
+                        - state.tokens[9]) % this.actualPDBsCount;
                 h = this.allHeuristicValues[hIndex];
                 break;
             }

@@ -90,8 +90,20 @@ public class WRAStar implements SearchAlgorithm {
 
     protected boolean useBPMX;
 
-    // Whether to empty the closed list after each iteration
-    private boolean restartClosedList;
+    // Defines the available types of reruning the search if searching with NR failed
+    private enum RERUN_TYPES {
+        // Stop the search (no rerun is available)
+        NO_RERUN,
+        // Rerun the search but now, run with AR
+        NRR1,
+        // Continue the search - expand all the nodes that were not expanded previously
+        NRR1dot5,
+        // Perform the reopening in iterations (NR+ICL, move ICL to OPEN, NR+ICL again, etc.)
+        NRR2
+    }
+
+    // The type of re-runing to apply if the search failed to run with NR (no solution of the required cost was found)
+    private RERUN_TYPES rerun;
 
     public WRAStar() {
         // Default values
@@ -102,8 +114,7 @@ public class WRAStar implements SearchAlgorithm {
         this.wAdmissibilityDeviation = 1.0d;
         // By default, we never reopen for any iteration
         this.iterationToStartReopening = Integer.MAX_VALUE;
-        // By default, empty the closed list after each iteration
-        this.restartClosedList = true;
+        this.rerun = RERUN_TYPES.NO_RERUN;
     }
 
     @Override
@@ -111,17 +122,23 @@ public class WRAStar implements SearchAlgorithm {
         return "wrastar";
     }
 
-    protected void _initDataStructures() {
-        this.open =
-                new BinHeap<>(
-                        new OpenNodeComparator(),
-                        0);
-        this.cleanup =
-                new BinHeap<>(
-                        new CleanupNodeComparator(),
-                        1);
-        this.incons = new HashMap<>();
-        this.closed = new HashMap<>();
+    protected void _initDataStructures(boolean clearOpen, boolean clearIncons, boolean clearClosed) {
+        if (clearOpen || this.open == null) {
+            this.open =
+                    new BinHeap<>(
+                            new OpenNodeComparator(),
+                            0);
+            this.cleanup =
+                    new BinHeap<>(
+                            new CleanupNodeComparator(),
+                            1);
+        }
+        if (clearIncons || this.incons == null) {
+            this.incons = new HashMap<>();
+        }
+        if (clearClosed || this.closed == null) {
+            this.closed = new HashMap<>();
+        }
     }
 
     @Override
@@ -141,6 +158,26 @@ public class WRAStar implements SearchAlgorithm {
                     System.out.println("[WARNING] Weight of 1.0 is equivalent to A*");
                 }
                 break;
+            } case "nrr-type": {
+                switch (value) {
+                    case "nrr1": {
+                        this.rerun = RERUN_TYPES.NRR1;
+                        break;
+                    }
+                    case "nrr1.5": {
+                        this.rerun = RERUN_TYPES.NRR1dot5;
+                        break;
+                    }
+                    case "nrr2": {
+                        this.rerun = RERUN_TYPES.NRR2;
+                        break;
+                    }
+                    default: {
+                        System.out.println("[ERROR] The available rerun types are 'nrr1' and 'nrr1.5' and 'nrr2'");
+                        throw new IllegalArgumentException();
+                    }
+                }
+                break;
             }
             case "w-admissibility-deviation-percentage": {
                 this.wAdmissibilityDeviation = Double.parseDouble(value);
@@ -152,22 +189,21 @@ public class WRAStar implements SearchAlgorithm {
                 break;
             }
             case "iteration-to-start-reopening": {
+                /*
                 this.iterationToStartReopening = Integer.parseInt(value);
                 if (this.iterationToStartReopening < 1) {
                     System.out.println("[ERROR] We can start reopening at least after the first iteration");
                     throw new IllegalArgumentException();
                 }
                 break;
+                */
+                throw new NotImplementedException();
             }
             case "bpmx": {
                 this.useBPMX = Boolean.parseBoolean(value);
                 if (this.useBPMX) {
                     System.out.println("[INFO] WRAStar will be ran with BPMX");
                 }
-                break;
-            }
-            case "restart-closed-list": {
-                this.restartClosedList = Boolean.parseBoolean(value);
                 break;
             }
             default: {
@@ -211,20 +247,38 @@ public class WRAStar implements SearchAlgorithm {
         return solution;
     }
 
-    protected Node _search(SearchDomain domain, int iterationIndex,
-                           double maxPreviousCost, SearchResultImpl result) {
-        Node goal = null;
-        State currentState;
+    /**
+     * Performs a single search iteration
+     *
+     * @param domain
+     * @param maxPreviousCost Used for pruning
+     * @param reopen Whether reopening should be performed
+     * @param result An output parameter
+     *
+     * @return
+     */
+    protected Node _search(SearchDomain domain,
+                           boolean clearOpenList, boolean clearClosedList,
+                           boolean reopen,
+                           double maxPreviousCost,
+                           SearchResultImpl result) {
 
         result.startTimer();
 
-        // Default value
-        boolean reopen = false;
-        // Check if we need to change the default value
-        if (iterationIndex >= this.iterationToStartReopening) {
-            System.out.println("[WARNING] Iteration " + iterationIndex + " implies reopening");
-            reopen = true;
-        }
+        Node goal = null;
+
+        // Let's instantiate the initial state
+        State currentState = domain.initialState();
+        // Create a graph node from this state
+        Node initNode = new Node(currentState);
+
+        this._initDataStructures(clearOpenList, true, clearClosedList);
+
+        // And add it to the frontier
+        this.open.add(initNode);
+        this.cleanup.add(initNode);
+        // The nodes are ordered in the closed list by their packed values
+        this.closed.put(initNode.packed, initNode);
 
         // Loop over the frontier
         while (!this.open.isEmpty()) {
@@ -345,7 +399,7 @@ public class WRAStar implements SearchAlgorithm {
                             // Otherwise, consider to reopen the node
                         } else {
                             // Never Reopen: Use Incons
-                            if (!reopen) {
+                            if (!reopen && this.rerun != RERUN_TYPES.NO_RERUN) {
                                 this.incons.put(dupChildNode.packed, dupChildNode);
                                 // Always Reopen: Perform standard reopening
                             } else {
@@ -384,10 +438,10 @@ public class WRAStar implements SearchAlgorithm {
         }
 
         /*
-        System.out.println(open.size());
-        System.out.println(incons.size());
-        System.out.println(cleanup.size());
-        assert open.size() + incons.size() == cleanup.size();
+            System.out.println(open.size());
+            System.out.println(incons.size());
+            System.out.println(cleanup.size());
+            assert open.size() + incons.size() == cleanup.size();
         */
 
         result.stopTimer();
@@ -395,33 +449,257 @@ public class WRAStar implements SearchAlgorithm {
         // If a goal was found: update the solution
         if (goal != null) {
             result.addSolution(this.createSolution(goal));
-            // Record current iteration
-            result.addIteration(iterationIndex, maxPreviousCost, result.expanded, result.generated);
         }
 
         return goal;
     }
 
-    @Override
+    private double getBestF(double previousBestF) {
+        double toReturn = -1.0d;
+        if (this.cleanup.size() > 0) {
+            double currentBestF = this.cleanup.peek().getRf();
+            // Return the current best f-value of cleanup only if it is greater the current or if the current f-value
+            // is infinity
+            if (previousBestF < currentBestF || previousBestF == -1) {
+                toReturn = currentBestF;
+            }
+        }
+        if (toReturn == -1.0d) {
+            if (previousBestF == -1.0d) {
+                toReturn = Integer.MAX_VALUE;
+            } else {
+                toReturn = previousBestF;
+            }
+        }
+        return toReturn;
+    }
+
+    private double getBestF() {
+        return this.getBestF(-1.0d);
+    }
+
+    public SearchResult searchNRR1(SearchDomain domain, double deviatedWeight) {
+        double solutionCost = Double.MAX_VALUE;
+        double optimalCost = domain.getOptimalSolutionCost();
+        // This is the result for the first NR
+        SearchResultImpl nrResult = new SearchResultImpl();
+        this._search(domain,
+                // Clear data structures (first search)
+                true, true,
+                // NEVER reopen
+                false,
+                // Bound is infinity (first search)
+                Integer.MAX_VALUE,
+                nrResult);
+        if (nrResult.hasSolution()) {
+            // Get current solution and check if it is sufficient
+            SearchResult.Solution currentSolution = nrResult.getSolutions().get(0);
+            solutionCost = currentSolution.getCost();
+            double suboptimalBoundSup = (optimalCost != -1) ?
+                    (solutionCost / optimalCost) :
+                    (solutionCost / this.getBestF());
+            System.out.println("[INFO] Approximated suboptimal bound is " + suboptimalBoundSup);
+            if (suboptimalBoundSup <= deviatedWeight) {
+                System.out.println("[INFO] Bound is sufficient (required: " + deviatedWeight + ", got: " +
+                        suboptimalBoundSup + ")");
+                return nrResult;
+            }
+        }
+        // Otherwise, solve with AR
+        SearchResultImpl arResult = new SearchResultImpl();
+        System.out.println("[INFO] Failed with NR, tries again with AR from scratch");
+        // Clear Open + Never Reopen
+        this._search(domain,
+                // Clear Open and Closed (running from scratch)
+                true, true,
+                // Now with Reopen!
+                true,
+                // Use the last solution cost for pruning - why not?
+                solutionCost,
+                arResult);
+        if (arResult.hasSolution()) {
+            // Add previous iteration of NR in any case (TODO: Required?)
+            arResult.addIteration(1, solutionCost,
+                    nrResult.getExpanded(), nrResult.getGenerated());
+            arResult.increase(nrResult);
+            System.out.println("[INFO] NR failed AR from scratch succeeded.");
+            return arResult;
+        }
+        // Return the previous result - a special case ...
+        nrResult.addIteration(1, solutionCost, nrResult.getExpanded(), nrResult.getGenerated());
+        nrResult.increase(arResult);
+        return nrResult;
+    }
+
+    public SearchResult searchNRR1dot5or2(SearchDomain domain, double deviatedWeight, int nrIterationsCount) {
+
+        // In general reopen is false, let's make it true if required
+        boolean reopen = false;
+
+        double maxPreviousCost = Double.MAX_VALUE;
+        double suboptimalBoundSup = Double.MAX_VALUE;
+        double bestF = -1.0d;
+
+        double optimalCost = domain.getOptimalSolutionCost();
+        SearchResultImpl accumulatorResult = new SearchResultImpl();
+        // This is for storing the last result
+        // (for the case last result is None but previous result returned a solution)
+        SearchResultImpl lastResult = new SearchResultImpl();
+
+        boolean shouldReturn = false;
+
+        while (true) {
+            // Decrease the NR iterations
+            --nrIterationsCount;
+            // In case reopening should be stopped - assure this here
+            if (nrIterationsCount < 0) {
+                reopen = true;
+            }
+            SearchResultImpl currentResult = new SearchResultImpl();
+            this._search(domain,
+                    // Don't clear anything - repair is performed!
+                    false, false,
+                    // Reopen according to requirement
+                    reopen,
+                    maxPreviousCost,
+                    currentResult);
+            // Add current iteration
+            accumulatorResult.addIteration(1, maxPreviousCost,
+                    currentResult.getExpanded(), currentResult.getGenerated());
+            // We will break here if we found a valid solution, or if AR was performed and there is no solution ...
+            if (reopen) {
+                shouldReturn = true;
+            } else {
+                double solutionCost = maxPreviousCost;
+                if (currentResult.hasSolution()) {
+                    // Store the lastResult
+                    lastResult = currentResult;
+                    // Get current solution and check if it is sufficient
+                    SearchResult.Solution currentSolution = currentResult.getSolutions().get(0);
+                    solutionCost = currentSolution.getCost();
+                    assert solutionCost <= maxPreviousCost;
+                    maxPreviousCost = solutionCost;
+                }
+                // Update maxPreviousCost and suboptimalBound (even if not solution)
+                bestF = this.getBestF(bestF);
+                suboptimalBoundSup = (optimalCost != -1) ?
+                        (solutionCost / optimalCost) :
+                        (solutionCost / bestF);
+                System.out.println("[INFO] Approximated suboptimal bound is " + suboptimalBoundSup);
+                if (suboptimalBoundSup <= deviatedWeight) {
+                    System.out.println("[INFO] Bound is sufficient (required: " + deviatedWeight + ", got: " +
+                            suboptimalBoundSup + ")");
+                    shouldReturn = true;
+                } else {
+                    System.out.println("[INFO] Insufficient bound (" + suboptimalBoundSup + " > " +
+                            deviatedWeight + "), Exp: " + lastResult.getExpanded());
+                }
+            }
+
+            // Now check if we should return
+            if (shouldReturn) {
+                // A safety
+                if (!currentResult.hasSolution()) {
+                    currentResult = lastResult;
+                }
+                // Note that the finalResult is still based on only the previous counters, thus, adding to local will
+                // reveal to the total value of counters
+                currentResult.increase(accumulatorResult);
+                currentResult.addIterations(accumulatorResult);
+                return currentResult;
+            }
+
+            // TODO: This check is an hack (even if there is no solution we should update the accumulator value)
+            if (currentResult.hasSolution()) {
+                // Otherwise, another iteration should be performed
+                accumulatorResult.increase(currentResult);
+            }
+
+            assert nrIterationsCount >= 0;
+            System.out.println("[INFO] Failed with NR, moves " + this.incons.size() + " states to open and tries again");
+
+            accumulatorResult.reopened += this.incons.size();
+            // Now, Move all states from incons to open
+            for (Node current : this.incons.values()) {
+                this.open.add(current);
+            }
+            this.incons.clear();
+            System.out.println("[INFO] Open now contains " + this.open.size() + " states; runs again");
+
+            // No option to continue looking for solution ...
+            if (this.open.isEmpty()) {
+                // A safety
+                if (!currentResult.hasSolution()) {
+                    currentResult = lastResult;
+                }
+                currentResult.addIterations(accumulatorResult);
+                // Since we already increased the accumulator result - just use its value
+                currentResult.copyCounters(accumulatorResult);
+                return currentResult;
+            }
+            // Back to the start of the loop
+            System.out.println("[INFO] Calling another search iteration (maxCost = " + maxPreviousCost +
+                    ", bestF: " + bestF + ")");
+        }
+        // TODO: Later!
+        /*
+        SearchResult.Solution sol = this.createSolution(previousGoal);
+        if (sol.getCost() < previousResult.getSolutions().get(0).getCost()) {
+            System.out.println("Win : prev cost " + previousResult.getSolutions().get(0).getCost() + " current cost " + sol.getCost() );
+            System.exit(-1);
+        }
+        */
+    }
+
     public SearchResult search(SearchDomain domain) {
+        this.domain = domain;
+        // Set general values
+        double deviatedWeight = this.weight * this.wAdmissibilityDeviation;
+        if (this.weight != deviatedWeight) {
+            System.out.println("[WARNING] Required weight can be deviated (weight: " + this.weight +
+                    ", deviation: " + this.wAdmissibilityDeviation + ", deviated: " + deviatedWeight + ")");
+        }
+        // Solve according to the case
+        switch (this.rerun) {
+            case NO_RERUN: {
+                // This is the search result used
+                SearchResultImpl result = new SearchResultImpl();
+                // Run a single iteration and stop (NR)
+                this._search(
+                        domain,
+                        // Clear all the data structures
+                        true, true,
+                        // Perform reopening if required
+                        false,
+                        // Bound is infinity
+                        Double.MAX_VALUE,
+                        result);
+                // We have nothing to repair
+                return result;
+            }
+            case NRR1: {
+                return this.searchNRR1(domain, deviatedWeight);
+            }
+            case NRR1dot5: {
+                return this.searchNRR1dot5or2(domain, deviatedWeight, 1);
+            }
+            case NRR2: {
+                return this.searchNRR1dot5or2(domain, deviatedWeight, Integer.MAX_VALUE);
+            }
+        }
+        // We should not go here!
+        return null;
+    }
+
+    /*
+    public SearchResult search2(SearchDomain domain) {
 
         this.domain = domain;
 
-        double maxPreviousCost = Double.MAX_VALUE;
+        //double maxPreviousCost = Double.MAX_VALUE;
 
         // Initialize all the data structures required for the search
-        this._initDataStructures();
-
-        // Let's instantiate the initial state
-        State currentState = domain.initialState();
-        // Create a graph node from this state
-        Node initNode = new Node(currentState);
-
-        // And add it to the frontier
-        this.open.add(initNode);
-        this.cleanup.add(initNode);
-        // The nodes are ordered in the closed list by their packed values
-        this.closed.put(initNode.packed, initNode);
+        //this._initDataStructures();
 
 
         System.out.println("[INFO] Performing first search");
@@ -430,6 +708,7 @@ public class WRAStar implements SearchAlgorithm {
         Node previousGoal;
         int iterationIndex = 0;
         double bestF = 0;
+
         double suboptimalBoundSup = Double.MAX_VALUE;
         double deviatedWeight = this.weight * this.wAdmissibilityDeviation;
         if (this.weight != deviatedWeight) {
@@ -437,10 +716,12 @@ public class WRAStar implements SearchAlgorithm {
                     ", deviation: " + this.wAdmissibilityDeviation + ", deviated: " + deviatedWeight + ")");
         }
         double optimalCost = domain.getOptimalSolutionCost();
+
         while (true) {
             SearchResultImpl result = new SearchResultImpl();
             previousGoal = lastGoal;
             Node foundGoal = this._search(domain, iterationIndex++, maxPreviousCost, result);
+
             if (this.cleanup.size() > 0) {
                 double currentBestF = this.cleanup.peek().getRf();
                 if (bestF < currentBestF) {
@@ -449,6 +730,7 @@ public class WRAStar implements SearchAlgorithm {
                     System.out.println("[INFO] Iteration: " + (iterationIndex + 1) + ", bestF: " + bestF + ", sub: " + suboptimalBoundSup);
                 }
             }
+
             if (result.hasSolution()) {
                 lastGoal = foundGoal;
                 // Get current solution
@@ -476,10 +758,7 @@ public class WRAStar implements SearchAlgorithm {
                     System.out.println("[INFO] No locally inconsistent states, returns current result");
                     return result;
                 }
-                /*
-                while (!this.open.isEmpty()) {
-                    this.open.poll();
-                }*/
+
                 // Now, let's continue the search
                 for (Node current : this.incons.values()) {
                     this.open.add(current);
@@ -525,6 +804,7 @@ public class WRAStar implements SearchAlgorithm {
             }
         }
     }
+    */
 
     /**
      * The node class

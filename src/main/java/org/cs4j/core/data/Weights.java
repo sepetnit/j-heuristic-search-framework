@@ -82,6 +82,17 @@ public class Weights {
             new SingleWeight(1000),
     };
 
+    public final SingleWeight[] PAPER_2016_WEIGHTS = {
+            new SingleWeight(1.01),
+            new SingleWeight(1.02),
+            new SingleWeight(1.04),
+            new SingleWeight(1.10),
+            new SingleWeight(1.30),
+            new SingleWeight(1.50),
+            new SingleWeight(2.00),
+    };
+
+
     // Will contain BASIC_WEIGHTS + LOW_WEIGHTS (will be initialized in the constructor)
     public final SingleWeight[] EXTENDED_WEIGHTS;
     // Same as BASIC_WEIGHTS (will be initialized in the constructor)

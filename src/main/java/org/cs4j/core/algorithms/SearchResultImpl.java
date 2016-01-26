@@ -137,6 +137,24 @@ public class SearchResultImpl implements SearchResult {
         this.generated = generated;
     }
 
+    // TODO: Add to Interface?
+    public void copyCounters(SearchResult other) {
+        this.expanded = other.getExpanded();
+        this.generated = other.getGenerated();
+        this.reopened = other.getReopened();
+        this.opupdated = other.getUpdatedInOpen();
+        this.previousWallTimeMillis = other.getWallTimeMillis();
+    }
+
+    // TODO: Add to Interface?
+    public void decrease(SearchResult previous) {
+        this.expanded -= previous.getExpanded();
+        this.generated -= previous.getGenerated();
+        this.reopened -= previous.getReopened();
+        this.opupdated -= previous.getUpdatedInOpen();
+        this.previousWallTimeMillis -= previous.getWallTimeMillis();
+    }
+
     public void increase(SearchResult previous) {
         this.expanded += previous.getExpanded();
         this.generated += previous.getGenerated();

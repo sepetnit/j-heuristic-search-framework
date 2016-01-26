@@ -3,6 +3,7 @@ package org.cs4j.core.domains;
 import org.cs4j.core.collections.PairInt;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -238,5 +239,17 @@ public class Utils {
             public void write(int b) { }
         });
         System.setOut(dummyStream);
+    }
+
+    public static <T> T[] concatenate (T[] a, T[] b) {
+        int aLen = a.length;
+        int bLen = b.length;
+
+        @SuppressWarnings("unchecked")
+        T[] c = (T[]) Array.newInstance(a.getClass().getComponentType(), aLen + bLen);
+        System.arraycopy(a, 0, c, 0, aLen);
+        System.arraycopy(b, 0, c, aLen, bLen);
+
+        return c;
     }
 }
