@@ -21,6 +21,16 @@ public class EES implements SearchAlgorithm {
     private static final int CLEANUP_ID = 0;
     private static final int FOCAL_ID = 1;
 
+    private static final Map<String, Class> EESPossibleParameters;
+
+    // Declare the parameters that can be tuned before running the search
+    static
+    {
+        EESPossibleParameters = new HashMap<>();
+        EES.EESPossibleParameters.put("weight", Double.class);
+        EES.EESPossibleParameters.put("reopen", Boolean.class);
+    }
+
     private SearchDomain domain;
     private double weight;
     private boolean reopen;
@@ -57,21 +67,11 @@ public class EES implements SearchAlgorithm {
     /**
      * The constructor of the class
      *
-     * @param weight The weight to use
-     * @param reopen Whether to perform reopening (currently binary - true or false)
      */
-    public EES(double weight, boolean reopen) {
-        this.weight = weight;
-        this.reopen = reopen;
-    }
-
-    /**
-     * A constructor of the class that defines reopening
-     *
-     * @param weight The weight to use
-     */
-    public EES(double weight) {
-        this(weight, true);
+    public EES() {
+        // Default values
+        this.weight = 1.0;
+        this.reopen = true;
     }
 
     @Override
@@ -155,18 +155,30 @@ public class EES implements SearchAlgorithm {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
-        return null;
+        return EES.EESPossibleParameters;
     }
 
     @Override
     public void setAdditionalParameter(String parameterName, String value) {
-        throw new NotImplementedException();
+        switch (parameterName) {
+            case "weight": {
+                this.weight = Double.parseDouble(value);
+                if (this.weight < 1.0d) {
+                    System.out.println("[ERROR] The weight must be >= 1.0");
+                    throw new IllegalArgumentException();
+                }
+                break;
+            }
+            case "reopen": {
+                this.reopen = Boolean.parseBoolean(value);
+                break;
+            }
+            default: {
+                throw new NotImplementedException();
+            }
+        }
     }
 
-    /**
-     * (non-Javadoc)
-     * @see edu.unh.ai.search.SearchAlgorithm#search(java.lang.Object)
-     */
     @Override
     public SearchResult search(SearchDomain domain) {
         // Init all the queues relevant to search (destroy previous results)
@@ -325,7 +337,7 @@ public class EES implements SearchAlgorithm {
                 statesPath.add(domain.unpack(currentNode.packed));
             }
             // The actual size of the found path can be only lower the G value of the found goal
-            assert statesPath.size() <= goal.g + 1;
+            //assert statesPath.size() <= goal.g + 1;
             if (statesPath.size() - goal.g < 1) {
                 System.out.println("[INFO] Goal G is higher that the actual path " +
                         "(G: " + goal.g +  ", Actual: " + statesPath.size() + ")");

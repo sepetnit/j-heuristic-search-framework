@@ -92,6 +92,14 @@ public class Weights {
             new SingleWeight(2.00),
     };
 
+    public final SingleWeight[] PAPER_2016_MISSING_WEIGHTS = {
+            new SingleWeight(1.01),
+            new SingleWeight(1.02),
+            new SingleWeight(1.04),
+            new SingleWeight(1.10),
+            new SingleWeight(1.30),
+    };
+
 
     // Will contain BASIC_WEIGHTS + LOW_WEIGHTS (will be initialized in the constructor)
     public final SingleWeight[] EXTENDED_WEIGHTS;

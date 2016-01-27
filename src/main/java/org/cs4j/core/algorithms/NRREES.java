@@ -44,7 +44,7 @@ import java.util.Map;
  *
  * (Edited by Vitali Sepetnitsky)
  */
-public class WRAStar implements SearchAlgorithm {
+public class NRREES implements SearchAlgorithm {
 
     private static final int QID = 0;
 
@@ -54,11 +54,11 @@ public class WRAStar implements SearchAlgorithm {
     static
     {
         WRAStarPossibleParameters = new HashMap<>();
-        WRAStar.WRAStarPossibleParameters.put("weight", Double.class);
-        WRAStar.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
-        WRAStar.WRAStarPossibleParameters.put("iteration-to-start-reopening", Integer.class);
-        WRAStar.WRAStarPossibleParameters.put("bpmx", Boolean.class);
-        WRAStar.WRAStarPossibleParameters.put("restart-closed-list", Boolean.class);
+        NRREES.WRAStarPossibleParameters.put("weight", Double.class);
+        NRREES.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
+        NRREES.WRAStarPossibleParameters.put("iteration-to-start-reopening", Integer.class);
+        NRREES.WRAStarPossibleParameters.put("bpmx", Boolean.class);
+        NRREES.WRAStarPossibleParameters.put("restart-closed-list", Boolean.class);
     }
 
     // The domain for the search
@@ -105,7 +105,7 @@ public class WRAStar implements SearchAlgorithm {
     // The type of re-runing to apply if the search failed to run with NR (no solution of the required cost was found)
     private RERUN_TYPES rerun;
 
-    public WRAStar() {
+    public NRREES() {
         // Default values
         this.weight = 1.0;
         this.useBPMX = false;
@@ -143,7 +143,7 @@ public class WRAStar implements SearchAlgorithm {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
-        return WRAStar.WRAStarPossibleParameters;
+        return NRREES.WRAStarPossibleParameters;
     }
 
     @Override
@@ -202,7 +202,7 @@ public class WRAStar implements SearchAlgorithm {
             case "bpmx": {
                 this.useBPMX = Boolean.parseBoolean(value);
                 if (this.useBPMX) {
-                    System.out.println("[INFO] WRAStar will be ran with BPMX");
+                    System.out.println("[INFO] NRRWAStar will be ran with BPMX");
                 }
                 break;
             }
@@ -833,7 +833,7 @@ public class WRAStar implements SearchAlgorithm {
 
             // Parent node
             this.parent = parent;
-            this.packed = WRAStar.this.domain.pack(state);
+            this.packed = NRREES.this.domain.pack(state);
             this.pop = pop;
             this.op = op;
         }
@@ -842,7 +842,7 @@ public class WRAStar implements SearchAlgorithm {
          * @return The value of the weighted evaluation function
          */
         public double getWf() {
-            return this.g + (WRAStar.this.weight * this.h);
+            return this.g + (NRREES.this.weight * this.h);
         }
 
         /**
