@@ -16,7 +16,7 @@ import java.io.InputStream;
  */
 public class IREMeasuring {
 
-    public static final int MAXIMUM_STATES_COUNT_TO_MEASURE_IRE = (int)Math.pow(10, 6);
+    public static final int MAXIMUM_STATES_COUNT_TO_MEASURE_IRE = (int)Math.pow(10, 8);
 
     public static void mainGridIREMeasuring() {
         String gridName = "den400d.map";

@@ -62,7 +62,8 @@ public class TestAllBasics {
 	@Test
 	public void testEES() throws FileNotFoundException {
 		SearchDomain domain = createFifteenPuzzle("12");
-		SearchAlgorithm algo = new EES(2);
+		SearchAlgorithm algo = new EES();
+		algo.setAdditionalParameter("weight", 2.0 + "");
 		testSearchAlgorithm(domain, algo, 5131, 2506, 55);
 	}	
 	

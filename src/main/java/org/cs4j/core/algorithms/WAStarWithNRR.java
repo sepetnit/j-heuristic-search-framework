@@ -40,25 +40,23 @@ import java.util.Map;
  * A* Search and Weighted A* Search which makes a kind of repairing procedure in order to return solutions that are
  * within the required suboptimality bound
  *
- * @author Matthew Hatem
- *
- * (Edited by Vitali Sepetnitsky)
+ * @author Vitali Sepetnitsky
  */
 public class WAStarWithNRR implements SearchAlgorithm {
 
     private static final int QID = 0;
 
-    private static final Map<String, Class> WRAStarPossibleParameters;
+    private static final Map<String, Class> WAStarWithNRRPossibleParameters;
 
     // Declare the parameters that can be tunes before running the search
     static
     {
-        WRAStarPossibleParameters = new HashMap<>();
-        WAStarWithNRR.WRAStarPossibleParameters.put("weight", Double.class);
-        WAStarWithNRR.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
-        WAStarWithNRR.WRAStarPossibleParameters.put("iteration-to-start-reopening", Integer.class);
-        WAStarWithNRR.WRAStarPossibleParameters.put("bpmx", Boolean.class);
-        WAStarWithNRR.WRAStarPossibleParameters.put("restart-closed-list", Boolean.class);
+        WAStarWithNRRPossibleParameters = new HashMap<>();
+        WAStarWithNRR.WAStarWithNRRPossibleParameters.put("weight", Double.class);
+        WAStarWithNRR.WAStarWithNRRPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
+        WAStarWithNRR.WAStarWithNRRPossibleParameters.put("iteration-to-start-reopening", Integer.class);
+        WAStarWithNRR.WAStarWithNRRPossibleParameters.put("bpmx", Boolean.class);
+        WAStarWithNRR.WAStarWithNRRPossibleParameters.put("restart-closed-list", Boolean.class);
     }
 
     // The domain for the search
@@ -119,7 +117,7 @@ public class WAStarWithNRR implements SearchAlgorithm {
 
     @Override
     public String getName() {
-        return "wrastar";
+        return "wastar+nrr";
     }
 
     protected void _initDataStructures(boolean clearOpen, boolean clearIncons, boolean clearClosed) {
@@ -143,7 +141,7 @@ public class WAStarWithNRR implements SearchAlgorithm {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
-        return WAStarWithNRR.WRAStarPossibleParameters;
+        return WAStarWithNRR.WAStarWithNRRPossibleParameters;
     }
 
     @Override
