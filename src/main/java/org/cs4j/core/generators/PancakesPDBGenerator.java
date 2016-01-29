@@ -235,7 +235,7 @@ public class PancakesPDBGenerator extends GeneralInstancesGenerator {
         Pancakes.MIN_PANCAKE_FOR_PDB = this.specificStartIndex;
         int[][] allSubProblems =
                 this.getAllPossibleSubProblems(size, this.specific);
-        EES ees = new EES(1.0);
+        EES ees = new EES();
         for (int count = 0; count < allSubProblems.length; ++count) {
             int[] subProblem = allSubProblems[count];
             System.out.println("[INFO] Solving: (" + (count + 1) + "/" + allSubProblems.length + ") " +
