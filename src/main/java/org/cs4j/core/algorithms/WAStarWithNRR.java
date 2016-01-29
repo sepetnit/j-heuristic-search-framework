@@ -44,7 +44,7 @@ import java.util.Map;
  *
  * (Edited by Vitali Sepetnitsky)
  */
-public class NRREES implements SearchAlgorithm {
+public class WAStarWithNRR implements SearchAlgorithm {
 
     private static final int QID = 0;
 
@@ -54,11 +54,11 @@ public class NRREES implements SearchAlgorithm {
     static
     {
         WRAStarPossibleParameters = new HashMap<>();
-        NRREES.WRAStarPossibleParameters.put("weight", Double.class);
-        NRREES.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
-        NRREES.WRAStarPossibleParameters.put("iteration-to-start-reopening", Integer.class);
-        NRREES.WRAStarPossibleParameters.put("bpmx", Boolean.class);
-        NRREES.WRAStarPossibleParameters.put("restart-closed-list", Boolean.class);
+        WAStarWithNRR.WRAStarPossibleParameters.put("weight", Double.class);
+        WAStarWithNRR.WRAStarPossibleParameters.put("w-admissibility-deviation-percentage", String.class);
+        WAStarWithNRR.WRAStarPossibleParameters.put("iteration-to-start-reopening", Integer.class);
+        WAStarWithNRR.WRAStarPossibleParameters.put("bpmx", Boolean.class);
+        WAStarWithNRR.WRAStarPossibleParameters.put("restart-closed-list", Boolean.class);
     }
 
     // The domain for the search
@@ -105,7 +105,7 @@ public class NRREES implements SearchAlgorithm {
     // The type of re-runing to apply if the search failed to run with NR (no solution of the required cost was found)
     private RERUN_TYPES rerun;
 
-    public NRREES() {
+    public WAStarWithNRR() {
         // Default values
         this.weight = 1.0;
         this.useBPMX = false;
@@ -143,7 +143,7 @@ public class NRREES implements SearchAlgorithm {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
-        return NRREES.WRAStarPossibleParameters;
+        return WAStarWithNRR.WRAStarPossibleParameters;
     }
 
     @Override
@@ -202,7 +202,7 @@ public class NRREES implements SearchAlgorithm {
             case "bpmx": {
                 this.useBPMX = Boolean.parseBoolean(value);
                 if (this.useBPMX) {
-                    System.out.println("[INFO] NRRWAStar will be ran with BPMX");
+                    System.out.println("[INFO] WAStarWithNRR will be ran with BPMX");
                 }
                 break;
             }
@@ -406,7 +406,8 @@ public class NRREES implements SearchAlgorithm {
                                 ++result.reopened;
                                 this.open.add(dupChildNode);
                             }
-                            // Update cleanup
+                            // Update CLEANUP in any case (even if not reopen!)
+                            // TODO: Even if not reopen the node is added to CLEANUP!
                             if (dupChildNode.getIndex(this.cleanup.getKey()) != -1) {
                                 this.cleanup.update(dupChildNode);
                             } else {
@@ -833,7 +834,7 @@ public class NRREES implements SearchAlgorithm {
 
             // Parent node
             this.parent = parent;
-            this.packed = NRREES.this.domain.pack(state);
+            this.packed = WAStarWithNRR.this.domain.pack(state);
             this.pop = pop;
             this.op = op;
         }
@@ -842,7 +843,7 @@ public class NRREES implements SearchAlgorithm {
          * @return The value of the weighted evaluation function
          */
         public double getWf() {
-            return this.g + (NRREES.this.weight * this.h);
+            return this.g + (WAStarWithNRR.this.weight * this.h);
         }
 
         /**

@@ -32,7 +32,7 @@ public class TopSpin implements SearchDomain {
     private Operator[] possibleOperators;
 
     // TODO: Make configurable
-    private int tokensNumber = 16;
+    private int tokensNumber = 10;
     private int spinSize = 4;
 
     //private boolean operatorsMatrix[][];
@@ -437,6 +437,9 @@ public class TopSpin implements SearchDomain {
         for (int i = 0; i < this.tokensNumber; ++i) {
             result = (result << 4) | tss.tokens[i];
         }
+        // Debug
+        // TopSpinState state = (TopSpinState)this.unpack(new PackedElement(result));
+        // assert Arrays.equals(state.tokens, tss.tokens);
         return new PackedElement(result);
     }
 
