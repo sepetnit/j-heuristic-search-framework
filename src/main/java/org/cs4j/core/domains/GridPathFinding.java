@@ -66,7 +66,7 @@ public class GridPathFinding implements SearchDomain {
 
     private long agentLocationBitMask;
 
-    private GridMap map;
+    protected GridMap map;
     private List<Integer> goals;
     private List<PairInt> goalsPairs;
 
@@ -134,7 +134,7 @@ public class GridPathFinding implements SearchDomain {
      * This class represents a grid on which the agent is moving
      * The grid must be a rectangle (and can contain obstacles)
      */
-    private class GridMap {
+    protected class GridMap {
         private int mapWidth;
         private int mapHeight;
         // Size of the rectangle
@@ -213,7 +213,7 @@ public class GridPathFinding implements SearchDomain {
          *
          * @return True if the location is blocked and False otherwise
          */
-        private boolean isBlocked(int location) {
+        public boolean isBlocked(int location) {
             return this.map[location] == '#' ||
                     this.map[location] == 'T' ||
                     this.map[location] == GridPathFinding.OBSTACLE_MARKER;
@@ -227,7 +227,7 @@ public class GridPathFinding implements SearchDomain {
          *
          * @return The calculated index
          */
-        private int getLocationIndex(int x, int y) {
+        protected int getLocationIndex(int x, int y) {
             return y * this.mapWidth + x;
         }
 
@@ -239,7 +239,7 @@ public class GridPathFinding implements SearchDomain {
          *
          * @return The calculated index
          */
-        int getLocationIndex(PairInt location) {
+        public int getLocationIndex(PairInt location) {
             return this.getLocationIndex(location.first, location.second);
         }
 
@@ -249,7 +249,7 @@ public class GridPathFinding implements SearchDomain {
          * @param location The required location
          * @return The calculated Pair
          */
-        private PairInt getPosition(int location) {
+        protected PairInt getPosition(int location) {
             return new PairInt(location % this.mapWidth, location / this.mapWidth);
         }
 
@@ -910,7 +910,7 @@ public class GridPathFinding implements SearchDomain {
     /**
      * A GridPathFinding State
      */
-    private final class GridPathFindingState implements State {
+    protected final class GridPathFindingState implements State {
         private double h = -1;
         private double d = -1;
 
@@ -920,7 +920,7 @@ public class GridPathFinding implements SearchDomain {
         //private double sseH;
 
         // The location of the agent
-        private int agentLocation;
+        public int agentLocation;
         // The depth of the search
         private int depth;
 
@@ -932,7 +932,7 @@ public class GridPathFinding implements SearchDomain {
         /**
          * A default constructor of the class
          */
-        private GridPathFindingState() { }
+        public GridPathFindingState() { }
 
         /**
          * A copy constructor
