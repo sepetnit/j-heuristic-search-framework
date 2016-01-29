@@ -469,7 +469,7 @@ public class BEES implements SearchAlgorithm {
             this.fHat = this.g + this.hHat;
 
             // This must be true assuming the heuristic is admissible (fHat may only overestimate the cost to the goal)
-            //assert this.fHat >= this.f;
+            assert this.fHat >= this.f;
             assert this.dHat >= 0;
         }
 
@@ -502,10 +502,10 @@ public class BEES implements SearchAlgorithm {
             this.h = state.getH();
 
             // Start of PathMax
-            if (parent != null) {
-                double costsDiff = this.g - parent.g;
-                this.h = Math.max(this.h, (parent.h - costsDiff));
-            }
+            //if (parent != null) {
+            //    double costsDiff = this.g - parent.g;
+            //    this.h = Math.max(this.h, (parent.h - costsDiff));
+            //}
             // End of PathMax
 
             this.d = state.getD();
