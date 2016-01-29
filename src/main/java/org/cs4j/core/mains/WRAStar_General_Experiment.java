@@ -4,7 +4,8 @@ import org.cs4j.core.OutputResult;
 import org.cs4j.core.SearchAlgorithm;
 import org.cs4j.core.SearchDomain;
 import org.cs4j.core.SearchResult;
-import org.cs4j.core.algorithms.WRAStar;
+import org.cs4j.core.algorithms.EESwithNRR;
+import org.cs4j.core.algorithms.WAStarWithNRR;
 import org.cs4j.core.data.Weights;
 import org.cs4j.core.domains.Utils;
 
@@ -159,7 +160,7 @@ public class WRAStar_General_Experiment {
     }
 
     /**
-     * Runs an experiment using the WRAStar and EES algorithms in a SINGLE THREAD!
+     * Runs an experiment using the WAStarWithNRR and EES algorithms in a SINGLE THREAD!
      *
      * @param domain The domain to run with (can be null)
      * @param firstInstance The id of the first instance to solve
@@ -223,7 +224,8 @@ public class WRAStar_General_Experiment {
                 for (Weights.SingleWeight w : weights) {
                     double weight = w.getWeight();
                     output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
-                    SearchAlgorithm alg = new WRAStar();
+                    //SearchAlgorithm alg = new WAStarWithNRR();
+                    SearchAlgorithm alg = new EESwithNRR();
                     alg.setAdditionalParameter("weight", weight + "");
                     alg.setAdditionalParameter("nrr-type", NRRType.toLowerCase());
                     //alg.setAdditionalParameter("bpmx", true + "");
@@ -255,7 +257,7 @@ public class WRAStar_General_Experiment {
     }
 
     /**
-     * Runs an experiment using the WRAStar and EES algorithms in a SINGLE THREAD!
+     * Runs an experiment using the WAStarWithNRR and EES algorithms in a SINGLE THREAD!
      *
      * @param firstInstance The id of the first instance to solve
      * @param instancesCount The number of instances to solve
@@ -340,7 +342,7 @@ public class WRAStar_General_Experiment {
             for (Weights.SingleWeight w : weights) {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
-                SearchAlgorithm alg = new WRAStar();
+                SearchAlgorithm alg = new WAStarWithNRR();
                 alg.setAdditionalParameter("weight", weight + "");
                 alg.setAdditionalParameter("nrr-type", NRRType.toLowerCase());
                 //alg.setAdditionalParameter("bpmx", true + "");
@@ -439,8 +441,9 @@ public class WRAStar_General_Experiment {
     public static void mainGridPathFindingExperimentWithPivotsNRR() {
         // Solve with 100 instances
         // Solve with 100 instances
-        String gridName = "ost003d.map";
-        String[] NRRTypes = new String[]{ "NRR1"};
+        String gridName = "brc202d.map";
+        //"NRR1",
+        String[] NRRTypes = new String[]{ "NRR2"};
         for (String NRRType : NRRTypes) {
             try {
                 WRAStar_General_Experiment experiment = new WRAStar_General_Experiment();
@@ -457,7 +460,7 @@ public class WRAStar_General_Experiment {
                         // Output Path
                         "results/gridpathfinding/generated/"+
                                 gridName+
-                                "/Inconsistent/RANDOM_PIVOT_10/wastar-random-pivot-10-"+
+                                "/Inconsistent/RANDOM_PIVOT_10/ees-random-pivot-10-"+
                                 NRRType.toLowerCase(),
                         //"results/gridpathfinding/generated/maze512-1-6.map/generated+wrastar+extended",
                         null,
@@ -480,8 +483,8 @@ public class WRAStar_General_Experiment {
     public static void main(String[] args) {
         //Utils.disablePrints();
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        //WRAStar_General_Experiment.mainGridPathFindingExperimentWithPivotsNRR();
-        WRAStar_General_Experiment.mainTopSpin16Experiment();
+        WRAStar_General_Experiment.mainGridPathFindingExperimentWithPivotsNRR();
+        //WRAStar_General_Experiment.mainTopSpin16Experiment();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }
