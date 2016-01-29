@@ -32,12 +32,20 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
     private Comparator<K> sComp;
     private Comparator<K> vComp;
 
+    private int size;
+
     public RBTree(Comparator<K> sComp, Comparator<K> vComp) {
         this.root = null;
         this.sComp = sComp;
         this.vComp = vComp;
+        this.size = 0;
         verifyProperties();
     }
+
+    public int size() {
+        return this.size;
+    }
+
     public void verifyProperties() {
         if (VERIFY_RBTREE) {
             verifyProperty1(root);
@@ -113,6 +121,7 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         RBTreeNode<K,V> min = minimumNode(root);
         delete(min);
         min.key.setNode(null);
+        --this.size;
         return min.value;
     }
     public V peek() {
@@ -214,6 +223,7 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         }
         insertCase1(insertedNode);
         verifyProperties();
+        ++this.size;
     }
     private void insertCase1(RBTreeNode<K,V> n) {
         if (n.parent == null)
@@ -266,6 +276,7 @@ public class RBTree<K extends RBTreeElement<K,V>,V> {
         delete(n);
         key.setNode(null);
         verifyProperties();
+        --this.size;
     }
     private void delete(RBTreeNode<K,V> n) {
         if (n == null)

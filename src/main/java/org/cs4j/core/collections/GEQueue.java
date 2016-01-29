@@ -29,9 +29,11 @@ public class GEQueue<E extends SearchQueueElement & RBTreeElement<E, E>> {
                     break;
                 }
                 case REMOVE: {
-                    // Remove from focal if the element is contained there
-                    assert e.getIndex(GEQueue.this.id) != -1;
-                    GEQueue.this.focal.remove(e);
+                    if (e.getIndex(GEQueue.this.id) != -1) {
+                        // Remove from focal if the element is contained there
+                        assert e.getIndex(GEQueue.this.id) != -1 : e.toString() + " " + GEQueue.this.id;
+                        GEQueue.this.focal.remove(e);
+                    }
                     break;
                 }
             }
@@ -50,6 +52,10 @@ public class GEQueue<E extends SearchQueueElement & RBTreeElement<E, E>> {
 
     public boolean isEmpty() {
         return this.open.peek() == null;
+    }
+
+    public int size() {
+        return this.open.size();
     }
 
     /**
