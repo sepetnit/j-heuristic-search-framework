@@ -34,17 +34,14 @@ public class EESwithNRR extends EES {
 
     private static final int QID = 0;
 
-    private static final Map<String, Class> EESNRRPossibleParameters;
+    private static final Map<String, Class> EESWithNRRPossibleParameters;
 
     // Declare the parameters that can be tunes before running the search
     static
     {
-        EESNRRPossibleParameters = new HashMap<>();
-        EESwithNRR.EESNRRPossibleParameters.put("weight", Double.class);
+        EESWithNRRPossibleParameters = new HashMap<>();
+        EESwithNRR.EESWithNRRPossibleParameters.put("weight", Double.class);
     }
-
-    // For weighted A*
-    protected double weight;
 
     // TODO: Check if it works ...
     private double wAdmissibilityDeviation;
@@ -78,8 +75,7 @@ public class EESwithNRR extends EES {
     private RERUN_TYPES rerun;
 
     public EESwithNRR() {
-        // Default values
-        this.weight = 1.0;
+        super();
         this.useBPMX = false;
         // By default - not deviation from the actual weight is permitted
         this.wAdmissibilityDeviation = 1.0d;
@@ -96,7 +92,7 @@ public class EESwithNRR extends EES {
 
     @Override
     public Map<String, Class> getPossibleParameters() {
-        return EESwithNRR.EESNRRPossibleParameters;
+        return EESwithNRR.EESWithNRRPossibleParameters;
     }
 
     @Override
@@ -145,6 +141,7 @@ public class EESwithNRR extends EES {
                         throw new IllegalArgumentException();
                     }
                 }
+                break;
             }
             default: {
                 // Call the function from EES
@@ -187,16 +184,22 @@ public class EESwithNRR extends EES {
      *
      * @return Whether the calculated solution is within the bound
      */
-    private boolean checkSolutionWithinTheBound(double solutionCost, double deviatedWeight, double previousBestF) {
+    private boolean checkSolutionWithinTheBound(double solutionCost, double deviatedWeight,
+                                                double previousBestF, double[] bestF) {
         double optimalCost = this.domain.getOptimalSolutionCost();
+        // TODO: This is ugly ...
+        bestF[0] = this.getBestF(previousBestF);
         double suboptimalBoundSup = (optimalCost != -1) ?
                 (solutionCost / optimalCost) :
-                (solutionCost / this.getBestF(previousBestF));
+                (solutionCost / bestF[0]);
         System.out.println("[INFO] Approximated suboptimal bound is " + suboptimalBoundSup);
         if (suboptimalBoundSup <= deviatedWeight) {
             System.out.println("[INFO] Bound is sufficient (required: " + deviatedWeight + ", got: " +
                     suboptimalBoundSup + ")");
             return true;
+        } else {
+            System.out.println("[INFO] Insufficient bound (" + suboptimalBoundSup + " > " +
+                    deviatedWeight + ")");
         }
         return false;
     }
@@ -236,7 +239,18 @@ public class EESwithNRR extends EES {
         }
     }
 
-    public SearchResult searchNRR1(SearchDomain domain, double deviatedWeight) {
+    @Override
+    protected void _initDataStructures(boolean clearOpen, boolean clearIncons, boolean clearClosed) {
+        if (clearIncons || this.incons == null) {
+            this.incons = new HashMap<>();
+        }
+        // Call previous ...
+        super._initDataStructures(clearOpen, clearIncons, clearClosed);
+
+    }
+
+
+    public SearchResult searchNRR1(double deviatedWeight) {
         double solutionCost = Double.MAX_VALUE;
 
         // This is the result for the first NR
@@ -249,23 +263,21 @@ public class EESwithNRR extends EES {
             SearchResult.Solution currentSolution = nrResult.getSolutions().get(0);
             solutionCost = currentSolution.getCost();
             // No previous bestF - just pass -1.0d
-            if (this.checkSolutionWithinTheBound(solutionCost, deviatedWeight, -1.0d)) {
+            if (this.checkSolutionWithinTheBound(solutionCost, deviatedWeight, -1.0d, new double[1])) {
                 return nrResult;
             }
         }
         // Otherwise, solve with AR
-        SearchResultImpl arResult = new SearchResultImpl();
         System.out.println("[INFO] Failed with NR, tries again with AR from scratch");
 
         // Now, search with reopening
         this.reopen = true;
 
-        // Clear all the data structures (we are running from scratch)
-        this._initDataStructures(true, true, true);
+        SearchResult arResult = super.search(domain);
 
         if (arResult.hasSolution()) {
             // Add previous iteration of NR in any case (TODO: Required?)
-            arResult.addIteration(1, solutionCost,
+            ((SearchResultImpl)arResult).addIteration(1, solutionCost,
                     nrResult.getExpanded(), nrResult.getGenerated());
             arResult.increase(nrResult);
             System.out.println("[INFO] NR failed AR from scratch succeeded.");
@@ -277,14 +289,13 @@ public class EESwithNRR extends EES {
         return nrResult;
     }
 
-    public SearchResult searchNRR1dot5or2(SearchDomain domain, double deviatedWeight, int nrIterationsCount) {
+    public SearchResult searchNRR1dot5or2(double deviatedWeight, int nrIterationsCount) {
 
         // In general reopen is false, let's make it true if required
         this.reopen = false;
 
         double maxPreviousCost = Double.MAX_VALUE;
-        double suboptimalBoundSup = Double.MAX_VALUE;
-        double bestF = -1.0d;
+        double bestF[] = new double[]{-1.0d};
 
         SearchResultImpl accumulatorResult = new SearchResultImpl();
         // This is for storing the last result
@@ -293,32 +304,33 @@ public class EESwithNRR extends EES {
 
         boolean shouldReturn = false;
 
+        // Clear all the data structures - for a fresh search!
+        this._initDataStructures(true, true, true);
+
+        // Prepare (create the initial node and insert into the lists)
+        this.prepareForSearch();
+
         while (true) {
             // Decrease the NR iterations
             --nrIterationsCount;
-            // In case reopening should be stopped - assure this here
-            if (nrIterationsCount < 0) {
-                reopen = true;
-            }
 
-            SearchResultImpl currentResult = new SearchResultImpl();
-            this._search(
-                    // Don't clear anything - repair is performed!
-                    false, false,
-                    // Use the last solution cost for pruning (by F value)?
-                    // TODO? Last cost?? The heuristic function is not monotonic!
-                    Integer.MAX_VALUE);
+            SearchResult currentResult =
+                    this._search(
+                        // Don't clear anything - repair is performed!
+                        false, false,
+                        // Use the last solution cost for pruning (by F value)?
+                        // TODO? Last cost?? The heuristic function is not monotonic!
+                        Integer.MAX_VALUE);
             // Add current iteration
             accumulatorResult.addIteration(1, maxPreviousCost,
                     currentResult.getExpanded(), currentResult.getGenerated());
             // We will break here if we found a valid solution, or if AR was performed and there is no solution ...
-            if (this.reopen) {
-                shouldReturn = true;
-            } else {
+
+            if (!this.reopen) {
                 double solutionCost = maxPreviousCost;
                 if (currentResult.hasSolution()) {
                     // Store the lastResult
-                    lastResult = currentResult;
+                    lastResult = (SearchResultImpl)currentResult;
                     // Get current solution and check if it is sufficient
                     SearchResult.Solution currentSolution = currentResult.getSolutions().get(0);
                     solutionCost = currentSolution.getCost();
@@ -326,12 +338,12 @@ public class EESwithNRR extends EES {
                     maxPreviousCost = solutionCost;
                 }
                 // In case we are within the bound - let's mark it!
-                if (this.checkSolutionWithinTheBound(solutionCost, deviatedWeight, bestF)) {
+                if (this.checkSolutionWithinTheBound(solutionCost, deviatedWeight, bestF[0], bestF)) {
                     shouldReturn = true;
-                } else {
-                    System.out.println("[INFO] Insufficient bound (" + suboptimalBoundSup + " > " +
-                            deviatedWeight + "), Exp: " + lastResult.getExpanded());
                 }
+            } else {
+                // In case of reopening we must return immediately
+                shouldReturn = true;
             }
 
             // Now check if we should return
@@ -343,19 +355,19 @@ public class EESwithNRR extends EES {
                 // Note that the finalResult is still based on only the previous counters, thus, adding to local will
                 // reveal to the total value of counters
                 currentResult.increase(accumulatorResult);
-                currentResult.addIterations(accumulatorResult);
+                ((SearchResultImpl)currentResult).addIterations(accumulatorResult);
                 return currentResult;
             }
 
-            // TODO: This check is an hack (even if there is no solution we should update the accumulator value)
+            // TODO: This check is a hack (even if there is no solution we should update the accumulator value)
             if (currentResult.hasSolution()) {
                 // Otherwise, another iteration should be performed
                 accumulatorResult.increase(currentResult);
             }
 
-            assert nrIterationsCount >= 0;
+            assert nrIterationsCount >= 0 : "nrIterationsCount is " + nrIterationsCount;
             System.out.println("[INFO] Failed with NR, moves " + this.incons.size() + " states to open and tries again");
-
+            System.out.println("[INFO] Expanded " + currentResult.getExpanded() + " nodes during the last iteration");
             accumulatorResult.reopened += this.incons.size();
 
             // Now, we should update OPEN+FOCAL with the values from INCONS
@@ -371,31 +383,44 @@ public class EESwithNRR extends EES {
                 this._insertNode(current, oldBest);
             }
 
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+            // No option to continue looking for solution ...
+            if (this.gequeue.isEmpty()) {
+                System.out.println("[INFO] Open is empty - returns previous solution");
+                // A safety
+                if (!currentResult.hasSolution()) {
+                    currentResult = lastResult;
+                }
+                ((SearchResultImpl)currentResult).addIterations(accumulatorResult);
+                // Since we already increased the accumulator result - just use its value
+                ((SearchResultImpl)currentResult).copyCounters(accumulatorResult);
+                return currentResult;
+            }
+
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
             // Let's update the best node in OPEN and FOCAL
             Node newBest = this.gequeue.peekOpen();
+
             int fHatChange = this.openComparator.compareIgnoreTies(newBest, oldBest);
             this.gequeue.updateFocal(oldBest, newBest, fHatChange);
 
             this.incons.clear();
 
-            System.out.println("[INFO] Open now contains " + this.gequeue.isEmpty() + " states; runs again");
-
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-            // No option to continue looking for solution ...
-            if (this.gequeue.isEmpty()) {
-                // A safety
-                if (!currentResult.hasSolution()) {
-                    currentResult = lastResult;
-                }
-                currentResult.addIterations(accumulatorResult);
-                // Since we already increased the accumulator result - just use its value
-                currentResult.copyCounters(accumulatorResult);
-                return currentResult;
-            }
+            System.out.println("[INFO] Open now contains " + this.gequeue.size() + " states");
+
             // Back to the start of the loop
             System.out.println("[INFO] Calling another search iteration (maxCost = " + maxPreviousCost +
-                    ", bestF: " + bestF + ")");
+                    ", bestF: " + bestF[0] + ")");
+
+            // In case reopening should be stopped - assure this here
+            if (nrIterationsCount <= 0) {
+                this.reopen = true;
+                System.out.println("[INFO] Next iteration will be with reopening");
+            }
         }
         // TODO: Later!
         /*
@@ -428,15 +453,16 @@ public class EESwithNRR extends EES {
                             true, true,
                             // Bound is infinity
                             Double.MAX_VALUE);
-                }
-            case NRR1: {
-                toReturn = this.searchNRR1(domain, deviatedWeight);
-            }
-            case NRR1dot5: {
-                toReturn = this.searchNRR1dot5or2(domain, deviatedWeight, 1);
-            }
-            case NRR2: {
-                toReturn = this.searchNRR1dot5or2(domain, deviatedWeight, Integer.MAX_VALUE);
+                break;
+            } case NRR1: {
+                toReturn = this.searchNRR1(deviatedWeight);
+                break;
+            } case NRR1dot5: {
+                toReturn = this.searchNRR1dot5or2(deviatedWeight, 1);
+                break;
+            } case NRR2: {
+                toReturn = this.searchNRR1dot5or2(deviatedWeight, Integer.MAX_VALUE);
+                break;
             }
         }
         // Restore the value of this.reopen
