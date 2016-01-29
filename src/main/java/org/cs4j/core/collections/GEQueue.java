@@ -58,6 +58,10 @@ public class GEQueue<E extends SearchQueueElement & RBTreeElement<E, E>> {
         return this.open.size();
     }
 
+    public int focalSize() {
+        return this.focal.size();
+    }
+
     /**
      * Add to queue
      *

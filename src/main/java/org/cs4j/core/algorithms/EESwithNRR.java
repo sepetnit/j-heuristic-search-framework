@@ -403,14 +403,15 @@ public class EESwithNRR extends EES {
             // Let's update the best node in OPEN and FOCAL
             Node newBest = this.gequeue.peekOpen();
 
-            int fHatChange = this.openComparator.compareIgnoreTies(newBest, oldBest);
-            this.gequeue.updateFocal(oldBest, newBest, fHatChange);
+                int fHatChange = this.openComparator.compareIgnoreTies(newBest, oldBest);
+                this.gequeue.updateFocal(oldBest, newBest, fHatChange);
 
             this.incons.clear();
 
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-            System.out.println("[INFO] Open now contains " + this.gequeue.size() + " states");
+            System.out.println("[INFO] Open now contains " + this.gequeue.size() + " states (" +
+                this.gequeue.focalSize() + " states in focal)");
 
             // Back to the start of the loop
             System.out.println("[INFO] Calling another search iteration (maxCost = " + maxPreviousCost +
