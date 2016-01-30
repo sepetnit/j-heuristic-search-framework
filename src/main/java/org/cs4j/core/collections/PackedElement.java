@@ -48,12 +48,7 @@ public class PackedElement {
 
     @Override
     public int hashCode() {
-        int result = 0;
-        // Allow overflow
-        for (long current : this.internal) {
-            result += current;
-        }
-        return result;
+        return (int)this.getLongsSum();
     }
 
     @Override
