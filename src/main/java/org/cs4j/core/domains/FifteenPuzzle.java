@@ -375,16 +375,18 @@ public final class FifteenPuzzle implements SearchDomain {
     public FifteenPuzzle(FifteenPuzzle other, InputStream stream) {
         // Call a regular constructor
         this(stream);
-        // Copy heuristic related data
-        this.heuristicType = other.heuristicType;
-        this.useReflection = other.useReflection;
-        this.reflectedIndexes = other.reflectedIndexes;
-        this.pdb5_1 = other.pdb5_1;
-        this.pdb5_2 = other.pdb5_2;
-        this.pdb5_3 = other.pdb5_3;
-        this.pdb7 = other.pdb7;
-        this.pdb8 = other.pdb8;
-        this.pdbRemainsOnDisk = other.pdbRemainsOnDisk;
+        if (other != null) {
+            // Copy heuristic related data
+            this.heuristicType = other.heuristicType;
+            this.useReflection = other.useReflection;
+            this.reflectedIndexes = other.reflectedIndexes;
+            this.pdb5_1 = other.pdb5_1;
+            this.pdb5_2 = other.pdb5_2;
+            this.pdb5_3 = other.pdb5_3;
+            this.pdb7 = other.pdb7;
+            this.pdb8 = other.pdb8;
+            this.pdbRemainsOnDisk = other.pdbRemainsOnDisk;
+        }
     }
 
     /**
