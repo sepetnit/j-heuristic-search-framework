@@ -249,7 +249,6 @@ public class EESwithNRR extends EES {
 
     }
 
-
     public SearchResult searchNRR1(double deviatedWeight) {
         double solutionCost = Double.MAX_VALUE;
 
@@ -289,6 +288,12 @@ public class EESwithNRR extends EES {
         return nrResult;
     }
 
+    protected void _insertNodeNoCleanupForICL(Node node, Node oldBest) {
+        this.gequeue.add(node, oldBest);
+        this.cleanup.add(node);
+        this.closed.put(node.packed, node);
+    }
+
     public SearchResult searchNRR1dot5or2(double deviatedWeight, int nrIterationsCount) {
 
         // In general reopen is false, let's make it true if required
@@ -320,7 +325,7 @@ public class EESwithNRR extends EES {
                         false, false,
                         // Use the last solution cost for pruning (by F value)?
                         // TODO? Last cost?? The heuristic function is not monotonic!
-                        Integer.MAX_VALUE);
+                        maxPreviousCost);
             // Add current iteration
             accumulatorResult.addIteration(1, maxPreviousCost,
                     currentResult.getExpanded(), currentResult.getGenerated());
@@ -366,8 +371,9 @@ public class EESwithNRR extends EES {
             }
 
             assert nrIterationsCount >= 0 : "nrIterationsCount is " + nrIterationsCount;
-            System.out.println("[INFO] Failed with NR, moves " + this.incons.size() + " states to open and tries again");
             System.out.println("[INFO] Expanded " + currentResult.getExpanded() + " nodes during the last iteration");
+            System.out.println("[INFO] Open now contains " + this.gequeue.size() + " states");
+            System.out.println("[INFO] Failed with NR, moves " + this.incons.size() + " states to open and tries again");
             accumulatorResult.reopened += this.incons.size();
 
             // Now, we should update OPEN+FOCAL with the values from INCONS
@@ -377,10 +383,16 @@ public class EESwithNRR extends EES {
             // First, take the best node from the open list (best f^)
             Node oldBest = this.gequeue.peekOpen();
 
+            // In case gequeue is empty it means we need to find the best node and make it to be in focal ...
+            if (oldBest == null) {
+                // Take the best node from cleanupForICL
+                oldBest = this.cleanupForICL.peek();
+            }
+
             // Now, Move all states from incons to open
             for (Node current : this.incons.values()) {
                 // Insert the node to open+focal+cleanup!
-                this._insertNode(current, oldBest);
+                this._insertNodeNoCleanupForICL(current, oldBest);
             }
 
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -403,8 +415,8 @@ public class EESwithNRR extends EES {
             // Let's update the best node in OPEN and FOCAL
             Node newBest = this.gequeue.peekOpen();
 
-                int fHatChange = this.openComparator.compareIgnoreTies(newBest, oldBest);
-                this.gequeue.updateFocal(oldBest, newBest, fHatChange);
+            int fHatChange = this.openComparator.compareIgnoreTies(newBest, oldBest);
+            this.gequeue.updateFocal(oldBest, newBest, fHatChange);
 
             this.incons.clear();
 

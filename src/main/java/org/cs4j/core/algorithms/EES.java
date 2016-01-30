@@ -46,7 +46,7 @@ public class EES implements SearchAlgorithm {
     protected BinHeap<Node> cleanup;
 
     // cleanupForICL is implemented as a binary heap and actually contains nodes ordered by their f values
-    // its purpose it to contains all the nodes from OPEN+ICL, sorted by their f (not Wf) values
+    // its purpose it to contain all the nodes from OPEN+ICL, sorted by their f (not Wf) values
     // this is in order to estimate the w-suboptimality of the found goal
     // TODO: This implementation is very inefficient, we will update it more efficiently later ...
     protected BinHeap<Node> cleanupForICL;
@@ -110,7 +110,7 @@ public class EES implements SearchAlgorithm {
         Node bestF = this.getNodeWithBestF();
 
         if (bestDHat == null) {
-            System.out.println("Empty Focal!");
+            //System.out.println("Empty Focal!");
         }
 
         // best dHat (d^);
@@ -128,8 +128,8 @@ public class EES implements SearchAlgorithm {
             // Otherwise, take the best f from cleanup
         } else {
             toReturn = this.cleanup.poll();
-            this.cleanupForICL.remove(toReturn);
             this.gequeue.remove(toReturn);
+            this.cleanupForICL.remove(toReturn);
         }
         return toReturn;
     }
@@ -260,9 +260,15 @@ public class EES implements SearchAlgorithm {
         while (this.shouldRun()) {
             // First, take the best node from the open list (best f^)
             Node oldBest = this.gequeue.peekOpen();
+
             // Now this node is in closed only, and not in open
             Node bestNode = this._selectNode();
-            // If we are out of nodes - exit
+
+            // Debug! TODO: Remove it
+            if (this.gequeue.isEmpty()) {
+                System.out.println("[WARNING] GEQueue became empty");
+            }
+
             // TODO: Can it happen?
             if (bestNode == null) {
                 break;
@@ -274,9 +280,9 @@ public class EES implements SearchAlgorithm {
             }
 
             // Extract the state from the chosen node
-            State state = domain.unpack(bestNode.packed);
+            State state = this.domain.unpack(bestNode.packed);
             // Check if it is a goal
-            if (domain.isGoal(state)) {
+            if (this.domain.isGoal(state)) {
                 goal = bestNode;
                 break;
             }
@@ -318,6 +324,7 @@ public class EES implements SearchAlgorithm {
                             ++result.opupdated;
                             this.gequeue.remove(dupChildNode);
                             this.cleanup.remove(dupChildNode);
+                            this.cleanupForICL.remove(dupChildNode);
                             this.closed.remove(dupChildNode.packed);
 
                             // Update all the pointers
@@ -361,27 +368,41 @@ public class EES implements SearchAlgorithm {
 
                                     // Update all the pointers
                                     this._updateParentAndChildPointers(dupChildNode, bestNode, childNode);
+                                    if (!this.incons.containsKey(childNode.packed)) {
+                                        // Also, add the node into cleanupForICL (contains all the nodes for OPEN+ICL)
+                                        this.cleanupForICL.add(childNode);
+                                    } else {
+                                        Node previousChildNode = this.incons.get(childNode.packed);
+                                        this.cleanupForICL.remove(previousChildNode);
+                                        this.cleanupForICL.add(childNode);
+                                    }
                                     // Insert into incons (this doesn't mean it will be used!)
                                     this.incons.put(childNode.packed, childNode);
-                                    // Also, add the node into cleanupForICL (contains all the nodes for OPEN+ICL)
-                                    this.cleanupForICL.add(childNode);
-
                                 }
 
                             }
                         }
                     }
-                    // New node - not in CLOSED
+                // New node - not in CLOSED
                 } else {
                     this._insertNode(childNode, oldBest);
                     bestNode.children.put(childNode.packed, childNode);
                 }
             }
 
-            // After the old-best node was expanded, let's update the best node in OPEN and FOCAL
-            Node newBest = this.gequeue.peekOpen();
-            int fHatChange = this.openComparator.compareIgnoreTies(newBest, oldBest);
-            this.gequeue.updateFocal(oldBest, newBest, fHatChange);
+            // Note that gequeue may become empty at this stage!
+            if (!this.gequeue.isEmpty()) {
+                // After the old-best node was expanded, let's update the best node in OPEN and FOCAL
+                Node newBest = this.gequeue.peekOpen();
+                int fHatChange = this.openComparator.compareIgnoreTies(newBest, oldBest);
+                this.gequeue.updateFocal(oldBest, newBest, fHatChange);
+            }
+
+            // Debug:
+            //if (this.cleanupForICL.size() != this.cleanup.size() + this.incons.size()) {
+            //    System.out.println(this.cleanupForICL.size() + " != " + this.cleanup.size() + "+" + this.incons.size() + " (= " +
+            //            (this.cleanup.size() + this.incons.size()) +")");
+            //}
         }
 
         result.stopTimer();
@@ -578,7 +599,8 @@ public class EES implements SearchAlgorithm {
         // The immediate children of the node
         private Map<PackedElement, Node> children;
 
-        private PackedElement packed;
+        // Public in order to be used by subclassed (specifically EESwithNRR
+        public PackedElement packed;
         private RBTreeNode<Node, Node> rbnode = null;
 
         /**
@@ -611,7 +633,7 @@ public class EES implements SearchAlgorithm {
          * NOTE: if our estimate of sseDMean is ever as large as one, we assume we have infinite cost-to-go.
          */
         private double _computeHHat() {
-            double hHat = Double.MAX_VALUE;
+            double hHat = this.h;
             double sseDMean = this._calculateSSEDMean();
             if (sseDMean < 1) {
                 double sseHMean = this._calculateSSEHMean();
@@ -626,7 +648,7 @@ public class EES implements SearchAlgorithm {
          * NOTE: if our estimate of sseDMean is ever as large as one, we assume we have infinite distance-to-go
          */
         private double _computeDHat() {
-            double dHat = Double.MAX_VALUE;
+            double dHat = this.d;
             double sseDMean = this._calculateSSEDMean();
             if (sseDMean < 1) {
                 dHat = this.d / (1 - sseDMean);
@@ -689,10 +711,10 @@ public class EES implements SearchAlgorithm {
             this.h = state.getH();
 
             // Start of PathMax
-            if (parent != null) {
-                double costsDiff = this.g - parent.g;
-                this.h = Math.max(this.h, (parent.h - costsDiff));
-            }
+            //if (parent != null) {
+            //    double costsDiff = this.g - parent.g;
+            //    this.h = Math.max(this.h, (parent.h - costsDiff));
+            //}
             // End of PathMax
 
             this.d = state.getD();
@@ -736,6 +758,11 @@ public class EES implements SearchAlgorithm {
         public RBTreeNode<Node, Node> getNode() {
             return this.rbnode;
 
+        }
+
+        @Override
+        public int hashCode() {
+            return (int)this.packed.getLongsSum();
         }
 
         @Override
