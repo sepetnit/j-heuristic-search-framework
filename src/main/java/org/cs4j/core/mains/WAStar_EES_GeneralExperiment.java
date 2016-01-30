@@ -441,7 +441,7 @@ public class WAStar_EES_GeneralExperiment {
 
         // Create the first domain by reading the first instance
         //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB78(firstInstance + ".in");
-        //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB555(firstInstance + ".in");
+        //domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(firstInstance + ".in");
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
@@ -710,7 +710,7 @@ public class WAStar_EES_GeneralExperiment {
                     // Output Path
                     //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-80-md",
-                    "results/gridpathfinding/generated/brc202d.map/generated+ees+extended",
+                    "results/gridpathfinding/generated/den400d.map/generated+ees+extended",
                     //"results/fifteenpuzzle/korf100-real/pdb78/generated-wastar+extended",
                     //"results/fifteenpuzzle/korf100/generated-wastar+extended",
                     //"results/fifteenpuzzle/korf100/pdb555/generated-wastar+optimal",
@@ -767,10 +767,10 @@ public class WAStar_EES_GeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        //Utils.disablePrints();
+        Utils.disablePrints();
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainTopSpinExperimentSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }

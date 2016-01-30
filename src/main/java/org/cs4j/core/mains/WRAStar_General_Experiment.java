@@ -443,7 +443,7 @@ public class WRAStar_General_Experiment {
         // Solve with 100 instances
         String gridName = "brc202d.map";
         //"NRR1",
-        String[] NRRTypes = new String[]{ "NRR2"};
+        String[] NRRTypes = new String[]{  "NRR1", "NRR1.5", "NRR2"};
         for (String NRRType : NRRTypes) {
             try {
                 WRAStar_General_Experiment experiment = new WRAStar_General_Experiment();
@@ -481,7 +481,7 @@ public class WRAStar_General_Experiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        //Utils.disablePrints();
+        Utils.disablePrints();
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
         WRAStar_General_Experiment.mainGridPathFindingExperimentWithPivotsNRR();
         //WRAStar_General_Experiment.mainTopSpin16Experiment();

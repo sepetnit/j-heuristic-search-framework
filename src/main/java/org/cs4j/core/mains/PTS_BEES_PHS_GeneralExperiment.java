@@ -13,6 +13,8 @@ import org.cs4j.core.domains.Utils;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,8 +58,8 @@ public class PTS_BEES_PHS_GeneralExperiment {
         // Write the header line
         outputResult.writeln(
                 "InstanceID,MaxCost," +
-                        "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-Exp,AR-Dup,AR-Oup,AR-Rep," +
-                        "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-Exp,NR-Dup,NR-Oup,NR-Rep,"
+                        "AR-Slv,AR-Dep,AR-Ggl,AR-Gen,AR-FExp,AR-Exp,AR-Dup,AR-Oup,AR-Rep,AR-Itc,AR-Tme," +
+                        "NR-Slv,NR-Dep,NR-Ggl,NR-Gen,NR-FExp,NR-Exp,NR-Dup,NR-Oup,NR-Rep,NR-Itc,NR-Tme"
         );
     }
 
@@ -77,10 +79,13 @@ public class PTS_BEES_PHS_GeneralExperiment {
                 // no-cost
                 -1,
                 result.getGenerated(),
+                result.getFirstIterationExpanded(),
                 result.getExpanded(),
                 result.getDuplicates(),
                 result.getUpdatedInOpen(),
                 result.getReopened(),
+                result.getIterationsCount(),
+                result.getWallTimeMillis(),
         };
     }
 
@@ -98,10 +103,13 @@ public class PTS_BEES_PHS_GeneralExperiment {
                 solution.getLength(),
                 solution.getCost(),
                 result.getGenerated(),
+                result.getFirstIterationExpanded(),
                 result.getExpanded(),
                 result.getDuplicates(),
                 result.getUpdatedInOpen(),
                 result.getReopened(),
+                result.getIterationsCount(),
+                result.getWallTimeMillis(),
         };
     }
 
@@ -115,11 +123,14 @@ public class PTS_BEES_PHS_GeneralExperiment {
         //          Dep- -1,
         //          Ggl- -1,
         //          Gen-  0,
+        //          FExp- 0,
         //          Exp-  0,
         //          Dup-  0,
         //          Oup-  0 (updated in open),
-        //          Rep-  0
-        return new double[]{-1, -1, -1, 0, 0, 0, 0, 0};
+        //          Rep-  0,
+        //          Itc-  0,
+        //          Tme-  0,
+        return new double[]{-1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0};
     }
 
     /**
@@ -279,9 +290,11 @@ public class PTS_BEES_PHS_GeneralExperiment {
     public String[] runExperimentSingleThreaded(int firstInstance, int instancesCount, int[] maxCosts,
                                                 String outputPath, boolean needHeader) throws IOException {
 
+        SearchDomain domain;
+
         // Run using PHS, BEES, PTS
         //SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new BEES(), new PTS(), new PHS()};
-        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new PTS()};
+        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new BEES()};
         List<String> resultFiles = new ArrayList<>();
 
         for (SearchAlgorithm alg : algorithms) {
@@ -295,20 +308,32 @@ public class PTS_BEES_PHS_GeneralExperiment {
             if (maxCosts == null) {
                 realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                         new MaxCostsCreationElement[]{
+                                // Korf-100 (PDB-555)
+                                new MaxCostsCreationElement(40, 2, 100),
+                                // Pancakes-40
+                                //new MaxCostsCreationElement(20, 1, 80),
+                                // DockyardRobot
+                                //new MaxCostsCreationElement(10, 5, 400)
+                                // VacuumRobot
                                 //new MaxCostsCreationElement(0, 5, 2000)
+                                // ost003d.map
                                 //new MaxCostsCreationElement(80, 5, 800)
+                                // den400d.map
                                 //new MaxCostsCreationElement(100, 5, 800)
-                                new MaxCostsCreationElement(300, 5, 2000)
+                                // brc002d.map
+                                //new MaxCostsCreationElement(300, 5, 2000)
                         }
                 );
                 System.out.println("[WARNING] Created default costs array");
             }
 
+            domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB555("1.in");
+
             // Go over all the possible combinations and solve!
             for (int i = firstInstance; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
-                SearchDomain domain =
-                        DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+                //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
+                domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
                 // Bypass not found files
                 if (domain == null) {
                     continue;
@@ -356,13 +381,14 @@ public class PTS_BEES_PHS_GeneralExperiment {
      *
      * @throws java.io.IOException
      */
-    public String[] runExperimentSingleThreadedWithReRun(int firstInstance, int instancesCount, int[] maxCosts,
+    public String[] runExperimentSingleThreadedWithReRun(String NRRType,
+                                                         int firstInstance, int instancesCount, int[] maxCosts,
                                                          String outputPath) throws IOException {
-
+        SearchDomain domain;
 
         // Run using PHS, BEES, PTS
         //SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new PTS(), new BEES(), new PHS()};
-        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new PTS()};
+        SearchAlgorithm[] algorithms = new SearchAlgorithm[]{new BEES()};
         List<String> resultFiles = new ArrayList<>();
 
         for (SearchAlgorithm alg : algorithms) {
@@ -372,7 +398,17 @@ public class PTS_BEES_PHS_GeneralExperiment {
             // Write the header line
             output.writeln(
                     "InstanceID,MaxCost," +
-                            "NAR-Slv,NAR-Dep,NAR-Cst,NAR-Gen,NAR-Exp,NAR-Dup,NAR-Oup,NAR-Rep,"
+                            NRRType + "-Slv," +
+                            NRRType + "-Dep," +
+                            NRRType + "-Cst," +
+                            NRRType + "-Gen," +
+                            NRRType + "-FExp," +
+                            NRRType + "-Exp," +
+                            NRRType + "-Dup," +
+                            NRRType + "-Oup," +
+                            NRRType + "-Rep," +
+                            NRRType + "-Itc," + // Iterations Count
+                            NRRType + "-Tme,"
             );
 
             int[] realMaxCosts = maxCosts;
@@ -381,6 +417,10 @@ public class PTS_BEES_PHS_GeneralExperiment {
             if (maxCosts == null) {
                 realMaxCosts = PTS_BEES_PHS_GeneralExperiment.createMaxCosts(
                         new MaxCostsCreationElement[]{
+                                // Korf-100 (PDB-555)
+                                new MaxCostsCreationElement(40, 2, 100),
+                                // Pancakes-40
+                                //new MaxCostsCreationElement(20, 1, 80),
                                 // DockyardRobot
                                 //new MaxCostsCreationElement(10, 5, 400)
                                 // VacuumRobot
@@ -390,17 +430,20 @@ public class PTS_BEES_PHS_GeneralExperiment {
                                 // den400d.map
                                 //new MaxCostsCreationElement(100, 5, 800)
                                 // brc002d.map
-                                new MaxCostsCreationElement(300, 5, 2000)
+                                //new MaxCostsCreationElement(300, 5, 2000)
                         }
                 );
                 System.out.println("[WARNING] Created default costs array");
             }
 
+            domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB555("1.in");
+
             // Go over all the possible combinations and solve!
             for (int i = firstInstance; i <= instancesCount; ++i) {
                 // Create the domain by reading the relevant instance file
-                SearchDomain domain =
-                        DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+                domain =
+                        //DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+                          DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
                 // Bypass not found files
                 if (domain == null) {
                     continue;
@@ -409,7 +452,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     output.write(i + "," + maxCost + ",");
                     alg.setAdditionalParameter("max-cost", maxCost + "");
                     alg.setAdditionalParameter("reopen", false + "");
-                    alg.setAdditionalParameter("rerun-type-if-not-found", "continue-ar");
+                    alg.setAdditionalParameter("nrr-type", NRRType.toLowerCase());
                     System.out.println("[INFO] Instance: " + i + ", MaxCost: " + maxCost);
                     try {
                         SearchResult result = alg.search(domain);
@@ -533,7 +576,7 @@ public class PTS_BEES_PHS_GeneralExperiment {
             PTS_BEES_PHS_GeneralExperiment experiment = new PTS_BEES_PHS_GeneralExperiment();
             experiment.runExperimentSingleThreaded(
                     // First instance ID
-                    1,
+                    19,
                     // Instances Count
                     100,
                     // Max costs
@@ -542,7 +585,9 @@ public class PTS_BEES_PHS_GeneralExperiment {
                     //"results/vacuumrobot/generated-10-dirt/last_<alg-name>-0-5-2000",
                     //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800",
                     //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800",
-                    "results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000",
+                    //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000",
+                    //"results/pancakes/generated-40/PTS-BEES/<alg-name>-20-1-80",
+                    "results/fifteenpuzzle/korf100/pdb555/PTS-BEES/<alg-name>-40-2-100",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -553,24 +598,30 @@ public class PTS_BEES_PHS_GeneralExperiment {
 
     public static void mainGeneralExperimentSingleThreadedWithReRun() {
         // Solve with 100 instances
-        try {
-            PTS_BEES_PHS_GeneralExperiment experiment = new PTS_BEES_PHS_GeneralExperiment();
-            experiment.runExperimentSingleThreadedWithReRun(
-                    // First instance ID
-                    1,
-                    // Instances Count
-                    100,
-                    // Max costs
-                    null,
-                    // Output Path
-                    //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/<alg-name>-10-5-400-rerun");
-                    //"results/vacuumrobot/generated-10-dirt/<alg-name>-0-5-2000-rerun");
-                    //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800-rerun");
-                    "results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000-rerun");
-                    //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800-rerun");
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-            System.exit(-1);
+        String[] NRRTypes = new String[]{"NRR1", "NRR1.5", "NRR2"};
+        for (String NRRType : NRRTypes) {
+            try {
+                PTS_BEES_PHS_GeneralExperiment experiment = new PTS_BEES_PHS_GeneralExperiment();
+                experiment.runExperimentSingleThreadedWithReRun(
+                        NRRType,
+                        // First instance ID
+                        1,
+                        // Instances Count
+                        100,
+                        // Max costs
+                        null,
+                        // Output Path
+                        //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/<alg-name>-10-5-400-rerun");
+                        //"results/vacuumrobot/generated-10-dirt/<alg-name>-0-5-2000-rerun");
+                        //"results/pancakes/generated-40/PTS-BEES/<alg-name>-20-1-80-rerun");
+                        "results/fifteenpuzzle/korf100/pdb555/PTS-BEES/<alg-name>-40-2-100-rerun-" + NRRType.toLowerCase());
+                        //"results/gridpathfinding/generated/ost003d.map/<alg-name>-80-5-800-" + NRRType.toLowerCase());
+                        //"results/gridpathfinding/generated/brc202d.map/<alg-name>-300-5-2000-" + NRRType.toLowerCase());
+                        //"results/gridpathfinding/generated/den400d.map/<alg-name>-100-5-800-rerun-" + NRRType.toLowerCase());
+            } catch(IOException e){
+                System.err.println(e.getMessage());
+                System.exit(-1);
+            }
         }
     }
 
@@ -597,6 +648,9 @@ public class PTS_BEES_PHS_GeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
+        // Disable all the prints
+        Utils.disablePrints();
+
         //PTS_BEES_PHS_GeneralExperiment.cleanAllSearchFiles();
         //PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreaded();
         PTS_BEES_PHS_GeneralExperiment.mainGeneralExperimentSingleThreadedWithReRun();
