@@ -60,10 +60,11 @@ public class PTS implements SearchAlgorithm {
     // Declare the parameters that can be tunes before running the search
     static
     {
+        // TODO: Check here
         PTSPossibleParameters = new HashMap<>();
         PTS.PTSPossibleParameters.put("max-cost", Double.class);
         PTS.PTSPossibleParameters.put("reopen", Boolean.class);
-        PTS.PTSPossibleParameters.put("rerun-type-if-not-found", String.class);
+        PTS.PTSPossibleParameters.put("nrr-type", String.class);
     }
 
     public PTS() {
@@ -352,6 +353,8 @@ public class PTS implements SearchAlgorithm {
             accumulatorResult.increase(currentResult);
             assert nrIterationsCount >= 0;
             System.out.println("[INFO] PTS Failed with NR, moves " + incons.size() + " states to open and tries again");
+            // Update number of reopened states
+            ((SearchResultImpl) accumulatorResult).reopened += this.incons.size();
             for (PackedElement current : this.incons.keySet()) {
                 this.open.add(this.incons.get(current));
             }

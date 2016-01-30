@@ -27,6 +27,18 @@ public class BEES implements SearchAlgorithm {
 
     private static final Map<String, Class> BEESPossibleParameters;
 
+    // Defines the available types of reruning the search if searching with NR failed
+    private enum RERUN_TYPES {
+        // Stop the search (no rerun is available)
+        NO_RERUN,
+        // Rerun the search but now, run with AR
+        NRR1,
+        // Continue the search - expand all the nodes that were not expanded previously
+        NRR1dot5,
+        // Perform the reopening in iterations (NR+ICL, move ICL to OPEN, NR+ICL again, etc.)
+        NRR2
+    }
+
     // Declare the parameters that can be tunes before running the search
     static
     {
@@ -36,37 +48,47 @@ public class BEES implements SearchAlgorithm {
         BEES.BEESPossibleParameters.put("rerun-if-not-found-and-nr", Boolean.class);
     }
 
-
     private SearchDomain domain;
 
+    // The type of re-runing to apply if the search failed to run with NR (no solution of the required cost was found)
+    private RERUN_TYPES rerun;
     // The maximum cost (C) for the search
     private double maxCost;
     // Whether to perform reopening of nodes
     private boolean reopen;
-    // Whether to re-run the algorithm with AR if solution not found and currently NR
-    private boolean rerun;
 
     // open is implemented as a binary heap and actually contains nodes ordered by their dHat(n) values
     // Note that this list contains only nodes which support the following rule: fHat(n) <= C
     private BinHeap<Node> open;
     // cleanup is implemented as a binary heap and actually contains nodes ordered by their f values
     private BinHeap<Node> cleanup;
+    // Inconsistent list
+    protected Map<PackedElement, Node> incons;
     // Closed list
     private Map<PackedElement, Node> closed;
 
     /**
      * Initializes all the data structures required for the search, especially OPEN, FOCAL, CLEANUP and CLOSED lists
      */
-    private void _initDataStructures() {
-        this.open =
-                new BinHeap<>(
-                        new OpenNodeComparator(),
-                        BEES.OPEN_ID);
-        this.cleanup =
-                new BinHeap<>(
-                        new CleanupNodeComparator(),
-                        BEES.CLEANUP_ID);
-        this.closed = new HashMap<>();
+    private void _initDataStructures(boolean clearOpen, boolean clearIncons, boolean clearClosed) {
+        if (clearOpen || this.open == null) {
+            this.open =
+                    new BinHeap<>(
+                            new OpenNodeComparator(),
+                            BEES.OPEN_ID);
+            this.cleanup =
+                    new BinHeap<>(
+                            new CleanupNodeComparator(),
+                            BEES.CLEANUP_ID);
+        }
+        // Note that here if incons is null it means we don't actually need it!
+        if (clearIncons && this.incons != null) {
+            this.incons = new HashMap<>();
+        }
+
+        if (clearClosed || this.closed == null) {
+            this.closed = new HashMap<>();
+        }
     }
 
     /**
@@ -76,8 +98,7 @@ public class BEES implements SearchAlgorithm {
         // Initially, the maxCost is MAX_DOUBLE (Converge to greedy search of dHat(n)) and reopening is allowed
         this.maxCost = Double.MAX_VALUE;
         this.reopen = true;
-        // Initially, no rerun is allowed if NR failed
-        this.reopen = false;
+        this.rerun = RERUN_TYPES.NO_RERUN;
     }
 
     @Override
@@ -126,38 +147,52 @@ public class BEES implements SearchAlgorithm {
             } case "max-cost": {
                 this.maxCost = Double.parseDouble(value);
                 break;
-            } case "rerun-type-if-not-found": {
+            } case "nrr-type": {
                 if (this.reopen) {
                     System.out.println("[ERROR] Can define type of rerun only if reopen is not permitted");
                     throw new IllegalArgumentException();
                 }
                 switch (value) {
-                    case "continue-ar": {
-                        this.rerun = true;
+                    case "nrr1": {
+                        this.rerun = RERUN_TYPES.NRR1;
+                        break;
+                    }
+                    case "nrr1.5": {
+                        this.rerun = RERUN_TYPES.NRR1dot5;
+                        this.incons = new HashMap<>();
+                        break;
+                    }
+                    case "nrr2": {
+                        this.rerun = RERUN_TYPES.NRR2;
+                        this.incons = new HashMap<>();
                         break;
                     }
                     default: {
-                        System.out.println("[ERROR] The available rerun type is (currently) 'continue-ar'");
+                        System.out.println("[ERROR] The available rerun types are 'nrr1' and 'nrr1.5' and 'nrr2'");
                         throw new IllegalArgumentException();
                     }
                 }
                 break;
             } default: {
-                System.err.println("No such parameter: " + parameterName + " (value: " + value + ")");
+                System.err.println("[ERROR] No such parameter: " + parameterName + " (value: " + value + ")");
                 throw new NotImplementedException();
             }
         }
     }
 
-    public SearchResult _search(SearchDomain domain) {
-        this.domain = domain;
+    private boolean canContinueRunning() {
+        return !this.open.isEmpty() || !this.cleanup.isEmpty();
+    }
+
+    private SearchResult _search(boolean clearOpenList) {
         // The result will be stored here
         Node goal = null;
-        // Initialize all the data structures required for the search
-        this._initDataStructures();
 
         SearchResultImpl result = new SearchResultImpl();
         result.startTimer();
+
+        // Initialize all the data structures required for the search
+        this._initDataStructures(clearOpenList, true, clearOpenList);
 
         // Extract the initial state from the domain
         State currentState = domain.initialState();
@@ -176,7 +211,7 @@ public class BEES implements SearchAlgorithm {
         this._insertNode(initialNode);
 
         // Loop while there is no solution and there are states in the OPEN list
-        while ((goal == null) && !this.open.isEmpty()) {
+        while ((goal == null) && this.canContinueRunning()) {
             // Take a node from the OPEN list (nodes are sorted according to the 'u' function)
             Node currentNode = this._selectNode();
             // Debug ...
@@ -225,30 +260,33 @@ public class BEES implements SearchAlgorithm {
                     ++result.duplicates;
                     // Take the duplicate node
                     Node dupChildNode = this.closed.get(childNode.packed);
-                    if (dupChildNode.f > childNode.f) {
-                        // Consider only duplicates with higher G value
-                        if (dupChildNode.g > childNode.g) {
-                            // In case the node is in the OPEN list - update its key using the new G
-                            if (dupChildNode.getIndex(this.open.getKey()) != -1) {
-                                ++result.opupdated;
-                                // Update all the values from the duplicate state (including hHat and dHat)
-                                dupChildNode.updateFromDuplicate(childNode, childState, currentState);
-                                // Now, update the location of the node in OPEN and CLEANUP (already in CLOSED)
-                                this.open.update(dupChildNode);
-                                // It must be in cleanup too!
-                                assert dupChildNode.getIndex(this.cleanup.getKey()) != -1;
-                                this.cleanup.update(dupChildNode);
+                    // Consider only duplicates with higher g-value
+                    if (dupChildNode.g > childNode.g) {
+                        // In case the node is in the OPEN list - update its key using the new G
+                        if (dupChildNode.getIndex(this.open.getKey()) != -1) {
+                            ++result.opupdated;
+                            // Update all the values from the duplicate state (including hHat and dHat)
+                            dupChildNode.updateFromDuplicate(childNode, childState, currentState);
+                            // Now, update the location of the node in OPEN and CLEANUP (already in CLOSED)
+                            this.open.update(dupChildNode);
+                            // It must be in cleanup too!
+                            assert dupChildNode.getIndex(this.cleanup.getKey()) != -1;
+                            this.cleanup.update(dupChildNode);
+                        } else {
+                            // In any case, update the duplicate node (remains the same in closed)
+                            // Update all the values from the duplicate state (including hHat and dHat)
+                            dupChildNode.updateFromDuplicate(childNode, childState, currentState);
+                            // Return to OPEN list only if reopening is allowed
+                            if (this.reopen) {
+                                ++result.reopened;
+                                if (dupChildNode.fHat <= this.maxCost) {
+                                    this.open.add(dupChildNode);
+                                }
+                                this.cleanup.add(dupChildNode);
                             } else {
-                                // In any case, update the duplicate node (remains the same in closed)
-                                // Update all the values from the duplicate state (including hHat and dHat)
-                                dupChildNode.updateFromDuplicate(childNode, childState, currentState);
-                                // Return to OPEN list only if reopening is allowed
-                                if (this.reopen) {
-                                    ++result.reopened;
-                                    if (dupChildNode.fHat <= this.maxCost) {
-                                        this.open.add(dupChildNode);
-                                    }
-                                    this.cleanup.add(dupChildNode);
+                                // For never reopen
+                                if (this.incons != null) {
+                                    this.incons.put(dupChildNode.packed, dupChildNode);
                                 }
                             }
                         }
@@ -304,21 +342,110 @@ public class BEES implements SearchAlgorithm {
 
     }
 
-    public SearchResult search(SearchDomain domain) {
-        SearchResult toReturn = this._search(domain);
-        if (!toReturn.hasSolution() && (!this.reopen && this.rerun)) {
-            System.out.println("[INFO] BEES Failed with NR, tries again with AR");
-            this.reopen = true;
-            SearchResult toReturnAR = this._search(domain);
-            toReturnAR.increase(toReturn);
-            // Revert to base state
-            this.reopen = false;
-            if (toReturnAR.hasSolution()) {
-                System.out.println("[INFO] BEES with NR failed but BEES with AR succeeded.");
+    /**
+     * The function performs NRR for BEES - some iterations with NR (and putting the states that should be reopened
+     * into an inconsistency list) are performed. Then, the algorithm continues solving using AR.
+     *
+     * @param nrIterationsCount The number of iterations of NR
+     *
+     * @return The found solution
+     */
+    private SearchResult iterativeSearch(int nrIterationsCount) {
+        SearchResult accumulatorResult = new SearchResultImpl();
+        // TODO: This is ugly!
+        boolean previousReopenValue = this.reopen;
+
+        SearchResult currentResult;
+        this.reopen = false;
+
+        while (true) {
+            // Decrease the NR iterations
+            --nrIterationsCount;
+            // In case reopening should be stopped - assure this here
+            if (nrIterationsCount < 0) {
+                this.reopen = true;
             }
-            return  toReturnAR;
+            // Search without cleaning open/closed
+            currentResult = this._search(false);
+            // Add current iteration
+            ((SearchResultImpl) accumulatorResult).addIteration(1, this.maxCost,
+                    currentResult.getExpanded(), currentResult.getGenerated());
+            // We will break here if we found a valid solution, or if AR was performed and there is no solution ...
+            if (currentResult.hasSolution() || this.reopen) {
+                ((SearchResultImpl)currentResult).addIterations((SearchResultImpl)accumulatorResult);
+                // Note that the finalResult is still based on only the previous counters, thus, adding to local will
+                // reveal to the total value of counters
+                currentResult.increase(accumulatorResult);
+                break;
+            }
+            // Update the total result
+            accumulatorResult.increase(currentResult);
+            assert nrIterationsCount >= 0;
+            System.out.println("[INFO] BEES Failed with NR, moves " + incons.size() +
+                    " states to open and tries again");
+            // Update number of reopened states
+            ((SearchResultImpl) accumulatorResult).reopened += this.incons.size();
+            for (PackedElement current : this.incons.keySet()) {
+                this._insertNode(this.incons.get(current));
+            }
+            this.incons.clear();
+            System.out.println("[INFO] Now there are " + this.open.size() + " states in open and " +
+                this.cleanup.size() + " states in cleanup; runs again");
+            // No option to continue looking for solution ...
+            if (!this.canContinueRunning()) {
+                // Note that the finalResult is still based on only the previous counters, thus, adding to local
+                // will reveal to the total value of counters
+                currentResult.increase(accumulatorResult);
+                break;
+            }
+            // Back to start of the loop
         }
-        return toReturn;
+        this.reopen = previousReopenValue;
+        return currentResult;
+    }
+
+
+    public SearchResult search(SearchDomain domain) {
+        this.domain = domain;
+        // Perform initialization of all the data structures used during the search
+        this._initDataStructures(true, true, true);
+        switch (this.rerun) {
+            case NO_RERUN: {
+                // Run a single iteration and stop
+                return this._search(true);
+            }
+            case NRR1: {
+                // First search with NR (clear Open)
+                SearchResult nrResult = this._search(true);
+                // Run from scratch if required
+                if (!nrResult.hasSolution()) {
+                    System.out.println("[INFO] PTS Failed with NR, tries again with AR from scratch");
+                    this.reopen = true;
+                    SearchResult arResult = this._search(true);
+                    // Add current iteration
+                    ((SearchResultImpl) arResult).addIteration(1, this.maxCost,
+                            nrResult.getExpanded(), nrResult.getGenerated());
+                    arResult.increase(nrResult);
+                    // Revert to base state
+                    this.reopen = false;
+                    if (arResult.hasSolution()) {
+                        System.out.println("[INFO] PTS with NR failed but PTS with AR from scratch succeeded.");
+                    }
+                    // In any case return the arResult
+                    return arResult;
+                }
+                // Return the first result
+                return nrResult;
+            }
+            case NRR1dot5: {
+                return this.iterativeSearch(1);
+            }
+            case NRR2: {
+                return this.iterativeSearch(Integer.MAX_VALUE);
+            }
+        }
+        // We should not go here!
+        return null;
     }
 
     /**
@@ -469,7 +596,7 @@ public class BEES implements SearchAlgorithm {
             this.fHat = this.g + this.hHat;
 
             // This must be true assuming the heuristic is admissible (fHat may only overestimate the cost to the goal)
-            assert this.fHat >= this.f;
+            //assert this.fHat >= this.f;
             assert this.dHat >= 0;
         }
 
