@@ -178,7 +178,12 @@ public class SearchResultImpl implements SearchResult {
         return bean.isCurrentThreadCpuTimeSupported() ?
                 bean.getCurrentThreadCpuTime() : -1L;
     }
-  
+
+    public long getPassedTimeInSeconds() {
+        // Divide by 1000 to convert from ms. to sec.
+        return (System.currentTimeMillis() - this.startWallTimeMillis) / 1000;
+    }
+
   /*
    * Returns the machine Id
    */

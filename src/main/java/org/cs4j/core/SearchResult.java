@@ -106,6 +106,13 @@ public interface SearchResult {
     public long getCpuTimeMillis();
 
     /**
+     * Returns the number of seconds passed since the start of the run
+     *
+     * @return The number of seconds passed since the start of the run
+     */
+    long getPassedTimeInSeconds();
+
+    /**
      * Increases the statistics by the values of the previous search
      */
     public void increase(SearchResult previous);
