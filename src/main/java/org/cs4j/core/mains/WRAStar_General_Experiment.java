@@ -483,8 +483,8 @@ public class WRAStar_General_Experiment {
     public static void main(String[] args) {
         Utils.disablePrints();
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        WRAStar_General_Experiment.mainGridPathFindingExperimentWithPivotsNRR();
-        //WRAStar_General_Experiment.mainTopSpin16Experiment();
+        //WRAStar_General_Experiment.mainGridPathFindingExperimentWithPivotsNRR();
+        WRAStar_General_Experiment.mainTopSpin16Experiment();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }
 }

@@ -112,13 +112,13 @@ public class DomainsCreation {
 
     public static SearchDomain createTopSpin16InstanceWithPDBs(SearchDomain previous, String instance)
             throws IOException {
-        String topSpinDirectory = "input/topspin/topspin16";
+        String topSpinDirectory = "input/topspin/topspin16-100-solvable";
         InputStream is = new FileInputStream(new File(topSpinDirectory, instance));
         return new TopSpin((TopSpin)previous, is);
     }
 
     public static SearchDomain createTopSpin16InstanceWithPDBs(String instance) throws FileNotFoundException {
-        String topSpinDirectory = "input/topspin/topspin16";
+        String topSpinDirectory = "input/topspin/topspin16-100-solvable";
         InputStream is = new FileInputStream(new File(topSpinDirectory, instance));
         TopSpin problem = new TopSpin(is);
 
@@ -126,12 +126,14 @@ public class DomainsCreation {
                 "0-" + (15*14*13*12*11*10*9) + "-{0,1,2,3,4,5,6,7}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_1_2_3_4_5_6_7");
         problem.setAdditionalParameter("pdb-data",
                 "1-" + (15*14*13*12*11*10*9) + "-{0,2,3,4,5,6,7,8}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_2_3_4_5_6_7_8");
+        /*
         problem.setAdditionalParameter("pdb-data",
                 "2-" + (15*14*13*12*11*10*9) + "-{0,3,4,5,6,7,8,9}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_3_4_5_6_7_8_9");
         problem.setAdditionalParameter("pdb-data",
                 "3-" + (15*14*13*12*11*10*9) + "-{0,4,5,6,7,8,9,10}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_4_5_6_7_8_9_10");
         problem.setAdditionalParameter("pdb-data",
                 "4-" + (15*14*13*12*11*10*9) + "-{0,5,6,7,8,9,10,11}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_5_6_7_8_9_10_11");
+
         problem.setAdditionalParameter("pdb-data",
                 "5-" + (15*14*13*12*11*10*9) + "-{0,6,7,8,9,10,11,12}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_6_7_8_9_10_11_12");
         problem.setAdditionalParameter("pdb-data",
@@ -140,7 +142,7 @@ public class DomainsCreation {
                 "7-" + (15*14*13*12*11*10*9) + "-{0,8,9,10,11,12,13,14}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_8_9_10_11_12_13_14");
         problem.setAdditionalParameter("pdb-data",
                 "8-" + (15*14*13*12*11*10*9) + "-{0,9,10,11,12,13,14,15}-input\\topspin\\topspin16\\Size16Spin4Pattern_0_9_10_11_12_13_14_15");
-
+        */
         problem.setAdditionalParameter("heuristic", "random-pdb");
 
         return problem;
@@ -186,7 +188,7 @@ public class DomainsCreation {
     }
 
     public static SearchDomain create15PuzzleInstanceFromKorfInstancesPDB555(String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/daniel/fif100/" + instance));
         FifteenPuzzle puzzle = new FifteenPuzzle(is);
         String PDBsDirs[] = new String[]{"C:\\users\\user\\", "H:\\", "C:\\"};
         puzzle.setAdditionalParameter("heuristic", "pdb-555");
@@ -230,7 +232,7 @@ public class DomainsCreation {
     }
 
     public static SearchDomain create15PuzzleInstanceFromKorfInstances(SearchDomain previous, String instance) throws FileNotFoundException {
-        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/korf100/" + instance));
+        InputStream is = new FileInputStream(new File("input/fifteenpuzzle/daniel/fif100/" + instance));
         return new FifteenPuzzle((FifteenPuzzle)previous, is);
     }
 

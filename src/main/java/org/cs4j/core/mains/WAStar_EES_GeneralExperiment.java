@@ -50,7 +50,8 @@ public class WAStar_EES_GeneralExperiment {
      * @return The updated array
      */
     private boolean[] _avoidUnnecessaryReopens(SingleWeight[] weights, boolean[] currentReopenPossibilities) {
-        if (Arrays.equals(weights, this.weights.OPTIMAL_WEIGHTS)) {
+        if (Arrays.equals(weights, this.weights.OPTIMAL_WEIGHTS) ||
+                Arrays.equals(weights, this.weights.DEBUG_WEIGHTS)) {
             return new boolean[]{true};
         }
         return currentReopenPossibilities;
@@ -276,7 +277,7 @@ public class WAStar_EES_GeneralExperiment {
 
         // Create the domain by reading the first instance (the PDBs are read once)
         SearchDomain domain =
-                DomainsCreation.createTopSpin16InstanceWithPDBs(
+                DomainsCreation.createTopSpin12InstanceWithPDBs(
                         firstInstance + ".in");
 
         OutputResult output = this.getOutputResult(outputPath, null, needHeader);
@@ -284,7 +285,7 @@ public class WAStar_EES_GeneralExperiment {
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
             domain =
-                    DomainsCreation.createTopSpin16InstanceWithPDBs(
+                    DomainsCreation.createTopSpin12InstanceWithPDBs(
                             domain,
                             i + ".in");
             // Bypass not found files
@@ -295,11 +296,10 @@ public class WAStar_EES_GeneralExperiment {
                 double weight = w.getWeight();
                 output.write(i + "," + w.wg + "," + w.wh + "," + weight + ",");
                 for (boolean reopen : this._avoidUnnecessaryReopens(weights, this.reopenPossibilities)) {
-                    SearchAlgorithm alg = new WAStar();
+                    SearchAlgorithm alg = new EES();
                     alg.setAdditionalParameter("weight", weight + "");
                     alg.setAdditionalParameter("reopen", reopen + "");
                     //alg.setAdditionalParameter("bpmx", true + "");
-                    //SearchAlgorithm alg = new EES(weight, reopen);
                     System.out.println(
                             "[INFO] Alg: " + alg.getName() +
                                     ", Instance: " + i +
@@ -316,7 +316,6 @@ public class WAStar_EES_GeneralExperiment {
                             System.out.println("[INFO] Done: " + Arrays.toString(resultData));
                             output.appendNewResult(resultData);
                         }
-                        output.newline();
                     } catch (OutOfMemoryError e) {
                         System.out.println("[INFO] Done: OutOfMemory");
                         output.appendNewResult(this._getOutOfMemoryResult());
@@ -436,21 +435,21 @@ public class WAStar_EES_GeneralExperiment {
         Weights.SingleWeight[] weights = Utils.concatenate(
                 this.weights.VERY_LOW_WEIGHTS,
                 this.weights.PAPER_ADDITIONAL_WEIGHTS);
-        //weights = this.weights.PAPER_2016_MISSING_WEIGHTS;
+        weights = this.weights.MISSING_WEIGHTS;
         Arrays.sort(weights);
 
         // Create the first domain by reading the first instance
+        //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB555(firstInstance + ".in");
         //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstancesPDB78(firstInstance + ".in");
         //domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(firstInstance + ".in");
 
         // Go over all the possible combinations and solve!
         for (int i = firstInstance; i <= instancesCount; ++i) {
             // Create the domain by reading the relevant instance file
-            //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
-            //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(domain, i + ".in");
+            domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(null, i + ".in");
             //domain = DomainsCreation.createVacuumRobotInstanceFromAutomaticallyGenerated(i + ".in");
             //domain = DomainsCreation.create15PuzzleInstanceFromKorfInstances(null, i + ".in");
-            domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
+            //domain = DomainsCreation.createGridPathFindingInstanceFromAutomaticallyGenerated(i + ".in");
             //domain = DomainsCreation.createDockyardRobotInstanceFromAutomaticallyGenerated(i + ".in");
             // Bypass not found files
             if (domain == null) {
@@ -658,9 +657,9 @@ public class WAStar_EES_GeneralExperiment {
                     // First instance ID
                     1,
                     // Instances Count
-                    1000,
+                    100,
                     // Output Path
-                    "results/topspin/topspin16-9pdbs/nrr-paper2016weights",
+                    "results/topspin/topspin12-3pdbs/wastar-paper2016weights",
                     // Add header
                     true);
         } catch (IOException e) {
@@ -710,9 +709,10 @@ public class WAStar_EES_GeneralExperiment {
                     // Output Path
                     //"results/dockyardrobot/generated-max-edge-2-out-of-place-30/generated-ees-extended",
                     //"results/gridpathfinding/generated/maze512-1-6.map/generated+wastar+extended-80-md",
-                    "results/gridpathfinding/generated/den400d.map/generated+ees+extended",
+                    //"results/gridpathfinding/generated/den400d.map/generated+ees+extended",
                     //"results/fifteenpuzzle/korf100-real/pdb78/generated-wastar+extended",
                     //"results/fifteenpuzzle/korf100/generated-wastar+extended",
+                    "results/fifteenpuzzle/daniel/md/generated-ees+extended-1dot1-1dot3",
                     //"results/fifteenpuzzle/korf100/pdb555/generated-wastar+optimal",
                     //"results/vacuumrobot/generated+wastar+extended",
                     //"results/pancakes/generated-40/generated+wastar+optimal",
@@ -767,10 +767,10 @@ public class WAStar_EES_GeneralExperiment {
      ******************************************************************************************************************/
 
     public static void main(String[] args) {
-        Utils.disablePrints();
+        //Utils.disablePrints();
         //WAStar_EES_GeneralExperiment.cleanAllSearchFiles();
-        //WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
-        WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
+        WAStar_EES_GeneralExperiment.mainGeneralExperimentSingleThreaded();
+        //WAStar_EES_GeneralExperiment.mainGridPathFindingExperimentWithPivotsSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainTopSpinExperimentSingleThreaded();
         //WAStar_EES_GeneralExperiment.mainGeneralExperimentMultiThreaded();
     }

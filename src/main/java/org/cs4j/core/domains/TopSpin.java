@@ -32,7 +32,7 @@ public class TopSpin implements SearchDomain {
     private Operator[] possibleOperators;
 
     // TODO: Make configurable
-    private int tokensNumber = 10;
+    private int tokensNumber = 12;
     private int spinSize = 4;
 
     //private boolean operatorsMatrix[][];
