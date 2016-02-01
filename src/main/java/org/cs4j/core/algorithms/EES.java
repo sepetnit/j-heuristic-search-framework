@@ -261,6 +261,12 @@ public class EES implements SearchAlgorithm {
             // First, take the best node from the open list (best f^)
             Node oldBest = this.gequeue.peekOpen();
 
+            // Debug
+            if (result.getPassedTimeInSeconds() > 180) {
+                System.out.println("[WARNING] Time overflow (" + result.getPassedTimeInSeconds() + ")");
+                break;
+            }
+
             // Now this node is in closed only, and not in open
             Node bestNode = this._selectNode();
 
@@ -271,6 +277,7 @@ public class EES implements SearchAlgorithm {
 
             // TODO: Can it happen?
             if (bestNode == null) {
+                System.out.println("[WARNING] No Best Node from Open");
                 break;
             }
 

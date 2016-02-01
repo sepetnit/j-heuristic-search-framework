@@ -165,6 +165,15 @@ public class WAStar implements SearchAlgorithm {
 
         // Loop over the frontier
         while (!this.open.isEmpty()) {
+
+            // Debug
+
+            if (result.getPassedTimeInSeconds() > 120) {
+                System.out.println("[WARNING] Time overflow (" + result.getPassedTimeInSeconds() + ")");
+                break;
+            }
+
+
             // Take the first state (still don't remove it)
             Node currentNode = this.open.poll();
 
